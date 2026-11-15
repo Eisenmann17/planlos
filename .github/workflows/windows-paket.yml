@@ -45,9 +45,11 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path bin | Out-Null
-          fpc -Mobjfpc -FcUTF8 -Fusrc -obin\schema_pruefen.exe src\schema_pruefen.lpr
-          Copy-Item sqlite-dll\sqlite3.dll bin\sqlite3.dll -Force
-          & .\bin\schema_pruefen.exe
+          fpc -Mobjfpc -FcUTF8 "-Fusrc" "-obin/schema_pruefen.exe" "src/schema_pruefen.lpr"
+          $exe = Get-ChildItem -Recurse -Filter "schema_pruefen.exe" | Select-Object -First 1
+          if (-not $exe) { throw "schema_pruefen.exe wurde nicht erzeugt." }
+          Copy-Item "sqlite-dll\sqlite3.dll" (Join-Path $exe.DirectoryName "sqlite3.dll") -Force
+          & $exe.FullName
           if ($LASTEXITCODE -ne 0) { throw "Die Schema-Prüfung ist fehlgeschlagen." }
 
       - name: ZIP packen
