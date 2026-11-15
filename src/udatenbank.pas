@@ -1318,4 +1318,12 @@ begin
   end;
 end;
 
+initialization
+  { Auf Windows ist die normale Zeichentabelle nicht UTF-8.
+    SQLite und die Quelltexte sind UTF-8. Diese Zuordnung sorgt dafür,
+    dass Umlaute auf dem Weg in die Datenbank nicht verändert werden. }
+  {$IFDEF MSWINDOWS}
+  DefaultSystemCodePage := CP_UTF8;
+  {$ENDIF}
+
 end.
