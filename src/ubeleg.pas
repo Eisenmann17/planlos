@@ -100,13 +100,39 @@ function BelegLaden(Id: Int64; out Kopf: TBelegKopf; out Positionen: TPosListe):
 function FolgebelegErzeugen(QuellId: Int64; const ZielKuerzel: string;
   out Fehler: string): Int64;
 function BelegNummer(Id: Int64): string;
+function BelegArtKuerzel(Id: Int64): string;
 function BelegAnzahl(const Kuerzel, Suchtext: string): Integer;
 procedure BelegeLesen(const Kuerzel, Suchtext: string; Spalten, Zeilen: TStrings);
+
+type
+  TZeitraum = (zrAlle, zrJahr, zrMonat, zrTag);
+  TModulFilter = (mfAlle, mfBezeichnung, mfAdressname, mfNummer, mfProjekt);
+  TSonstiges = (soAlle, soBearbeiter, soGruppe);
+
+  TExplorerFilter = record
+    Modulart: string;
+    ModulFilter: TModulFilter;
+    Suchtext: string;
+    AdresseId: Int64;
+    ProjektId: Int64;
+    Zeitraum: TZeitraum;
+    Jahr: Integer;
+    Monat: Integer;
+    Tag: string;
+    Sonstiges: TSonstiges;
+    BearbeiterId: Int64;
+    Gruppe: string;
+  end;
+
+{ Zeilen: id, kuerzel, Modulart, Bezeichnung, Adressname, Nr, Projektname,
+  Erfassungsdatum, Bearbeiter, Gruppierung, LetzteBearbeitung. }
+procedure ExplorerLesen(const Filter: TExplorerFilter; Spalten, Zeilen: TStrings);
+procedure ExplorerWerte(const Was, Modulart: string; Ziel: TStrings);
 
 implementation
 
 uses
-  udatenbank;
+  udatenbank, ubenutzer;
 
 function Kaufmaennisch(Zaehler, Nenner: Int64): Int64;
 var
@@ -533,11 +559,15 @@ begin
         Parameter.Values['bezug'] := ''
       else
         Parameter.Values['bezug'] := IntToStr(Kopf.BezugId);
+      if AngemeldeterMitarbeiter > 0 then
+        Parameter.Values['bearbeiter'] := IntToStr(AngemeldeterMitarbeiter)
+      else
+        Parameter.Values['bearbeiter'] := '';
       PlanlosDB.Ausfuehren(
         'INSERT INTO beleg (modulart_id, nummer, adresse_id, bezeichnung, kopftext, ' +
-        'fusstext, notiz, bezug_beleg_id, mwst_rechnen, angelegt, geaendert) VALUES (' +
-        ':art, :nummer, NULLIF(:adresse, ''0''), :bezeichnung, :kopf, :fuss, :notiz, ' +
-        'NULLIF(:bezug, ''''), :mwst, :jetzt, :jetzt)', Parameter);
+        'fusstext, notiz, bezug_beleg_id, mwst_rechnen, bearbeiter_id, angelegt, geaendert) ' +
+        'VALUES (:art, :nummer, NULLIF(:adresse, ''0''), :bezeichnung, :kopf, :fuss, :notiz, ' +
+        'NULLIF(:bezug, ''''), :mwst, NULLIF(:bearbeiter, ''''), :jetzt, :jetzt)', Parameter);
       Kopf.Id := StrToInt64Def(Trim(PlanlosDB.Skalar('SELECT last_insert_rowid()')), 0);
     end
     else
@@ -692,6 +722,24 @@ begin
   end;
 end;
 
+function BelegArtKuerzel(Id: Int64): string;
+var
+  Parameter: TStringList;
+begin
+  Result := '';
+  if not Bereit then
+    Exit;
+  Parameter := TStringList.Create;
+  try
+    Parameter.Values['id'] := IntToStr(Id);
+    Result := PlanlosDB.SkalarMit(
+      'SELECT m.kuerzel FROM beleg b JOIN modulart m ON m.id = b.modulart_id ' +
+      'WHERE b.id = :id', Parameter);
+  finally
+    Parameter.Free;
+  end;
+end;
+
 function FolgebelegErzeugen(QuellId: Int64; const ZielKuerzel: string;
   out Fehler: string): Int64;
 var
@@ -810,6 +858,180 @@ begin
   finally
     IdSpalten.Free;
     Ids.Free;
+    Parameter.Free;
+  end;
+end;
+
+function MusterAus(const Suchtext: string): string;
+begin
+  Result := '%' + Trim(StringReplace(StringReplace(Suchtext, '%', '',
+    [rfReplaceAll]), '_', '', [rfReplaceAll])) + '%';
+end;
+
+procedure ExplorerLesen(const Filter: TExplorerFilter; Spalten, Zeilen: TStrings);
+var
+  Parameter, Roh: TStringList;
+  SQL, Monat: string;
+  i: Integer;
+begin
+  Spalten.Clear;
+  Zeilen.Clear;
+  Spalten.Add('id');
+  Spalten.Add('kuerzel');
+  Spalten.Add('Modulart');
+  Spalten.Add('Bezeichnung');
+  Spalten.Add('Adressname');
+  Spalten.Add('Nr');
+  Spalten.Add('Projektname');
+  Spalten.Add('Erfassungsdatum');
+  Spalten.Add('Bearbeiter');
+  Spalten.Add('Gruppierung');
+  Spalten.Add('LetzteBearbeitung');
+  if not Bereit then
+    Exit;
+  SQL :=
+    'SELECT b.id, m.kuerzel, m.bezeichnung, COALESCE(b.bezeichnung, ''''), ' +
+    'TRIM(COALESCE(a.firma, '''') || '' '' || COALESCE(a.nachname, '''')), ' +
+    'b.nummer, COALESCE(p.bezeichnung, ''''), b.angelegt, ' +
+    'TRIM(COALESCE(ba.vorname, '''') || '' '' || COALESCE(ba.nachname, '''')), ' +
+    'COALESCE(b.gruppierung, ''''), b.geaendert ' +
+    'FROM beleg b JOIN modulart m ON m.id = b.modulart_id ' +
+    'LEFT JOIN adresse a ON a.id = b.adresse_id ' +
+    'LEFT JOIN beleg p ON p.id = b.projekt_id ' +
+    'LEFT JOIN adresse ba ON ba.id = b.bearbeiter_id WHERE 1 = 1';
+  Parameter := TStringList.Create;
+  Roh := TStringList.Create;
+  try
+    if Filter.Modulart <> '' then
+    begin
+      SQL := SQL + ' AND m.kuerzel = :art';
+      Parameter.Values['art'] := Filter.Modulart;
+    end;
+    case Filter.ModulFilter of
+      mfBezeichnung:
+        begin
+          SQL := SQL + ' AND b.bezeichnung LIKE :muster';
+          Parameter.Values['muster'] := MusterAus(Filter.Suchtext);
+        end;
+      mfAdressname:
+        begin
+          SQL := SQL + ' AND b.adresse_id = :adresse';
+          Parameter.Values['adresse'] := IntToStr(Filter.AdresseId);
+        end;
+      mfNummer:
+        begin
+          SQL := SQL + ' AND b.nummer LIKE :muster';
+          Parameter.Values['muster'] := MusterAus(Filter.Suchtext);
+        end;
+      mfProjekt:
+        begin
+          SQL := SQL + ' AND b.projekt_id = :projekt';
+          Parameter.Values['projekt'] := IntToStr(Filter.ProjektId);
+        end;
+    end;
+    case Filter.Zeitraum of
+      zrJahr:
+        begin
+          SQL := SQL + ' AND substr(b.angelegt, 1, 4) = :jahr';
+          Parameter.Values['jahr'] := IntToStr(Filter.Jahr);
+        end;
+      zrMonat:
+        begin
+          Monat := IntToStr(Filter.Jahr) + '-';
+          if Filter.Monat < 10 then
+            Monat := Monat + '0';
+          Monat := Monat + IntToStr(Filter.Monat);
+          SQL := SQL + ' AND substr(b.angelegt, 1, 7) = :monat';
+          Parameter.Values['monat'] := Monat;
+        end;
+      zrTag:
+        begin
+          SQL := SQL + ' AND substr(b.angelegt, 1, 10) = :tag';
+          Parameter.Values['tag'] := Filter.Tag;
+        end;
+    end;
+    case Filter.Sonstiges of
+      soBearbeiter:
+        begin
+          SQL := SQL + ' AND b.bearbeiter_id = :bearbeiter';
+          Parameter.Values['bearbeiter'] := IntToStr(Filter.BearbeiterId);
+        end;
+      soGruppe:
+        begin
+          SQL := SQL + ' AND b.gruppierung = :gruppe';
+          Parameter.Values['gruppe'] := Filter.Gruppe;
+        end;
+    end;
+    SQL := SQL + ' ORDER BY b.angelegt DESC, b.id DESC';
+    PlanlosDB.AlleZeilen(SQL, Parameter, Spalten, Roh);
+    Zeilen.Clear;
+    Spalten.Clear;
+    Spalten.Add('id');
+    Spalten.Add('kuerzel');
+    Spalten.Add('Modulart');
+    Spalten.Add('Bezeichnung');
+    Spalten.Add('Adressname');
+    Spalten.Add('Nr');
+    Spalten.Add('Projektname');
+    Spalten.Add('Erfassungsdatum');
+    Spalten.Add('Bearbeiter');
+    Spalten.Add('Gruppierung');
+    Spalten.Add('LetzteBearbeitung');
+    for i := 0 to Roh.Count - 1 do
+    begin
+      Zeilen.Add(Roh[i]);
+    end;
+  finally
+    Roh.Free;
+    Parameter.Free;
+  end;
+end;
+
+procedure ExplorerWerte(const Was, Modulart: string; Ziel: TStrings);
+var
+  Parameter, Spalten, Zeilen: TStringList;
+  SQL: string;
+begin
+  Ziel.Clear;
+  if not Bereit then
+    Exit;
+  if Was = 'bezeichnung' then
+    SQL := 'SELECT DISTINCT b.bezeichnung FROM beleg b ' +
+      'JOIN modulart m ON m.id = b.modulart_id ' +
+      'WHERE b.bezeichnung IS NOT NULL AND b.bezeichnung <> '''' ' +
+      'AND (:alle = ''1'' OR m.kuerzel = :art) ORDER BY b.bezeichnung'
+  else if Was = 'gruppierung' then
+    SQL := 'SELECT DISTINCT b.gruppierung FROM beleg b ' +
+      'JOIN modulart m ON m.id = b.modulart_id ' +
+      'WHERE b.gruppierung IS NOT NULL AND b.gruppierung <> '''' ' +
+      'AND (:alle = ''1'' OR m.kuerzel = :art) ORDER BY b.gruppierung'
+  else if Was = 'projekt' then
+    SQL := 'SELECT b.id, b.bezeichnung FROM beleg b ' +
+      'JOIN modulart m ON m.id = b.modulart_id ' +
+      'WHERE m.kuerzel = ''projekt'' ORDER BY b.bezeichnung, b.id'
+  else if Was = 'jahr' then
+    SQL := 'SELECT DISTINCT substr(angelegt, 1, 4) FROM beleg ORDER BY 1'
+  else
+    Exit;
+  Parameter := TStringList.Create;
+  Spalten := TStringList.Create;
+  Zeilen := TStringList.Create;
+  try
+    if Was = 'jahr' then
+      PlanlosDB.AlleZeilen(SQL, nil, Spalten, Zeilen)
+    else
+    begin
+      if Modulart = '' then
+        Parameter.Values['alle'] := '1'
+      else
+        Parameter.Values['alle'] := '0';
+      Parameter.Values['art'] := Modulart;
+      PlanlosDB.AlleZeilen(SQL, Parameter, Spalten, Zeilen);
+    end;
+    Ziel.Assign(Zeilen);
+  finally
+    Zeilen.Free;
+    Spalten.Free;
     Parameter.Free;
   end;
 end;

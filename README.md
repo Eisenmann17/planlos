@@ -72,26 +72,28 @@ Vorhanden:
 
 - diese Erklärung, die Lizenz und das Konzept in `docs/KONZEPT.md`
 - der alte Quellcode unter `alt/MyOffice/`, nur zum Nachlesen
-- ein Lazarus-Programm unter `src/`: Hauptfenster, Tastenleiste,
-  kaskadierte Zusatzfenster, und ein Kontaktfenster
-- das Kontaktfenster ist eines. Die Maske in der Datenbank macht daraus
-  Kunde, Lieferant, Kontakt oder Mitarbeiter. Menü Adressen, im
-  Hauptfenster auch F4 für Kunden. In der Suche legt F2 einen Satz an
-- das Belegfenster ist eines. Menü Belege öffnet die Suche. F2 legt den
-  Beleg an, F3 wählt den Empfänger. Aus einem Angebot kann eine
-  Auftragsbestätigung oder eine Rechnung entstehen
+- ein Lazarus-Programm unter `src/`: Hauptfenster wie früher mit den
+  Reitern Explorer, Stammdaten, Einstellungen und Wartung/Hilfe,
+  Tastenleiste und kaskadierte Zusatzfenster
+- beim ersten Start der Anwender Admin mit dem Passwort 0000. Das
+  Passwort liegt nur als gesalzener Hash. Danach gilt die Rolle, für
+  Admin mit allen Rechten
+- das Kontaktfenster ist eines und sieht aus wie die alte Adressmaske.
+  Die Maske in der Datenbank macht daraus Kunde, Lieferant, Kontakt
+  oder Mitarbeiter. Ein Feld mit > öffnet eine Auswahlliste
+- das Belegfenster ist eines. Im Explorer legt Neu einen Beleg an,
+  ein Doppelklick öffnet ihn
 
 Noch nicht vorhanden:
 
 - kein Artikelstamm, kein Druck, kein PDF, keine E-Rechnung
-- keine Anmeldung. Die Rollenrechte liegen in der Datenbank bereit
 - PostgreSQL ist vorgesehen, aber noch nicht angeschlossen
 
 Die Datenbankdatei heißt `planlos.sqlite`. Sie entsteht beim ersten Start
 im Ordner `data` neben dem Programm. Wenn dieser Ordner nicht beschreibbar
 ist, liegt die Datei im persönlichen Ordner des Benutzers. Darin stehen
-fünf Belegarten, vier Adressmasken und die drei Rollen. Adressen sind noch
-keine eingetragen, bis Sie selbst welche anlegen.
+fünf Belegarten, vier Adressmasken, die drei Rollen und den Mitarbeiter
+Admin. Weitere Adressen legen Sie selbst an.
 
 ## Ausprobieren unter Windows
 

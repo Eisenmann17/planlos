@@ -34,6 +34,12 @@ type
     Pflicht: Boolean;
     InListe: Boolean;
     Breite: Integer;
+    Links: Integer;
+    Oben: Integer;
+    Feldbreite: Integer;
+    Feldhoehe: Integer;
+    Feldart: string;
+    Hintergrund: string;
   end;
 
   TFeldListe = array of TFeldInfo;
@@ -61,6 +67,9 @@ procedure AdresseLesen(Id: Int64; Ziel: TStrings);
 function AdresseLoeschen(const Kuerzel: string; Id: Int64): Boolean;
 function TrefferZahl(const Kuerzel, Suchtext: string): Integer;
 procedure TrefferLesen(const Kuerzel, Suchtext: string; Spalten, Zeilen: TStrings);
+function KategorieName(Id: Integer): string;
+procedure KategorienAuflisten(Ziel: TStrings);
+function MaskenKuerzelZuKategorie(Id: Integer): string;
 
 implementation
 
@@ -70,7 +79,8 @@ uses
 const
   ErlaubteSpalten =
     ',firma,anrede,titel,vorname,nachname,strasse,plz,ort,land,' +
-    'telefon,telefax,email,notiz,rabatt_prozent,';
+    'telefon,telefax,telefon_privat,telefon_andere,email,notiz,adressblock,' +
+    'frei1,frei2,frei3,frei4,rabatt_prozent,';
 
 function SpalteErlaubt(const Spalte: string): Boolean;
 begin
@@ -165,7 +175,8 @@ begin
     Parameter.Values['kuerzel'] := Kuerzel;
     PlanlosDB.AlleZeilen(
       'SELECT f.spalte, f.beschriftung, f.reihenfolge, f.sichtbar, f.pflicht, ' +
-      'f.in_liste, f.breite FROM maskenfeld f ' +
+      'f.in_liste, f.breite, f.links, f.oben, f.feldbreite, f.feldhoehe, ' +
+      'f.feldart, f.hintergrund FROM maskenfeld f ' +
       'JOIN maske m ON m.id = f.maske_id WHERE m.kuerzel = :kuerzel ' +
       'ORDER BY f.reihenfolge, f.id', Parameter, Spalten, Zeilen);
     SetLength(Result, Zeilen.Count);
@@ -181,6 +192,20 @@ begin
       Result[i].Pflicht := Wahr(TeileZeile[4]);
       Result[i].InListe := Wahr(TeileZeile[5]);
       Result[i].Breite := StrToIntDef(TeileZeile[6], 120);
+      if TeileZeile.Count > 7 then
+        Result[i].Links := StrToIntDef(TeileZeile[7], 0);
+      if TeileZeile.Count > 8 then
+        Result[i].Oben := StrToIntDef(TeileZeile[8], 0);
+      if TeileZeile.Count > 9 then
+        Result[i].Feldbreite := StrToIntDef(TeileZeile[9], 0);
+      if TeileZeile.Count > 10 then
+        Result[i].Feldhoehe := StrToIntDef(TeileZeile[10], 0);
+      if TeileZeile.Count > 11 then
+        Result[i].Feldart := TeileZeile[11];
+      if Result[i].Feldart = '' then
+        Result[i].Feldart := 'zeile';
+      if TeileZeile.Count > 12 then
+        Result[i].Hintergrund := TeileZeile[12];
     end;
   finally
     TeileZeile.Free;
@@ -348,7 +373,11 @@ begin
   Jetzt := FormatDateTime('yyyy-mm-dd"T"hh:nn:ss', Now);
   Parameter := TStringList.Create;
   try
-    Parameter.Values['kategorie'] := IntToStr(Info.KategorieId);
+    if (Werte <> nil) and (Werte.IndexOfName('kategorie') >= 0) and
+       (Trim(Werte.Values['kategorie']) <> '') then
+      Parameter.Values['kategorie'] := Trim(Werte.Values['kategorie'])
+    else
+      Parameter.Values['kategorie'] := IntToStr(Info.KategorieId);
     Parameter.Values['jetzt'] := Jetzt;
     if Id > 0 then
       Parameter.Values['id'] := IntToStr(Id);
@@ -397,7 +426,10 @@ begin
         end;
       if Erstes then
         SQL := 'UPDATE adresse SET geaendert = :jetzt';
-      SQL := SQL + ' WHERE id = :id AND kategorie_id = :kategorie';
+      if (Werte <> nil) and (Werte.IndexOfName('kategorie') >= 0) then
+        SQL := SQL + ' WHERE id = :id'
+      else
+        SQL := SQL + ' WHERE id = :id AND kategorie_id = :kategorie';
       if PlanlosDB.Ausfuehren(SQL, Parameter) < 1 then
         Fehler := 'Der Datensatz gehört nicht zu dieser Maske.'
       else
@@ -420,7 +452,8 @@ begin
     Parameter.Values['id'] := IntToStr(Id);
     PlanlosDB.ErsteZeile(
       'SELECT id, kategorie_id, firma, anrede, titel, vorname, nachname, strasse, ' +
-      'plz, ort, land, telefon, telefax, email, notiz, rabatt_prozent ' +
+      'plz, ort, land, telefon, telefax, telefon_privat, telefon_andere, email, ' +
+      'notiz, adressblock, frei1, frei2, frei3, frei4, rabatt_prozent ' +
       'FROM adresse WHERE id = :id', Parameter, Ziel);
   finally
     Parameter.Free;
@@ -537,6 +570,60 @@ begin
   begin
     Spalten.Add('Nachname');
     Spalten.Add('Firma');
+  end;
+end;
+
+function KategorieName(Id: Integer): string;
+var
+  Parameter: TStringList;
+begin
+  Result := '';
+  if not DatenbankBereit or (Id = 0) then
+    Exit;
+  Parameter := TStringList.Create;
+  try
+    Parameter.Values['id'] := IntToStr(Id);
+    Result := PlanlosDB.SkalarMit(
+      'SELECT bezeichnung FROM adresskategorie WHERE id = :id', Parameter);
+  finally
+    Parameter.Free;
+  end;
+end;
+
+procedure KategorienAuflisten(Ziel: TStrings);
+var
+  Spalten, Zeilen: TStringList;
+begin
+  Ziel.Clear;
+  if not DatenbankBereit then
+    Exit;
+  Spalten := TStringList.Create;
+  Zeilen := TStringList.Create;
+  try
+    PlanlosDB.AlleZeilen(
+      'SELECT id, bezeichnung FROM adresskategorie ORDER BY id',
+      nil, Spalten, Zeilen);
+    Ziel.Assign(Zeilen);
+  finally
+    Zeilen.Free;
+    Spalten.Free;
+  end;
+end;
+
+function MaskenKuerzelZuKategorie(Id: Integer): string;
+var
+  Parameter: TStringList;
+begin
+  Result := '';
+  if not DatenbankBereit or (Id = 0) then
+    Exit;
+  Parameter := TStringList.Create;
+  try
+    Parameter.Values['id'] := IntToStr(Id);
+    Result := PlanlosDB.SkalarMit(
+      'SELECT kuerzel FROM maske WHERE kategorie_id = :id ORDER BY id', Parameter);
+  finally
+    Parameter.Free;
   end;
 end;
 

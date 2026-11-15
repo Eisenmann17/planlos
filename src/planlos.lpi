@@ -30,7 +30,7 @@
         <PackageName Value="LCL"/>
       </Item1>
     </RequiredPackages>
-    <Units Count="11">
+    <Units Count="13">
       <Unit0>
         <Filename Value="planlos.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -85,6 +85,16 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="ubelegsuche"/>
       </Unit10>
+      <Unit11>
+        <Filename Value="ubenutzer.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="ubenutzer"/>
+      </Unit11>
+      <Unit12>
+        <Filename Value="uanmeldung.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="uanmeldung"/>
+      </Unit12>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

@@ -295,7 +295,7 @@ einem Satz Beschreibung.
 | Abteilungsleiter | sehen, neu, ändern, drucken |
 | Gruppenleiter | sehen, neu |
 
-Eine Anmeldung, die diese Belegrechte durchsetzt, gibt es noch nicht.
+Die Anmeldung setzt diese Belegrechte durch. Admin darf alles.
 
 **maske**, **maskenfeld**, **tastenbelegung**, **maskenrecht.** Es gibt
 ein Suchfenster (`usuche.pas`) und ein Eingabefenster (`ueingabe.pas`).
@@ -313,9 +313,10 @@ Die Suche filtert über `kategorie_id`. F2 öffnet die Eingabe derselben
 Maske. Nach dem Speichern ist der neue Satz in der Suche ausgewählt.
 Die Tastenbeschriftung und ob die Taste frei ist, kommt aus
 `tastenbelegung` (`kontext` `suche` oder `eingabe`). `maskenrecht` hält
-je Rolle sehen, neu, ändern und löschen bereit. Ohne Anmeldung schaltet
-das Fenster diese Rollenrechte noch nicht scharf; die Tastenfreigabe
-aus `tastenbelegung` gilt schon.
+je Rolle sehen, neu, ändern und löschen bereit. Nach der Anmeldung
+gilt beides: die Taste muss frei sein, und die Rolle muss die Aktion
+dürfen. Ein Feld mit > öffnet eine Auswahlliste, bei der Adresse die
+Kategorie.
 
 ### Vorgesehen, noch nicht angelegt
 
@@ -323,9 +324,9 @@ Eigene Felder des Benutzers, die keine echte Spalte sind, landen später in
 **zusatzwert** (`maske_id`, `datensatz_id`, `feld_kuerzel`, `wert`).
 So entsteht „Arbeitsschuhe“ ohne `CREATE TABLE` durch den Benutzer.
 
-**benutzer** mit Name, Passwort als heutiger Hash, und `rolle_id`.
-Die Anmeldung ist bewusst zurückgestellt. Dann gelten `maskenrecht`
-und `recht` für die Tasten.
+**benutzer** mit Name, Passwort als gesalzener SHA-256-Hash, `rolle_id`
+und `adresse_id` auf den Mitarbeiter. Die Anmeldung prüft den Hash.
+Danach gelten `maskenrecht` und `recht` für die Tasten.
 
 **beleg** und **belegposition** sind angelegt. Ein Fenster
 (`ubelegfenster.pas`), eine Suche (`ubelegsuche.pas`). Die Belegart
@@ -436,8 +437,10 @@ nicht ein Zeitplan.
 1. **Suchfenster für Adressen.** Erledigt. Eine Unit, vier Masken.
 2. **Eingabefenster derselben Maske.** Erledigt. F2 legt an und wählt
    den neuen Satz in der Suche aus.
-3. **Benutzer und Anmeldung.** Zurückgestellt. Passwort als Hash, eine
-   Rolle je Benutzer. Dann schalten `maskenrecht` und `recht` die Tasten aus.
+3. **Benutzer und Anmeldung.** Erledigt. Beim ersten Start gibt es den
+   Anwender Admin mit dem Passwort 0000, nur als gesalzener SHA-256-Hash,
+   verknüpft mit dem Mitarbeiter Admin und der Rolle Administrator.
+   `maskenrecht` und `recht` schalten die Tasten. Admin darf alles.
 4. **Belegfenster.** Erledigt. Eine Form, fünf Belegarten als Daten,
    freie Positionen, Summen in Cent, Folgebeleg mit eigener Nummer.
 5. **Artikelstamm.** Übernahme in die Position kopiert Text und Preis.
@@ -456,6 +459,9 @@ nicht ein Zeitplan.
 
 ## Bewusst noch nicht in diesem Stand
 
-Kein Druck, kein PDF, keine E-Rechnung, keine Anmeldung.
+Kein Druck, kein PDF, keine E-Rechnung.
 Die leeren Zusatzfenster zeigen weiter nur die Kaskade.
-Als Nächstes kommen Druck und PDF, danach die elektronische Rechnung.
+Das Hauptfenster folgt der alten Aufteilung Explorer, Stammdaten,
+Einstellungen, Wartung/Hilfe. Die Adressmaske übernimmt Stellen und
+Beschriftungen aus `UnitAdresse.dfm`. Frei1 bis Frei4 sind wieder da,
+weiter ohne feste Bedeutung. Als Nächstes kommen Druck und PDF.

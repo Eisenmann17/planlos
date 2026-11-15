@@ -41,6 +41,9 @@ procedure BelegsucheZeigen(const Kuerzel: string);
 
 implementation
 
+uses
+  ubenutzer;
+
 procedure Teile(const Zeile: string; Ziel: TStrings);
 var
   Rest, Stueck: string;
@@ -64,7 +67,13 @@ end;
 procedure BelegsucheZeigen(const Kuerzel: string);
 var
   Fenster: TBelegsuche;
+  Meldung: string;
 begin
+  if not AktionZulaessig('beleg', Kuerzel, 'sehen', Meldung) then
+  begin
+    ShowMessage(Meldung);
+    Exit;
+  end;
   Fenster := TBelegsuche.Create(Application);
   if not Fenster.Oeffne(Kuerzel) then
   begin
@@ -220,6 +229,7 @@ end;
 procedure TBelegsuche.Aktion(const Aktionsname: string);
 var
   Id: Int64;
+  Meldung: string;
 begin
   if Aktionsname = 'hilfe' then
     ShowMessage(
@@ -230,6 +240,11 @@ begin
     ListeLaden
   else if Aktionsname = 'neu' then
   begin
+    if not AktionZulaessig('beleg', FArt.Kuerzel, 'neu', Meldung) then
+    begin
+      ShowMessage(Meldung);
+      Exit;
+    end;
     Id := BelegBearbeiten(FArt.Kuerzel, 0);
     if Id > 0 then
     begin

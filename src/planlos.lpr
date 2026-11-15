@@ -19,8 +19,11 @@ uses
   athreads,
   {$ENDIF}
   Interfaces, // zieht das LCL-Widgetset (Fenster) herein
-  Forms,
-  uhaupt;
+  Forms, SysUtils,
+  uhaupt, uanmeldung, ubenutzer;
+
+var
+  Meldung: string;
 
 begin
   RequireDerivedFormResource := False;
@@ -28,5 +31,12 @@ begin
   Application.Title := 'Planlos';
   Application.Initialize;
   Application.CreateForm(THauptfenster, Hauptfenster);
+  if Hauptfenster.DatenbankOffen then
+  begin
+    if GetEnvironmentVariable('PLANLOS_SELBSTTEST') = '1' then
+      Anmelden('Admin', '0000', Meldung)
+    else if not AnmeldungZeigen then
+      Exit;
+  end;
   Application.Run;
 end.

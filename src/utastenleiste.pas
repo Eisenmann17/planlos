@@ -122,8 +122,7 @@ end;
 
 procedure HinweisNochOffen(const Aktion: string);
 begin
-  ShowMessage(Aktion + ' gibt es im Grundgerüst noch nicht.' + LineEnding +
-    'Die Taste ist schon beschriftet, damit die Leiste vollständig ist.');
+  ShowMessage(Aktion + ' gibt es in dieser Fassung noch nicht.');
 end;
 
 procedure ZeigeHilfe(Hauptfenster: Boolean);
@@ -145,9 +144,9 @@ begin
   else
     Text := Text + LineEnding + 'Esc schließt dieses Zusatzfenster ebenfalls.';
   Text := Text + LineEnding + LineEnding +
-    'Kunden, Lieferanten, Kontakte und Mitarbeiter stehen im Menü Adressen.' +
+    'Kunden, Lieferanten, Kontakte und Mitarbeiter stehen unter Stammdaten.' +
     LineEnding + 'Im Hauptfenster öffnet F4 die Kundensuche.' +
-    LineEnding + 'Angebote und Rechnungen gibt es noch nicht.';
+    LineEnding + 'F2 legt einen Beleg der gewählten Art an, F6 öffnet die Zeile.';
   ShowMessage(Text);
 end;
 
@@ -173,8 +172,7 @@ begin
     'Copyright (C) 2026 Günther Stadtler' + LineEnding +
     'Lizenz: GNU GPL, Version 3' + LineEnding +
     LineEnding +
-    'Dies ist das Grundgerüst: Tastenleiste, Fenster und eine SQLite-Datei.' +
-    LineEnding + 'Masken und Belege folgen.');
+    'Anmelden, Adressen und Belege. Die Masken richten sich nach der Datenbank.');
 end;
 
 constructor TTastenleiste.Create(AOwner: TComponent);

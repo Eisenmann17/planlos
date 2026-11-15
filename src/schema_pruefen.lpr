@@ -12,7 +12,7 @@ uses
   cwstring,
   {$ENDIF}
   Classes, SysUtils,
-  udatenbank, umaske, ubeleg;
+  udatenbank, umaske, ubeleg, ubenutzer;
 
 var
   DB: TPlanlosDatenbank;
@@ -25,9 +25,12 @@ var
   Summe: TBelegSumme;
   Kopf: TBelegKopf;
   Art: TBelegart;
-  FolgeFehler: string;
+  FolgeFehler, Meldung, Hash, Salz: string;
   FS: TFormatSettings;
   Rabatt: Double;
+  Filter: TExplorerFilter;
+  Sitz: TSitzung;
+  SpaltenX, ZeilenX: TStringList;
 
   procedure Fehlschlag(const Text: string);
   begin
@@ -36,6 +39,13 @@ var
   end;
 
 begin
+  if Sha256Hex('abc') <>
+    'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad' then
+    Fehlschlag('SHA-256 von abc stimmt nicht.');
+  if Sha256Hex('') <>
+    'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855' then
+    Fehlschlag('SHA-256 der leeren Zeichenkette stimmt nicht.');
+
   Frisch := ParamCount = 0;
   if Frisch then
     Pfad := IncludeTrailingPathDelimiter(GetTempDir) + 'planlos-pruefung.sqlite'
@@ -58,8 +68,28 @@ begin
         Fehlschlag('Es sollen 5 Belegarten angelegt sein.');
       if DB.Ganzzahl('SELECT COUNT(*) FROM adresskategorie') <> 4 then
         Fehlschlag('Es sollen 4 Adressarten angelegt sein.');
-      if DB.Ganzzahl('SELECT COUNT(*) FROM adresse') <> 0 then
-        Fehlschlag('Die Adressliste soll leer starten.');
+      if DB.Ganzzahl('SELECT COUNT(*) FROM adresse') <> 1 then
+        Fehlschlag('Es soll genau der Mitarbeiter Admin angelegt sein.');
+      if DB.Skalar(
+        'SELECT nachname FROM adresse a JOIN adresskategorie k ON k.id = a.kategorie_id ' +
+        'WHERE k.bezeichnung = ''Mitarbeiter''') <> 'Admin' then
+        Fehlschlag('Der erste Mitarbeiter soll Admin heißen.');
+      if DB.Ganzzahl('SELECT COUNT(*) FROM benutzer') <> 1 then
+        Fehlschlag('Es soll einen Anwender geben.');
+      if DB.Skalar(
+        'SELECT r.bezeichnung FROM benutzer b JOIN rolle r ON r.id = b.rolle_id ' +
+        'WHERE b.name = ''Admin''') <> 'Administrator' then
+        Fehlschlag('Admin soll die Rolle Administrator haben.');
+      if DB.Skalar(
+        'SELECT a.nachname FROM benutzer b JOIN adresse a ON a.id = b.adresse_id ' +
+        'WHERE b.name = ''Admin''') <> 'Admin' then
+        Fehlschlag('Der Anwender Admin ist nicht mit dem Mitarbeiter verknüpft.');
+      Hash := DB.Skalar('SELECT passwort_hash FROM benutzer WHERE name = ''Admin''');
+      Salz := DB.Skalar('SELECT passwort_salz FROM benutzer WHERE name = ''Admin''');
+      if (Length(Hash) <> 64) or (Length(Salz) < 16) or (Hash = '0000') then
+        Fehlschlag('Das Passwort darf nicht im Klartext liegen.');
+      if not Anmelden('Admin', '0000', Meldung) then
+        Fehlschlag('Anmeldung Admin/0000: ' + Meldung);
       if DB.Ganzzahl('SELECT COUNT(*) FROM rolle') <> 3 then
         Fehlschlag('Es sollen 3 Rollen angelegt sein.');
       if DB.Ganzzahl('SELECT COUNT(*) FROM recht') <> 15 then
@@ -85,12 +115,26 @@ begin
         Fehlschlag('Die Installationskennung hat sich geändert.');
       if DB.Ganzzahl('SELECT COUNT(*) FROM modulart') <> 5 then
         Fehlschlag('Das Schema hat Belegarten verdoppelt.');
-      if DB.Ganzzahl('SELECT version FROM schema_info WHERE id = 1') <> 3 then
-        Fehlschlag('Das Schema soll auf Version 3 stehen.');
+      if DB.Ganzzahl('SELECT version FROM schema_info WHERE id = 1') <> 4 then
+        Fehlschlag('Das Schema soll auf Version 4 stehen.');
       if DB.Ganzzahl('SELECT COUNT(*) FROM maske') <> 4 then
         Fehlschlag('Es sollen 4 Kontaktmasken angelegt sein.');
-      if DB.Ganzzahl('SELECT COUNT(*) FROM maskenfeld') < 56 then
+      if DB.Ganzzahl('SELECT COUNT(*) FROM maskenfeld') < 80 then
         Fehlschlag('Die Maskenfelder fehlen.');
+      if DB.Skalar(
+        'SELECT links || ''/'' || oben || ''/'' || beschriftung FROM maskenfeld f ' +
+        'JOIN maske m ON m.id = f.maske_id WHERE m.kuerzel = ''kunde'' AND f.spalte = ''nachname''')
+        <> '79/50/Nachname' then
+        Fehlschlag('Nachname steht nicht wie in der alten Maske.');
+      if DB.Skalar(
+        'SELECT feldart || ''/'' || beschriftung FROM maskenfeld f ' +
+        'JOIN maske m ON m.id = f.maske_id WHERE m.kuerzel = ''kunde'' AND f.spalte = ''kategorie''')
+        <> 'auswahl/Kategorie>' then
+        Fehlschlag('Kategorie soll eine Auswahlliste sein.');
+      if DB.Skalar(
+        'SELECT hintergrund FROM maskenfeld f JOIN maske m ON m.id = f.maske_id ' +
+        'WHERE m.kuerzel = ''kunde'' AND f.spalte = ''firma''') <> 'lime' then
+        Fehlschlag('Die Firma soll die grüne Hinterlegung haben.');
       if not FeldSichtbar('kunde', 'firma') then
         Fehlschlag('Die Kundenmaske soll die Firma zeigen.');
       if not FeldSichtbar('kunde', 'rabatt_prozent') then
@@ -127,6 +171,8 @@ begin
         Werte.Values['firma'] := 'Müller GmbH';
         Werte.Values['nachname'] := 'Müller';
         Werte.Values['rabatt_prozent'] := '5,5';
+        Werte.Values['frei1'] := 'Regal 3';
+        Werte.Values['telefon_privat'] := '040-1';
         KundeId := AdresseSpeichern('kunde', 0, Werte, Fehler);
         if KundeId = 0 then
           Fehlschlag(Fehler);
@@ -148,6 +194,10 @@ begin
           Fehlschlag('Rabatt nicht lesbar: ' + Gelesen.Values['rabatt_prozent']);
         if Abs(Rabatt - 5.5) > 0.001 then
           Fehlschlag('Rabatt falsch gespeichert: ' + Gelesen.Values['rabatt_prozent']);
+        if Gelesen.Values['frei1'] <> 'Regal 3' then
+          Fehlschlag('Frei1 wurde nicht gespeichert.');
+        if Gelesen.Values['telefon_privat'] <> '040-1' then
+          Fehlschlag('Tel_Privat wurde nicht gespeichert.');
       finally
         Gelesen.Free;
         Werte.Free;
@@ -235,11 +285,83 @@ begin
       if BelegAnzahl('rechnung', '') <> 1 then
         Fehlschlag('Es soll genau eine Rechnung geben.');
 
+      if not Anmelden('Admin', '0000', Meldung) then
+        Fehlschlag('Anmeldung Admin/0000: ' + Meldung);
+      if not Anmelden('Admin', '9999', Meldung) then
+      begin
+        if Pos('Passwort', Meldung) = 0 then
+          Fehlschlag('Falsches Passwort ohne klare Meldung: ' + Meldung);
+      end
+      else
+        Fehlschlag('Ein falsches Passwort wurde angenommen.');
+      if Anmelden('Niemand', '0000', Meldung) then
+        Fehlschlag('Einen unbekannten Anwender gibt es nicht.')
+      else if Pos('Anwender', Meldung) = 0 then
+        Fehlschlag('Unbekannter Anwender ohne klare Meldung: ' + Meldung);
+      if not Anmelden('Admin', '0000', Meldung) then
+        Fehlschlag('Die zweite Anmeldung schlägt fehl: ' + Meldung);
+      if not AktionZulaessig('maske', 'mitarbeiter', 'loeschen', Meldung) then
+        Fehlschlag('Admin darf Mitarbeiter löschen: ' + Meldung);
+      if not AktionZulaessig('beleg', 'rechnung', 'drucken', Meldung) then
+        Fehlschlag('Admin darf drucken: ' + Meldung);
+      Sitz := Sitzung;
+      Sitz.Rolle := 'Gruppenleiter';
+      SitzungSetzen(Sitz);
+      if AktionZulaessig('maske', 'mitarbeiter', 'loeschen', Meldung) then
+        Fehlschlag('Der Gruppenleiter darf nicht löschen.');
+      if not AktionZulaessig('maske', 'kunde', 'neu', Meldung) then
+        Fehlschlag('Der Gruppenleiter darf anlegen.');
+      if AktionZulaessig('beleg', 'rechnung', 'drucken', Meldung) then
+        Fehlschlag('Der Gruppenleiter darf nicht drucken.');
+      if not Anmelden('Admin', '0000', Meldung) then
+        Fehlschlag('Zurück zu Admin: ' + Meldung);
+
+      Filter := Default(TExplorerFilter);
+      Filter.Modulart := 'angebot';
+      Filter.ModulFilter := mfBezeichnung;
+      Filter.Suchtext := 'Testangebot';
+      SpaltenX := TStringList.Create;
+      ZeilenX := TStringList.Create;
+      try
+        ExplorerLesen(Filter, SpaltenX, ZeilenX);
+        if ZeilenX.Count <> 1 then
+          Fehlschlag('Der Explorer findet das Testangebot nicht.');
+        if Pos('Admin', ZeilenX[0]) = 0 then
+          Fehlschlag('Der Bearbeiter Admin fehlt in der Liste.');
+        Filter.ModulFilter := mfNummer;
+        Filter.Suchtext := 'ANG-1';
+        ExplorerLesen(Filter, SpaltenX, ZeilenX);
+        if ZeilenX.Count <> 1 then
+          Fehlschlag('Der Explorer findet ANG-1 nicht.');
+        Filter := Default(TExplorerFilter);
+        Filter.Modulart := 'angebot';
+        Filter.Zeitraum := zrJahr;
+        Filter.Jahr := StrToIntDef(FormatDateTime('yyyy', Now), 0);
+        ExplorerLesen(Filter, SpaltenX, ZeilenX);
+        if ZeilenX.Count < 1 then
+          Fehlschlag('Der Jahresfilter findet das Angebot nicht.');
+        DB.Ausfuehren('UPDATE beleg SET gruppierung = ''Buero'' WHERE nummer = ''ANG-1''', nil);
+        Filter.Sonstiges := soGruppe;
+        Filter.Gruppe := 'Buero';
+        ExplorerLesen(Filter, SpaltenX, ZeilenX);
+        if ZeilenX.Count <> 1 then
+          Fehlschlag('Der Gruppenfilter findet Buero nicht.');
+        Filter.Gruppe := 'Andere';
+        ExplorerLesen(Filter, SpaltenX, ZeilenX);
+        if ZeilenX.Count <> 0 then
+          Fehlschlag('Der Gruppenfilter lässt eine fremde Gruppe durch.');
+      finally
+        ZeilenX.Free;
+        SpaltenX.Free;
+      end;
+
       DB.SchemaSicherstellen;
       if TrefferZahl('mitarbeiter', 'Meier') <> 1 then
         Fehlschlag('Der Mitarbeiter wurde vom erneuten Schema verändert.');
       if DB.Ganzzahl('SELECT COUNT(*) FROM maske') <> 4 then
         Fehlschlag('Die Masken wurden verdoppelt.');
+      if DB.Ganzzahl('SELECT COUNT(*) FROM benutzer') <> 1 then
+        Fehlschlag('Der Anwender wurde beim erneuten Schema verdoppelt.');
     end
     else
     begin
