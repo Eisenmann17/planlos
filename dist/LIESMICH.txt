@@ -1,0 +1,19 @@
+Planlos ausprobieren
+====================
+
+1. Diesen Ordner irgendwohin entpacken, zum Beispiel auf den Desktop.
+   Den Ordner danach nicht umbenennen müssen Sie nicht. Wichtig ist nur,
+   dass planlos.exe und sqlite3.dll im selben Ordner bleiben.
+
+2. planlos.exe mit einem Doppelklick starten.
+
+3. Ihre Daten legt Planlos selbst an. Sie heißen planlos.sqlite und liegen
+   im Ordner data neben dem Programm. Diesen Ordner können Sie kopieren,
+   wenn Sie eine Sicherung wollen.
+
+   Wenn Windows das Schreiben neben dem Programm verbietet, zum Beispiel
+   unter "Programme", legt Planlos die Datei in Ihren persönlichen Ordner:
+   AppData\Local\planlos\data
+
+Es ist eine frühe Fassung. Sie können Kunden und Belege anlegen.
+Drucken und die elektronische Rechnung gibt es noch nicht.

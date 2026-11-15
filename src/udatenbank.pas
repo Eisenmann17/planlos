@@ -79,19 +79,53 @@ uses
 type
   TConn = TSQLite3Connection;
 
+function PlanlosAnwendungsname: string;
+begin
+  Result := 'planlos';
+end;
+
+function OrdnerIstBeschreibbar(const Ordner: string): Boolean;
+var
+  Probe: string;
+  Griff: THandle;
+begin
+  Result := False;
+  if not ForceDirectories(Ordner) then
+    Exit;
+  Probe := IncludeTrailingPathDelimiter(Ordner) + '.planlos-schreibprobe';
+  Griff := FileCreate(Probe);
+  if Griff = THandle(feInvalidHandle) then
+    Exit;
+  FileClose(Griff);
+  Result := DeleteFile(Probe);
+end;
+
 function PlanlosDatenDatei: string;
 var
-  Env, Ordner: string;
+  Env, NebenProgramm, ImProfil: string;
 begin
   Env := Trim(GetEnvironmentVariable('PLANLOS_DATEN'));
   if Env <> '' then
+  begin
+    if (ExtractFilePath(Env) <> '') and not DirectoryExists(ExtractFilePath(Env)) then
+      if not ForceDirectories(ExtractFilePath(Env)) then
+        raise Exception.Create(
+          'Der Ordner für die Datenbank konnte nicht angelegt werden: ' +
+          ExtractFilePath(Env));
     Exit(Env);
-  Ordner := IncludeTrailingPathDelimiter(ExtractFilePath(ParamStr(0))) + 'data';
-  if not DirectoryExists(Ordner) then
-    if not ForceDirectories(Ordner) then
-      raise Exception.Create(
-        'Der Ordner für die Datenbank konnte nicht angelegt werden: ' + Ordner);
-  Result := IncludeTrailingPathDelimiter(Ordner) + 'planlos.sqlite';
+  end;
+  { Neben der Programmdatei, wenn Windows das Schreiben erlaubt.
+    Sonst im eigenen Bereich des Benutzers, zum Beispiel unter AppData. }
+  NebenProgramm := IncludeTrailingPathDelimiter(ExtractFilePath(ParamStr(0))) + 'data';
+  if OrdnerIstBeschreibbar(NebenProgramm) then
+    Exit(IncludeTrailingPathDelimiter(NebenProgramm) + 'planlos.sqlite');
+  OnGetApplicationName := @PlanlosAnwendungsname;
+  ImProfil := IncludeTrailingPathDelimiter(GetAppConfigDir(False)) + 'data';
+  if not OrdnerIstBeschreibbar(ImProfil) then
+    raise Exception.Create(
+      'Die Datenbank konnte weder neben dem Programm noch im Benutzerordner angelegt werden.' +
+      LineEnding + NebenProgramm + LineEnding + ImProfil);
+  Result := IncludeTrailingPathDelimiter(ImProfil) + 'planlos.sqlite';
 end;
 
 function KaskadeAktiv: Boolean;

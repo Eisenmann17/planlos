@@ -88,9 +88,26 @@ Noch nicht vorhanden:
 - PostgreSQL ist vorgesehen, aber noch nicht angeschlossen
 
 Die Datenbankdatei heißt `planlos.sqlite`. Sie entsteht beim ersten Start
-im Ordner `data` neben dem Programm. Darin stehen fünf Belegarten,
-vier Adressmasken und die drei Rollen. Adressen sind noch keine
-eingetragen, bis Sie selbst welche anlegen.
+im Ordner `data` neben dem Programm. Wenn dieser Ordner nicht beschreibbar
+ist, liegt die Datei im persönlichen Ordner des Benutzers. Darin stehen
+fünf Belegarten, vier Adressmasken und die drei Rollen. Adressen sind noch
+keine eingetragen, bis Sie selbst welche anlegen.
+
+## Ausprobieren unter Windows
+
+Dafür brauchen Sie kein Git und kein Lazarus.
+
+1. Öffnen Sie die [Veröffentlichungen](https://github.com/Eisenmann17/planlos/releases).
+2. Laden Sie bei der neuesten Fassung die Datei `planlos-windows.zip` herunter.
+3. Entpacken Sie die ZIP, zum Beispiel auf den Desktop.
+4. Starten Sie `planlos.exe` mit einem Doppelklick.
+
+`sqlite3.dll` muss im selben Ordner bleiben wie `planlos.exe`. Ihre Daten
+legt das Programm selbst an, im Ordner `data` daneben. Eine kurze Anleitung
+liegt als `LIESMICH.txt` in der ZIP.
+
+Die ZIP entsteht automatisch, wenn eine Versionsmarke wie `v0.1.0` gesetzt
+wird, oder wenn der Ablauf „Windows-Paket“ von Hand gestartet wird.
 
 ## Bauen und starten
 
@@ -108,9 +125,9 @@ lazbuild src/planlos.lpi
 Das Programm liegt danach unter `bin/planlos` (unter Windows `planlos.exe`).
 
 Unter Linux wird die Bibliothek `libsqlite3` gebraucht, Paketname
-meist `libsqlite3-0`. Unter Windows legt man `sqlite3.dll` neben die
-Programmdatei. Die DLL kommt von [sqlite.org](https://sqlite.org/),
-sie gehört nicht zu Planlos.
+meist `libsqlite3-0`. Wer selbst unter Windows baut, legt `sqlite3.dll`
+(64 Bit, von [sqlite.org](https://sqlite.org/)) neben die Programmdatei.
+In der fertigen ZIP ist sie schon enthalten.
 
 Wer nur die Tabellen prüfen will, ohne Fenster:
 
