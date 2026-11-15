@@ -79,6 +79,17 @@ uses
 type
   TConn = TSQLite3Connection;
 
+{ SQLite liefert UTF-8. Unter Windows hängt an dem Text sonst die
+  ANSI-Codepage, und „Auftragsbestätigung“ wird falsch verglichen. }
+function Utf8Text(const Quelle: string): string;
+var
+  Roh: RawByteString;
+begin
+  Roh := Quelle;
+  SetCodePage(Roh, CP_UTF8, False);
+  Result := Roh;
+end;
+
 function PlanlosAnwendungsname: string;
 begin
   Result := 'planlos';
@@ -247,7 +258,9 @@ begin
     Q.Open;
     try
       if not Q.EOF then
-        Result := Q.Fields[0].AsString;
+      begin
+        Result := Utf8Text(Q.Fields[0].AsString);
+      end;
     finally
       Q.Close;
     end;
@@ -301,7 +314,9 @@ begin
     Q.Open;
     try
       if not Q.EOF then
-        Result := Q.Fields[0].AsString;
+      begin
+        Result := Utf8Text(Q.Fields[0].AsString);
+      end;
     finally
       Q.Close;
     end;
@@ -338,7 +353,9 @@ begin
     try
       if not Q.EOF then
         for i := 0 to Q.Fields.Count - 1 do
-          Ziel.Values[Q.Fields[i].FieldName] := Q.Fields[i].AsString;
+        begin
+          Ziel.Values[Q.Fields[i].FieldName] := Utf8Text(Q.Fields[i].AsString);
+        end;
     finally
       Q.Close;
     end;
@@ -368,7 +385,7 @@ begin
         Zeile := '';
         for i := 0 to Q.Fields.Count - 1 do
         begin
-          Wert := StringReplace(Q.Fields[i].AsString, #9, ' ', [rfReplaceAll]);
+          Wert := StringReplace(Utf8Text(Q.Fields[i].AsString), #9, ' ', [rfReplaceAll]);
           if i > 0 then
             Zeile := Zeile + #9;
           Zeile := Zeile + Wert;
@@ -401,7 +418,9 @@ begin
     Q.Open;
     try
       if not Q.EOF then
-        Result := Q.Fields[0].AsString;
+      begin
+        Result := Utf8Text(Q.Fields[0].AsString);
+      end;
     finally
       Q.Close;
     end;
