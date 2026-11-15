@@ -2,8 +2,8 @@ Planlos ausprobieren
 ====================
 
 1. Diesen Ordner irgendwohin entpacken, zum Beispiel auf den Desktop.
-   Den Ordner danach nicht umbenennen müssen Sie nicht. Wichtig ist nur,
-   dass planlos.exe und sqlite3.dll im selben Ordner bleiben.
+   Den Namen können Sie so lassen. Wichtig ist nur, dass planlos.exe
+   und sqlite3.dll im selben Ordner bleiben.
 
 2. planlos.exe mit einem Doppelklick starten.
 
