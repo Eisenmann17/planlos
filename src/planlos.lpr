@@ -26,7 +26,7 @@ var
   Meldung: string;
 
 begin
-  RequireDerivedFormResource := False;
+  RequireDerivedFormResource := True;
   Application.Scaled := True;
   Application.Title := 'Planlos';
   Application.Initialize;

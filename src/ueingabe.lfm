@@ -1,0 +1,431 @@
+object Eingabefenster: TEingabefenster
+  Left = 235
+  Height = 520
+  Top = 80
+  Width = 760
+  Caption = 'Adresse'
+  ClientHeight = 520
+  ClientWidth = 760
+  Color = clBtnFace
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  KeyPreview = True
+  Position = poDesigned
+  OnKeyDown = FormKeyDown
+  object LabelNr: TLabel
+    Left = 6
+    Height = 13
+    Top = 9
+    Width = 67
+    Alignment = taRightJustify
+    AutoSize = False
+    Caption = 'Nr'
+  end
+  object LabelNrWert: TLabel
+    Left = 83
+    Height = 17
+    Top = 8
+    Width = 80
+    AutoSize = False
+    Caption = 'neu'
+  end
+  object LabelKategorie: TLabel
+    Left = 6
+    Height = 13
+    Top = 31
+    Width = 67
+    Alignment = taRightJustify
+    AutoSize = False
+    Caption = 'Kategorie>'
+    OnClick = KategorieKlick
+  end
+  object LabelNachname: TLabel
+    Left = 6
+    Height = 13
+    Top = 53
+    Width = 67
+    Alignment = taRightJustify
+    AutoSize = False
+    Caption = 'Nachname'
+  end
+  object LabelVorname: TLabel
+    Left = 6
+    Height = 13
+    Top = 75
+    Width = 67
+    Alignment = taRightJustify
+    AutoSize = False
+    Caption = 'Vorname:'
+  end
+  object LabelTitel: TLabel
+    Left = 6
+    Height = 13
+    Top = 97
+    Width = 67
+    Alignment = taRightJustify
+    AutoSize = False
+    Caption = 'Titel:'
+  end
+  object LabelFirma: TLabel
+    Left = 6
+    Height = 13
+    Top = 119
+    Width = 67
+    Alignment = taRightJustify
+    AutoSize = False
+    Caption = 'Firma:'
+  end
+  object LabelTelFirma: TLabel
+    Left = 6
+    Height = 13
+    Top = 141
+    Width = 67
+    Alignment = taRightJustify
+    AutoSize = False
+    Caption = 'Tel_Firma:'
+  end
+  object LabelTelPrivat: TLabel
+    Left = 6
+    Height = 13
+    Top = 163
+    Width = 67
+    Alignment = taRightJustify
+    AutoSize = False
+    Caption = 'Tel_Privat:'
+  end
+  object LabelTelFax: TLabel
+    Left = 6
+    Height = 13
+    Top = 185
+    Width = 67
+    Alignment = taRightJustify
+    AutoSize = False
+    Caption = 'Tel_Fax:'
+  end
+  object LabelTelAndere: TLabel
+    Left = 6
+    Height = 13
+    Top = 207
+    Width = 67
+    Alignment = taRightJustify
+    AutoSize = False
+    Caption = 'Tel_Andere:'
+  end
+  object LabelEMail: TLabel
+    Left = 6
+    Height = 13
+    Top = 229
+    Width = 67
+    Alignment = taRightJustify
+    AutoSize = False
+    Caption = 'E_Mail:'
+  end
+  object LabelStrasse: TLabel
+    Left = 6
+    Height = 13
+    Top = 251
+    Width = 67
+    Alignment = taRightJustify
+    AutoSize = False
+    Caption = 'Strasse_Nr.:'
+  end
+  object LabelPLZ: TLabel
+    Left = 6
+    Height = 13
+    Top = 273
+    Width = 67
+    Alignment = taRightJustify
+    AutoSize = False
+    Caption = 'PLZ:'
+  end
+  object LabelOrt: TLabel
+    Left = 6
+    Height = 13
+    Top = 295
+    Width = 67
+    Alignment = taRightJustify
+    AutoSize = False
+    Caption = 'Ort:'
+  end
+  object LabelLand: TLabel
+    Left = 6
+    Height = 13
+    Top = 317
+    Width = 67
+    Alignment = taRightJustify
+    AutoSize = False
+    Caption = 'Land:'
+  end
+  object LabelNotiz: TLabel
+    Left = 382
+    Height = 13
+    Top = 58
+    Width = 67
+    Alignment = taRightJustify
+    Anchors = [akTop, akRight]
+    AutoSize = False
+    Caption = 'Notiz:'
+  end
+  object LabelAdresse: TLabel
+    Left = 382
+    Height = 13
+    Top = 150
+    Width = 67
+    Alignment = taRightJustify
+    Anchors = [akTop, akRight]
+    AutoSize = False
+    Caption = 'Adresse:'
+  end
+  object LabelFrei1: TLabel
+    Left = 382
+    Height = 13
+    Top = 245
+    Width = 67
+    Alignment = taRightJustify
+    Anchors = [akTop, akRight]
+    AutoSize = False
+    Caption = 'Frei1:'
+  end
+  object LabelFrei2: TLabel
+    Left = 382
+    Height = 13
+    Top = 267
+    Width = 67
+    Alignment = taRightJustify
+    Anchors = [akTop, akRight]
+    AutoSize = False
+    Caption = 'Frei2:'
+  end
+  object LabelFrei3: TLabel
+    Left = 382
+    Height = 13
+    Top = 289
+    Width = 67
+    Alignment = taRightJustify
+    Anchors = [akTop, akRight]
+    AutoSize = False
+    Caption = 'Frei3:'
+  end
+  object LabelFrei4: TLabel
+    Left = 382
+    Height = 13
+    Top = 311
+    Width = 67
+    Alignment = taRightJustify
+    Anchors = [akTop, akRight]
+    AutoSize = False
+    Caption = 'Frei4:'
+  end
+  object LabelRabatt: TLabel
+    Left = 382
+    Height = 13
+    Top = 335
+    Width = 67
+    Alignment = taRightJustify
+    Anchors = [akTop, akRight]
+    AutoSize = False
+    Caption = 'Rabatt %'
+  end
+  object EditKategorie: TEdit
+    Left = 79
+    Height = 21
+    Top = 28
+    Width = 140
+    Color = clSilver
+    Cursor = crHandPoint
+    ReadOnly = True
+    TabStop = False
+    OnClick = KategorieKlick
+    TabOrder = 0
+  end
+  object EditNachname: TEdit
+    Left = 79
+    Height = 21
+    Top = 50
+    Width = 265
+    TabOrder = 1
+  end
+  object EditVorname: TEdit
+    Left = 79
+    Height = 21
+    Top = 72
+    Width = 265
+    TabOrder = 2
+  end
+  object EditTitel: TEdit
+    Left = 79
+    Height = 21
+    Top = 94
+    Width = 265
+    TabOrder = 3
+  end
+  object EditFirma: TEdit
+    Left = 79
+    Height = 21
+    Top = 116
+    Width = 265
+    Color = clLime
+    TabOrder = 4
+  end
+  object EditTelFirma: TEdit
+    Left = 79
+    Height = 21
+    Top = 138
+    Width = 140
+    TabOrder = 5
+  end
+  object EditTelPrivat: TEdit
+    Left = 79
+    Height = 21
+    Top = 160
+    Width = 140
+    TabOrder = 6
+  end
+  object EditTelFax: TEdit
+    Left = 79
+    Height = 21
+    Top = 182
+    Width = 140
+    TabOrder = 7
+  end
+  object EditTelAndere: TEdit
+    Left = 79
+    Height = 21
+    Top = 204
+    Width = 140
+    TabOrder = 8
+  end
+  object EditEMail: TEdit
+    Left = 79
+    Height = 21
+    Top = 226
+    Width = 265
+    TabOrder = 9
+  end
+  object EditStrasse: TEdit
+    Left = 79
+    Height = 21
+    Top = 248
+    Width = 265
+    TabOrder = 10
+  end
+  object EditPLZ: TEdit
+    Left = 79
+    Height = 21
+    Top = 270
+    Width = 140
+    TabOrder = 11
+  end
+  object EditOrt: TEdit
+    Left = 79
+    Height = 21
+    Top = 292
+    Width = 265
+    TabOrder = 12
+  end
+  object EditLand: TEdit
+    Left = 79
+    Height = 21
+    Top = 314
+    Width = 265
+    TabOrder = 13
+  end
+  object MemoNotiz: TMemo
+    Left = 455
+    Height = 89
+    Top = 58
+    Width = 185
+    Anchors = [akTop, akRight]
+    ScrollBars = ssVertical
+    TabOrder = 14
+  end
+  object MemoAdresse: TMemo
+    Left = 455
+    Height = 89
+    Top = 148
+    Width = 185
+    Anchors = [akTop, akRight]
+    ScrollBars = ssVertical
+    TabOrder = 15
+  end
+  object EditFrei1: TEdit
+    Left = 455
+    Height = 21
+    Top = 242
+    Width = 265
+    Anchors = [akTop, akRight]
+    TabOrder = 16
+  end
+  object EditFrei2: TEdit
+    Left = 455
+    Height = 21
+    Top = 264
+    Width = 265
+    Anchors = [akTop, akRight]
+    TabOrder = 17
+  end
+  object EditFrei3: TEdit
+    Left = 455
+    Height = 21
+    Top = 286
+    Width = 265
+    Anchors = [akTop, akRight]
+    TabOrder = 18
+  end
+  object EditFrei4: TEdit
+    Left = 455
+    Height = 21
+    Top = 308
+    Width = 265
+    Anchors = [akTop, akRight]
+    TabOrder = 19
+  end
+  object EditRabatt: TEdit
+    Left = 455
+    Height = 21
+    Top = 332
+    Width = 120
+    Anchors = [akTop, akRight]
+    TabOrder = 20
+  end
+  object PanelTasten: TPanel
+    Left = 0
+    Height = 118
+    Top = 402
+    Width = 760
+    Align = alBottom
+    BevelOuter = bvNone
+    Caption = ''
+    TabOrder = 21
+    object ButtonAbbrechen: TButton
+      Left = 8
+      Height = 22
+      Top = 6
+      Width = 92
+      Caption = 'abbrechen'
+      OnClick = AbbruchKlick
+      TabOrder = 0
+    end
+    object ButtonSuchen: TButton
+      Left = 318
+      Height = 22
+      Top = 6
+      Width = 75
+      Caption = 'Suchen'
+      OnClick = SuchenKlick
+      TabOrder = 1
+    end
+    object ButtonOk: TButton
+      Left = 640
+      Height = 22
+      Top = 6
+      Width = 75
+      Anchors = [akTop, akRight]
+      Caption = 'Ok'
+      Default = True
+      OnClick = OkKlick
+      TabOrder = 2
+    end
+  end
+end
