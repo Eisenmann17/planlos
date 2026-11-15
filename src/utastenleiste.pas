@@ -35,6 +35,7 @@ type
     FFlaeche: TPanel;
     FButtons: array[1..TastenAnzahl] of TButton;
     FTexte: array[1..EbenenAnzahl, 1..TastenAnzahl] of string;
+    FFrei: array[1..EbenenAnzahl, 1..TastenAnzahl] of Boolean;
     FEbene: Integer;
     FFestGesehen: Integer;
     FIntern: Boolean;
@@ -50,6 +51,9 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     procedure SetzeText(Ebene, Taste: Integer; const Beschriftung: string);
+    procedure SetzeTaste(Ebene, Taste: Integer; const Beschriftung: string;
+      Frei: Boolean);
+    procedure AlleBeschriftungenLoeschen;
     procedure Nachziehen;
     property OnTaste: TTastenEreignis read FOnTaste write FOnTaste;
   end;
@@ -141,7 +145,9 @@ begin
   else
     Text := Text + LineEnding + 'Esc schließt dieses Zusatzfenster ebenfalls.';
   Text := Text + LineEnding + LineEnding +
-    'Angebote, Kundenmasken und Rechnungen gibt es noch nicht.';
+    'Kunden, Lieferanten, Kontakte und Mitarbeiter stehen im Menü Adressen.' +
+    LineEnding + 'Im Hauptfenster öffnet F4 die Kundensuche.' +
+    LineEnding + 'Angebote und Rechnungen gibt es noch nicht.';
   ShowMessage(Text);
 end;
 
@@ -254,8 +260,35 @@ begin
   if (Taste < 1) or (Taste > TastenAnzahl) then
     Exit;
   FTexte[Ebene, Taste] := Beschriftung;
+  FFrei[Ebene, Taste] := Trim(Beschriftung) <> '';
   if Ebene = FEbene then
     ButtonsNachEbene;
+end;
+
+procedure TTastenleiste.SetzeTaste(Ebene, Taste: Integer;
+  const Beschriftung: string; Frei: Boolean);
+begin
+  if (Ebene < 1) or (Ebene > EbenenAnzahl) then
+    Exit;
+  if (Taste < 1) or (Taste > TastenAnzahl) then
+    Exit;
+  FTexte[Ebene, Taste] := Beschriftung;
+  FFrei[Ebene, Taste] := Frei and (Trim(Beschriftung) <> '');
+  if Ebene = FEbene then
+    ButtonsNachEbene;
+end;
+
+procedure TTastenleiste.AlleBeschriftungenLoeschen;
+var
+  Ebene, Taste: Integer;
+begin
+  for Ebene := 1 to EbenenAnzahl do
+    for Taste := 1 to TastenAnzahl do
+    begin
+      FTexte[Ebene, Taste] := '';
+      FFrei[Ebene, Taste] := False;
+    end;
+  ButtonsNachEbene;
 end;
 
 procedure TTastenleiste.Nachziehen;
@@ -328,7 +361,7 @@ begin
     else
     begin
       FButtons[i].Caption := 'F' + IntToStr(i) + LineEnding + Beschriftung;
-      FButtons[i].Enabled := True;
+      FButtons[i].Enabled := FFrei[FEbene, i];
       FButtons[i].Hint := Vorsatz + 'F' + IntToStr(i) + '  ' + Beschriftung;
     end;
   end;

@@ -73,20 +73,22 @@ Vorhanden:
 - diese Erklärung, die Lizenz und das Konzept in `docs/KONZEPT.md`
 - der alte Quellcode unter `alt/MyOffice/`, nur zum Nachlesen
 - ein Lazarus-Programm unter `src/`: Hauptfenster, Tastenleiste,
-  kaskadierte Zusatzfenster, und eine SQLite-Datei mit den ersten Tabellen
+  kaskadierte Zusatzfenster, und ein Kontaktfenster
+- das Kontaktfenster ist eines. Die Maske in der Datenbank macht daraus
+  Kunde, Lieferant, Kontakt oder Mitarbeiter. Menü Adressen, im
+  Hauptfenster auch F4 für Kunden. In der Suche legt F2 einen Satz an
 
 Noch nicht vorhanden:
 
-- keine Kundenmaske, kein Artikel, kein Angebot, kein Druck
-- keine Anmeldung
+- kein Artikel, kein Angebot, kein Druck
+- keine Anmeldung. Die Rollenrechte liegen in der Datenbank bereit
 - PostgreSQL ist in der Datenzugriffsklasse vorgesehen, aber noch nicht
   angeschlossen
 
 Die Datenbankdatei heißt `planlos.sqlite`. Sie entsteht beim ersten Start
-im Ordner `data` neben dem Programm. Darin stehen schon fünf Belegarten
-(Angebot, Auftragsbestätigung, Bestellung, Rechnung, Projekt), vier
-Adressarten (Kunde, Lieferant, Kontakt, Mitarbeiter) und die drei Rollen.
-Adressen sind noch keine eingetragen.
+im Ordner `data` neben dem Programm. Darin stehen fünf Belegarten,
+vier Adressmasken und die drei Rollen. Adressen sind noch keine
+eingetragen, bis Sie selbst welche anlegen.
 
 ## Bauen und starten
 

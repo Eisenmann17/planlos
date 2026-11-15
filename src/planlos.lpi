@@ -29,7 +29,7 @@
         <PackageName Value="LCL"/>
       </Item1>
     </RequiredPackages>
-    <Units Count="5">
+    <Units Count="8">
       <Unit0>
         <Filename Value="planlos.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -54,6 +54,21 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="uhaupt"/>
       </Unit4>
+      <Unit5>
+        <Filename Value="umaske.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="umaske"/>
+      </Unit5>
+      <Unit6>
+        <Filename Value="ueingabe.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="ueingabe"/>
+      </Unit6>
+      <Unit7>
+        <Filename Value="usuche.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="usuche"/>
+      </Unit7>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
