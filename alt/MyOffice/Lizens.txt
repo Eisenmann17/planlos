@@ -1,0 +1,3 @@
+Lizens 
+Diese Software wurde nach bestem Wissen und Gewissen auf Fehler und Problemverursachung getestet und geprüft. 
+Dennoch kann keine allgemeingültige Garantie auf Fehlerfreiheit abgegeben werden

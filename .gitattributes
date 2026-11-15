@@ -1,0 +1,5 @@
+* text=auto eol=lf
+
+# Historischer Delphi-Bestand: Bytes bleiben, auch CRLF und Latin-1.
+# linguist-vendored: zählt nicht als Sprache des neuen Programms.
+alt/** -text -eol linguist-vendored

@@ -1,0 +1,20 @@
+zusätzliche felder zur übergabe von 
+   Artikelsammlung in Artikel aussuchen
+   Projekt Kunde 
+   Lieferand (aus DB oder Variablen)
+
+1- Nr 
+0 Bezeichnung
+1 Artikel art:Artikel
+              Freie eingabe
+              Stückliste
+              aus den Modulen
+2 SQLFilterEinstellungGruppe1 bis 8
+
+3 SQLFilterEinstellungArtikel1 bis 8
+4 EnaButton1 bis 8
+5 UCaption1 bis 8
+6 Funktionstasten_anzeigen1 bis 8
+7 ErledigtAn_Aus
+8 MarkierenZeigenAn1 bis 8
+9 ErledigtArtikelAn1 bis 8
