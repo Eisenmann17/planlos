@@ -232,7 +232,7 @@ Belegart, und die Kaskade mit 26 und 9.
 
 ## Neues Datenmodell
 
-### Schon angelegt, Schema-Version 1
+### Schon angelegt, Schema-Version 2
 
 Die Unit `src/udatenbank.pas` legt die Tabellen beim ersten Start an.
 Vorhandene Zeilen werden nicht überschrieben. Wer „Angebot“ umbenennt,
@@ -295,30 +295,36 @@ einem Satz Beschreibung.
 | Abteilungsleiter | sehen, neu, ändern, drucken |
 | Gruppenleiter | sehen, neu |
 
-Eine Anmeldung, die diese Rechte auch durchsetzt, gibt es noch nicht.
-Die Zeilen sind die Vorgabe, an der die Tasten sich später orientieren.
+Eine Anmeldung, die diese Belegrechte durchsetzt, gibt es noch nicht.
+
+**maske**, **maskenfeld**, **tastenbelegung**, **maskenrecht.** Es gibt
+ein Suchfenster (`usuche.pas`) und ein Eingabefenster (`ueingabe.pas`).
+Welche Adressart, welche Felder, welche Beschriftung, welche Fenstergröße
+und welche Tasten gelten, steht in der Maske. Mitgeliefert:
+
+| Kürzel | Sichtbarer Unterschied |
+| --- | --- |
+| `kunde` | Firma und Rabatt sind sichtbar, Nachname ist Pflicht |
+| `lieferant` | Firma ist Pflicht, Rabatt ist versteckt, Telefax steht in der Liste |
+| `kontakt` | Vorname und Nachname sind Pflicht, Land ist versteckt, Löschen ist aus |
+| `mitarbeiter` | Firma und Rabatt sind versteckt |
+
+Die Suche filtert über `kategorie_id`. F2 öffnet die Eingabe derselben
+Maske. Nach dem Speichern ist der neue Satz in der Suche ausgewählt.
+Die Tastenbeschriftung und ob die Taste frei ist, kommt aus
+`tastenbelegung` (`kontext` `suche` oder `eingabe`). `maskenrecht` hält
+je Rolle sehen, neu, ändern und löschen bereit. Ohne Anmeldung schaltet
+das Fenster diese Rollenrechte noch nicht scharf; die Tastenfreigabe
+aus `tastenbelegung` gilt schon.
 
 ### Vorgesehen, noch nicht angelegt
 
-**maske** und **maskenfeld.** Eine Maske hat ein Kürzel (`kunde`,
-`lieferant`, `artikel`, `arbeitsschuh`), eine Bezeichnung und den Namen
-der Tabelle, die sie bearbeitet. Ein Maskenfeld hat Spalte, Beschriftung,
-Reihenfolge, Pflicht, sichtbar und Breite. Die Suche „Kunde“ ist dieselbe
-Maske wie die Eingabe, mit einem Filter `kategorie_id = Kunde`.
-`FelderWennNeu` aus dem alten Programm wird ein normaler Feldwert der Maske.
-
-Eigene Felder des Benutzers, die keine echte Spalte sind, landen in
+Eigene Felder des Benutzers, die keine echte Spalte sind, landen später in
 **zusatzwert** (`maske_id`, `datensatz_id`, `feld_kuerzel`, `wert`).
-So entsteht „Arbeitsschuhe“ ohne `CREATE TABLE` durch den Benutzer und
-ohne `Frei1`.
+So entsteht „Arbeitsschuhe“ ohne `CREATE TABLE` durch den Benutzer.
 
 **benutzer** mit Name, Passwort als heutiger Hash, und `rolle_id`.
-Nicht das alte Verfahren.
-
-**tastenbelegung** mit Kontext (Belegart oder Maske oder `haupt`),
-Ebene 1 bis 3, Taste 1 bis 12, Beschriftung und Aktionsname. Im
-Grundgerüst stehen die Beschriftungen noch im Programm
-(`utastenleiste.pas`), damit die Leiste schon bedienbar ist.
+Dann gelten die Zeilen in `maskenrecht` und `recht` für die Tasten.
 
 **beleg** als Nachfolger von `module`: `modulart_id`, Nummer aus dem
 Nummernkreis, `adresse_id`, später `kontakt_id`, `bezug_beleg_id` für
@@ -342,11 +348,12 @@ mit einem frei eingetippten Formeltext.
 Vier Schichten. Die oberen kennen die unteren, nicht umgekehrt.
 
 1. **Fenster**, LCL. `uhaupt.pas` ist das Hauptfenster, `ukindfenster.pas`
-   öffnet die Zusatzfenster, `utastenleiste.pas` ist die Leiste.
+   öffnet leere Zusatzfenster, `utastenleiste.pas` ist die Leiste.
+   `usuche.pas` und `ueingabe.pas` sind das eine Kontaktfenster.
    Diese Units enthalten kein SQL.
-2. **Fachabläufe**, noch nicht vorhanden: Beleg anlegen, Nummer vergeben,
-   Recht prüfen, Position aus dem Artikel übernehmen.
-3. **Metadaten**, die Tabellen `modulart`, später `maske` und
+2. **Masken**, `umaske.pas`: Maske laden, Adresse speichern und suchen.
+   Beleg anlegen und Nummern vergeben kommen später.
+3. **Metadaten**, die Tabellen `modulart`, `maske`, `maskenfeld` und
    `tastenbelegung`. Sie steuern, was die generischen Fenster zeigen.
 4. **Datenzugriff**, nur `udatenbank.pas`. Klasse `TPlanlosDatenbank`.
 
@@ -358,17 +365,15 @@ der Knopf Normal, Umschalt oder Alt in der Leiste. Eine wirklich
 gehaltene Umschalt- oder Alt-Taste gewinnt über den Knopf. Klick und
 Taste rufen dieselbe Prozedur auf.
 
-Im Grundgerüst tun das schon F1 (Hilfe), F3 (neues Fenster), F11
-(Datenbanktext neu laden), F12 (schließen, im Hauptfenster beenden),
-Umschalt+F3 (Kaskade an oder aus, wird in `parameter` gespeichert),
-Umschalt+F11 (Dateipfad), Umschalt+F12 (alle Zusatzfenster zu),
-Alt+F1 (Über Planlos), Alt+F4 und Alt+F12 (beenden). Die übrigen
-Beschriftungen (Neu, Suchen, Ändern, Drucken, …) sind sichtbar und
+Im Hauptfenster tun das schon F1 (Hilfe), F3 (leeres Fenster), F4
+(Kundensuche), F11 (Datenbanktext), F12 (beenden) und die Umschalt-
+und Alt-Ebene für Kaskade und Programmende. Die übrigen Beschriftungen
 sagen, dass die Wirkung noch fehlt.
 
-Später kommt die Beschriftung aus `tastenbelegung`, und `recht` schaltet
-eine Taste ab, auch wenn sie beschriftet ist. Sehen, neu, ändern,
-löschen und drucken sind genau die fünf Spalten, die schon da sind.
+Im Kontaktfenster kommt die Beschriftung aus `tastenbelegung`. Ist
+`erlaubt` 0, bleibt die Taste sichtbar und gesperrt. Bei Kontakten
+ist Löschen so aus. Die Rollenrechte in `maskenrecht` warten auf die
+Anmeldung.
 
 ### Kaskade
 
@@ -420,14 +425,11 @@ und ZUGFeRD, nicht ein privates Format allein.
 Jede Stufe ist für sich benutzbar. Die Reihenfolge ist die Abhängigkeit,
 nicht ein Zeitplan.
 
-1. **Suchfenster für Adressen.** Tabellen `maske` und `maskenfeld`.
-   F4 öffnet die Suche, zuerst für Kunde, Lieferant, Kontakt und
-   Mitarbeiter. Dieselbe Unit, vier Datensätze.
-2. **Eingabefenster derselben Maske.** Aus der Suche legt F2 einen Satz
-   an und kehrt in die Suche zurück. Damit steht der Ablauf „suchen,
-   sonst neu“.
+1. **Suchfenster für Adressen.** Erledigt. Eine Unit, vier Masken.
+2. **Eingabefenster derselben Maske.** Erledigt. F2 legt an und wählt
+   den neuen Satz in der Suche aus.
 3. **Benutzer und Anmeldung.** Passwort als Hash, eine Rolle je Benutzer.
-   Die fünf Rechte schalten die passenden Tasten aus.
+   Dann schalten `maskenrecht` und `recht` die Tasten aus.
 4. **Belegfenster.** Eine Form liest `modulart` und blendet Kopf, Summe
    und Fuß nach den Schaltern ein. Tabellen `beleg` und `belegposition`,
    Nummernkreis, Positionen zuerst als freie Zeile ohne Artikelstamm.
@@ -448,8 +450,7 @@ nicht ein Zeitplan.
 
 ## Bewusst noch nicht in diesem Stand
 
-Keine fertige Maske, kein Druck, keine Anmeldung, kein Netzwerk.
-Die Zusatzfenster sind Platzhalter, damit Kaskade und Tastenleiste
-sichtbar sind. Der nächste sinnvolle Schritt ist die Stufe 1, weil die
-Adresstabelle schon existiert und jeder spätere Beleg mit „Kunde suchen“
-beginnt.
+Kein Angebot, kein Druck, keine Anmeldung, kein Netzwerk.
+Die leeren Zusatzfenster zeigen weiter nur die Kaskade.
+Der nächste sinnvolle Schritt ist die Anmeldung, damit die vorbereiteten
+Rechte gelten, und danach das Belegfenster, das die Kundensuche aufruft.

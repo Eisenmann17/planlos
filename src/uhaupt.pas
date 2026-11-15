@@ -15,7 +15,8 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, StdCtrls, ExtCtrls, Dialogs, Menus,
-  Graphics, LCLType, utastenleiste, ukindfenster, udatenbank;
+  Graphics, LCLType, utastenleiste, ukindfenster, udatenbank, umaske,
+  usuche, ueingabe;
 
 type
   THauptfenster = class(TForm)
@@ -36,6 +37,10 @@ type
     procedure MenueHilfe(Sender: TObject);
     procedure MenueDatenbank(Sender: TObject);
     procedure MenueUeber(Sender: TObject);
+    procedure MenueKunde(Sender: TObject);
+    procedure MenueLieferant(Sender: TObject);
+    procedure MenueKontakt(Sender: TObject);
+    procedure MenueMitarbeiter(Sender: TObject);
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure FormShow(Sender: TObject);
     procedure TaktTimer(Sender: TObject);
@@ -87,6 +92,7 @@ begin
   FTasten.Align := alClient;
   FTasten.OnTaste := @TasteAusfuehren;
   StandardBelegung(FTasten);
+  FTasten.SetzeText(1, 4, 'Kunden');
 
   FText := TMemo.Create(Self);
   FText.Parent := Self;
@@ -140,6 +146,14 @@ begin
   Eintrag(Fenster, '&Kaskade umschalten', @MenueKaskade);
   Eintrag(Fenster, '&Alle Zusatzfenster schließen', @MenueAlleZu);
 
+  Fenster := TMenuItem.Create(Self);
+  Fenster.Caption := '&Adressen';
+  Menue.Items.Add(Fenster);
+  Eintrag(Fenster, '&Kunden', @MenueKunde);
+  Eintrag(Fenster, '&Lieferanten', @MenueLieferant);
+  Eintrag(Fenster, '&Kontakte', @MenueKontakt);
+  Eintrag(Fenster, '&Mitarbeiter', @MenueMitarbeiter);
+
   Hilfe := TMenuItem.Create(Self);
   Hilfe.Caption := '&Hilfe';
   Menue.Items.Add(Hilfe);
@@ -170,17 +184,15 @@ begin
   Einleitung :=
     'Planlos' + LineEnding +
     LineEnding +
-    'Dies ist das Grundgerüst. Es kann noch kein Angebot schreiben' + LineEnding +
-    'und noch keine Kundenmaske zeigen.' + LineEnding +
+    'Es gibt ein Kontaktfenster. Die Maske in der Datenbank macht daraus' + LineEnding +
+    'Kunde, Lieferant, Kontakt oder Mitarbeiter, mit eigenen Feldern.' + LineEnding +
+    LineEnding +
+    'Das Menü Adressen öffnet die Suche. F4 im Hauptfenster öffnet Kunden.' + LineEnding +
+    'In der Suche legt F2 einen neuen Satz an und wählt ihn danach aus.' + LineEnding +
     LineEnding +
     'Unten liegt die Tastenleiste. F1 bis F12 sind anklickbar.' + LineEnding +
-    'Umschalt und Alt wechseln die Beschriftung. Dieselben drei Ebenen' + LineEnding +
-    'liegen auch als Knöpfe Normal, Umschalt und Alt in der Leiste.' + LineEnding +
-    LineEnding +
-    'F3 öffnet ein weiteres Fenster. Ist die Kaskade ein, rückt es' + LineEnding +
-    'nach unten und nach rechts, wie früher 26 und 9 Bildpunkte.' + LineEnding +
-    'F11 holt diesen Text neu aus der Datenbank.' + LineEnding +
-    'F12 beendet das Programm. In einem Zusatzfenster schließt F12 nur dieses.' +
+    'Umschalt und Alt wechseln die Beschriftung.' + LineEnding +
+    'F3 öffnet ein leeres Fenster in der Kaskade, F12 beendet das Programm.' +
     LineEnding + LineEnding;
 
   if FDbFehler <> '' then
@@ -228,7 +240,7 @@ begin
       1: ZeigeHilfe(True);
       2: HinweisNochOffen('Neu');
       3: KindfensterOeffnen;
-      4: HinweisNochOffen('Suchen');
+      4: AdressSucheZeigen('kunde');
       5: HinweisNochOffen('Ändern');
       6: HinweisNochOffen('Drucken');
       7: HinweisNochOffen('Sortieren');
@@ -297,6 +309,91 @@ begin
   ZeigeUeberPlanlos;
 end;
 
+procedure THauptfenster.MenueKunde(Sender: TObject);
+begin
+  AdressSucheZeigen('kunde');
+end;
+
+procedure THauptfenster.MenueLieferant(Sender: TObject);
+begin
+  AdressSucheZeigen('lieferant');
+end;
+
+procedure THauptfenster.MenueKontakt(Sender: TObject);
+begin
+  AdressSucheZeigen('kontakt');
+end;
+
+procedure THauptfenster.MenueMitarbeiter(Sender: TObject);
+begin
+  AdressSucheZeigen('mitarbeiter');
+end;
+
+function KontaktPruefen(Protokoll: TStrings): string;
+var
+  Werte: TStringList;
+  Fehler: string;
+  Id, Neu: Int64;
+  Kunden, Mitarbeiter: TSuchfenster;
+  Eingabe, Kunde: TEingabefenster;
+begin
+  Result := '';
+  Werte := TStringList.Create;
+  Kunden := TSuchfenster.Create(Application);
+  Mitarbeiter := TSuchfenster.Create(Application);
+  Eingabe := TEingabefenster.Create(Application);
+  Kunde := TEingabefenster.Create(Application);
+  try
+    Werte.Values['nachname'] := 'Meier';
+    Werte.Values['vorname'] := 'Eva';
+    Id := AdresseSpeichern('mitarbeiter', 0, Werte, Fehler);
+    if Id = 0 then
+      Exit('Mitarbeiter anlegen: ' + Fehler);
+    if not Kunden.Oeffne('kunde') then
+      Exit('Die Kundenmaske fehlt.');
+    if Kunden.Left <> 40 then
+      Exit('Das Kundenfenster steht nicht an der Position aus der Maske.');
+    if Kunden.EnthaeltText('Meier') then
+      Exit('Der Mitarbeiter erscheint in der Kundensuche.');
+    if not Mitarbeiter.Oeffne('mitarbeiter') then
+      Exit('Die Mitarbeitermaske fehlt.');
+    if not Mitarbeiter.EnthaeltText('Meier') then
+      Exit('Der Mitarbeiter ist in der Mitarbeitersuche nicht zu finden.');
+    if Mitarbeiter.GewaehlteId <> Id then
+      Exit('Der Mitarbeiter ist nicht als Treffer ausgewählt.');
+    Eingabe.Vorbereiten('mitarbeiter', 0);
+    if Eingabe.HatFeld('firma') then
+      Exit('Die Mitarbeitermaske zeigt das Feld Firma.');
+    if not Eingabe.HatFeld('nachname') then
+      Exit('Die Mitarbeitermaske hat kein Feld Nachname.');
+    Kunde.Vorbereiten('kunde', 0);
+    if not Kunde.HatFeld('firma') then
+      Exit('Die Kundenmaske zeigt die Firma nicht.');
+    if not Kunde.HatFeld('rabatt_prozent') then
+      Exit('Die Kundenmaske zeigt den Rabatt nicht.');
+    Eingabe.SetzeWert('nachname', 'Schulz');
+    Eingabe.SetzeWert('vorname', 'Tim');
+    Neu := Eingabe.SpeichernStill(Fehler);
+    if Neu = 0 then
+      Exit('Speichern aus der Maske: ' + Fehler);
+    Mitarbeiter.UebernehmenNeueId(Neu);
+    if Mitarbeiter.GewaehlteId <> Neu then
+      Exit('Der neue Mitarbeiter ist nach dem Speichern nicht ausgewählt.');
+    Kunden.UebernehmenNeueId(0);
+    if Kunden.EnthaeltText('Schulz') then
+      Exit('Der neue Mitarbeiter erscheint in der Kundensuche.');
+    Protokoll.Add('KONTAKT=OK');
+    Protokoll.Add('MITARBEITER=' + IntToStr(Id));
+    Protokoll.Add('NEU=' + IntToStr(Neu));
+  finally
+    Kunde.Free;
+    Eingabe.Free;
+    Mitarbeiter.Free;
+    Kunden.Free;
+    Werte.Free;
+  end;
+end;
+
 procedure THauptfenster.FormShow(Sender: TObject);
 begin
   if FSelbsttest and not FSelbsttestGelaufen then
@@ -344,6 +441,8 @@ begin
         finally
           KaskadeUmschalten;
         end;
+        if Grund = '' then
+          Grund := KontaktPruefen(Liste);
       end;
     except
       on E: Exception do

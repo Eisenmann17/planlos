@@ -17,7 +17,7 @@ unit udatenbank;
 interface
 
 uses
-  Classes, SysUtils;
+  Classes, SysUtils, SQLDB;
 
 type
   TDatenbankArt = (daSQLite, daPostgreSQL);
@@ -30,6 +30,9 @@ type
     FPfad: string;
     procedure Direkt(const SQL: string);
     procedure VerbindungAufbauen(const Dateipfad: string);
+    function QueryNeu(const SQL: string; Parameter: TStrings): TSQLQuery;
+    procedure TransaktionSchliessen;
+    procedure MaskenAnlegen;
   public
     constructor Create;
     destructor Destroy; override;
@@ -41,9 +44,16 @@ type
     function ArtName: string;
     function Pfad: string;
     function Skalar(const SQL: string): string;
+    function SkalarMit(const SQL: string; Parameter: TStrings): string;
     function Ganzzahl(const SQL: string): Int64;
     function ParameterLesen(const Schluessel, Vorgabe: string): string;
     procedure ParameterSetzen(const Schluessel, Wert: string);
+    { Parameter sind Name=Wert. Leere Liste oder nil heißt: keine Platzhalter.
+      Ausfuehren liefert die Zahl geänderter Zeilen. }
+    function Ausfuehren(const SQL: string; Parameter: TStrings): Int64;
+    procedure ErsteZeile(const SQL: string; Parameter: TStrings; Ziel: TStrings);
+    procedure AlleZeilen(const SQL: string; Parameter: TStrings;
+      Spalten, Zeilen: TStrings);
     function FremdschluesselAktiv: Boolean;
     function Bericht: string;
     property Art: TDatenbankArt read FArt;
@@ -63,7 +73,7 @@ var
 implementation
 
 uses
-  DB, SQLDB, SQLite3Conn, sqlite3dyn;
+  DB, SQLite3Conn, sqlite3dyn;
 
 type
   TConn = TSQLite3Connection;
@@ -216,6 +226,128 @@ end;
 function TPlanlosDatenbank.Ganzzahl(const SQL: string): Int64;
 begin
   Result := StrToInt64Def(Trim(Skalar(SQL)), 0);
+end;
+
+function TPlanlosDatenbank.QueryNeu(const SQL: string; Parameter: TStrings): TSQLQuery;
+var
+  i: Integer;
+  Name: string;
+begin
+  Result := TSQLQuery.Create(nil);
+  Result.Database := TConn(FConn);
+  Result.Transaction := TSQLTransaction(FTrans);
+  Result.SQL.Text := SQL;
+  if Parameter = nil then
+    Exit;
+  for i := 0 to Parameter.Count - 1 do
+  begin
+    Name := Parameter.Names[i];
+    if Name <> '' then
+      Result.ParamByName(Name).AsString := Parameter.ValueFromIndex[i];
+  end;
+end;
+
+procedure TPlanlosDatenbank.TransaktionSchliessen;
+var
+  Trans: TSQLTransaction;
+begin
+  Trans := TSQLTransaction(FTrans);
+  if (Trans <> nil) and Trans.Active then
+    Trans.Commit;
+end;
+
+function TPlanlosDatenbank.SkalarMit(const SQL: string; Parameter: TStrings): string;
+var
+  Q: TSQLQuery;
+begin
+  Result := '';
+  Q := QueryNeu(SQL, Parameter);
+  try
+    Q.Open;
+    try
+      if not Q.EOF then
+        Result := Q.Fields[0].AsString;
+    finally
+      Q.Close;
+    end;
+    TransaktionSchliessen;
+  finally
+    Q.Free;
+  end;
+end;
+
+function TPlanlosDatenbank.Ausfuehren(const SQL: string; Parameter: TStrings): Int64;
+var
+  Q: TSQLQuery;
+begin
+  Q := QueryNeu(SQL, Parameter);
+  try
+    Q.ExecSQL;
+    Result := Q.RowsAffected;
+    TransaktionSchliessen;
+  finally
+    Q.Free;
+  end;
+end;
+
+procedure TPlanlosDatenbank.ErsteZeile(const SQL: string; Parameter: TStrings;
+  Ziel: TStrings);
+var
+  Q: TSQLQuery;
+  i: Integer;
+begin
+  Ziel.Clear;
+  Q := QueryNeu(SQL, Parameter);
+  try
+    Q.Open;
+    try
+      if not Q.EOF then
+        for i := 0 to Q.Fields.Count - 1 do
+          Ziel.Values[Q.Fields[i].FieldName] := Q.Fields[i].AsString;
+    finally
+      Q.Close;
+    end;
+    TransaktionSchliessen;
+  finally
+    Q.Free;
+  end;
+end;
+
+procedure TPlanlosDatenbank.AlleZeilen(const SQL: string; Parameter: TStrings;
+  Spalten, Zeilen: TStrings);
+var
+  Q: TSQLQuery;
+  i: Integer;
+  Zeile, Wert: string;
+begin
+  Spalten.Clear;
+  Zeilen.Clear;
+  Q := QueryNeu(SQL, Parameter);
+  try
+    Q.Open;
+    try
+      for i := 0 to Q.Fields.Count - 1 do
+        Spalten.Add(Q.Fields[i].FieldName);
+      while not Q.EOF do
+      begin
+        Zeile := '';
+        for i := 0 to Q.Fields.Count - 1 do
+        begin
+          Wert := StringReplace(Q.Fields[i].AsString, #9, ' ', [rfReplaceAll]);
+          if i > 0 then
+            Zeile := Zeile + #9;
+          Zeile := Zeile + Wert;
+        end;
+        Zeilen.Add(Zeile);
+        Q.Next;
+      end;
+    finally
+      Q.Close;
+    end;
+    TransaktionSchliessen;
+  finally
+    Q.Free;
+  end;
 end;
 
 function TPlanlosDatenbank.ParameterLesen(const Schluessel, Vorgabe: string): string;
@@ -399,7 +531,7 @@ var
   Kennung: string;
   G: TGUID;
 begin
-  { Version 1. Vorhandene Zeilen werden nicht überschrieben,
+  { Schema-Version 2. Vorhandene Zeilen werden nicht überschrieben,
     damit eine spätere Umbenennung beim nächsten Start erhalten bleibt. }
 
   Direkt(
@@ -557,10 +689,257 @@ begin
     Merkmal('installation_id', Kennung);
   end;
 
+  MaskenAnlegen;
+
   if Ganzzahl('SELECT COUNT(*) FROM schema_info') = 0 then
     Direkt(
-      'INSERT INTO schema_info (id, version, angelegt) VALUES (1, 1, ' +
-      QuotedStr(FormatDateTime('yyyy-mm-dd"T"hh:nn:ss', Now)) + ')');
+      'INSERT INTO schema_info (id, version, angelegt) VALUES (1, 2, ' +
+      QuotedStr(FormatDateTime('yyyy-mm-dd"T"hh:nn:ss', Now)) + ')')
+  else if Ganzzahl('SELECT version FROM schema_info WHERE id = 1') < 2 then
+    Direkt('UPDATE schema_info SET version = 2 WHERE id = 1');
+end;
+
+procedure TPlanlosDatenbank.MaskenAnlegen;
+
+  procedure Maske(Id, Kategorie, Links, Oben, Breite, Hoehe, Sortierung: Integer;
+    const Kuerzel, Bezeichnung: string);
+  begin
+    Direkt(
+      'INSERT INTO maske (id, kuerzel, bezeichnung, tabelle, kategorie_id, ' +
+      'fenster_links, fenster_oben, fenster_breite, fenster_hoehe, sortierung) SELECT ' +
+      IntToStr(Id) + ', ' + QuotedStr(Kuerzel) + ', ' + QuotedStr(Bezeichnung) +
+      ', ''adresse'', ' + IntToStr(Kategorie) + ', ' + IntToStr(Links) + ', ' +
+      IntToStr(Oben) + ', ' + IntToStr(Breite) + ', ' + IntToStr(Hoehe) + ', ' +
+      IntToStr(Sortierung) +
+      ' WHERE NOT EXISTS (SELECT 1 FROM maske WHERE id = ' + IntToStr(Id) + ')');
+  end;
+
+  procedure Feld(MaskeId, Reihenfolge: Integer; const Spalte, Beschriftung: string;
+    Sichtbar, Pflicht, InListe, Breite: Integer);
+  begin
+    Direkt(
+      'INSERT INTO maskenfeld (maske_id, spalte, beschriftung, reihenfolge, ' +
+      'sichtbar, pflicht, in_liste, breite) SELECT ' +
+      IntToStr(MaskeId) + ', ' + QuotedStr(Spalte) + ', ' + QuotedStr(Beschriftung) +
+      ', ' + IntToStr(Reihenfolge) + ', ' + IntToStr(Sichtbar) + ', ' +
+      IntToStr(Pflicht) + ', ' + IntToStr(InListe) + ', ' + IntToStr(Breite) +
+      ' WHERE NOT EXISTS (SELECT 1 FROM maskenfeld WHERE maske_id = ' +
+      IntToStr(MaskeId) + ' AND spalte = ' + QuotedStr(Spalte) + ')');
+  end;
+
+  procedure Felder(MaskeId: Integer; const Liste: string);
+  var
+    Zeilen, Teile: TStringList;
+    i, Nr: Integer;
+  begin
+    Zeilen := TStringList.Create;
+    Teile := TStringList.Create;
+    try
+      Zeilen.Text := Liste;
+      Teile.StrictDelimiter := True;
+      Teile.Delimiter := '|';
+      Nr := 0;
+      for i := 0 to Zeilen.Count - 1 do
+      begin
+        if Trim(Zeilen[i]) = '' then
+          Continue;
+        Teile.DelimitedText := Zeilen[i];
+        if Teile.Count < 6 then
+          raise Exception.Create('Maskenfeld unvollständig: ' + Zeilen[i]);
+        Inc(Nr);
+        Feld(MaskeId, Nr * 10, Teile[0], Teile[1], StrToInt(Teile[2]),
+          StrToInt(Teile[3]), StrToInt(Teile[4]), StrToInt(Teile[5]));
+      end;
+    finally
+      Teile.Free;
+      Zeilen.Free;
+    end;
+  end;
+
+  procedure Taste(MaskeId, Ebene, TasteNr, Erlaubt: Integer;
+    const Kontext, Beschriftung, Aktion: string);
+  begin
+    Direkt(
+      'INSERT INTO tastenbelegung (maske_id, kontext, ebene, taste, beschriftung, ' +
+      'aktion, erlaubt) SELECT ' + IntToStr(MaskeId) + ', ' + QuotedStr(Kontext) +
+      ', ' + IntToStr(Ebene) + ', ' + IntToStr(TasteNr) + ', ' +
+      QuotedStr(Beschriftung) + ', ' + QuotedStr(Aktion) + ', ' + IntToStr(Erlaubt) +
+      ' WHERE NOT EXISTS (SELECT 1 FROM tastenbelegung WHERE maske_id = ' +
+      IntToStr(MaskeId) + ' AND kontext = ' + QuotedStr(Kontext) +
+      ' AND ebene = ' + IntToStr(Ebene) + ' AND taste = ' + IntToStr(TasteNr) + ')');
+  end;
+
+  procedure TastenFuer(MaskeId, LoeschenFrei: Integer);
+  begin
+    Taste(MaskeId, 1, 1, 1, 'suche', 'Hilfe', 'hilfe');
+    Taste(MaskeId, 1, 2, 1, 'suche', 'Neu', 'neu');
+    Taste(MaskeId, 1, 6, 1, 'suche', 'Ändern', 'aendern');
+    Taste(MaskeId, 1, 8, LoeschenFrei, 'suche', 'Löschen', 'loeschen');
+    Taste(MaskeId, 1, 10, 1, 'suche', 'Übernehmen', 'uebernehmen');
+    Taste(MaskeId, 1, 12, 1, 'suche', 'Schließen', 'schliessen');
+    Taste(MaskeId, 1, 1, 1, 'eingabe', 'Hilfe', 'hilfe');
+    Taste(MaskeId, 1, 10, 1, 'eingabe', 'Speichern', 'speichern');
+    Taste(MaskeId, 1, 12, 1, 'eingabe', 'Abbrechen', 'abbrechen');
+  end;
+
+const
+  FelderKunde =
+    'firma|Firma|1|0|1|180'#10 +
+    'anrede|Anrede|1|0|0|80'#10 +
+    'titel|Titel|1|0|0|80'#10 +
+    'vorname|Vorname|1|0|1|120'#10 +
+    'nachname|Nachname|1|1|1|140'#10 +
+    'strasse|Straße|1|0|0|200'#10 +
+    'plz|PLZ|1|0|1|70'#10 +
+    'ort|Ort|1|0|1|140'#10 +
+    'land|Land|1|0|0|120'#10 +
+    'telefon|Telefon|1|0|1|120'#10 +
+    'telefax|Telefax|1|0|0|120'#10 +
+    'email|E-Mail|1|0|1|180'#10 +
+    'notiz|Notiz|1|0|0|200'#10 +
+    'rabatt_prozent|Rabatt %|1|0|0|80';
+  FelderLieferant =
+    'firma|Firma|1|1|1|180'#10 +
+    'anrede|Anrede|0|0|0|80'#10 +
+    'titel|Titel|0|0|0|80'#10 +
+    'vorname|Vorname|1|0|1|120'#10 +
+    'nachname|Nachname|1|0|1|140'#10 +
+    'strasse|Straße|1|0|0|200'#10 +
+    'plz|PLZ|1|0|1|70'#10 +
+    'ort|Ort|1|0|1|140'#10 +
+    'land|Land|1|0|0|120'#10 +
+    'telefon|Telefon|1|0|1|120'#10 +
+    'telefax|Telefax|1|0|1|120'#10 +
+    'email|E-Mail|1|0|1|180'#10 +
+    'notiz|Notiz|1|0|0|200'#10 +
+    'rabatt_prozent|Rabatt %|0|0|0|80';
+  FelderKontakt =
+    'firma|Firma|1|0|1|160'#10 +
+    'anrede|Anrede|1|0|0|80'#10 +
+    'titel|Titel|1|0|0|80'#10 +
+    'vorname|Vorname|1|1|1|120'#10 +
+    'nachname|Nachname|1|1|1|140'#10 +
+    'strasse|Straße|1|0|0|200'#10 +
+    'plz|PLZ|1|0|0|70'#10 +
+    'ort|Ort|1|0|1|140'#10 +
+    'land|Land|0|0|0|120'#10 +
+    'telefon|Telefon|1|0|1|120'#10 +
+    'telefax|Telefax|0|0|0|120'#10 +
+    'email|E-Mail|1|0|1|180'#10 +
+    'notiz|Notiz|1|0|0|200'#10 +
+    'rabatt_prozent|Rabatt %|0|0|0|80';
+  FelderMitarbeiter =
+    'firma|Firma|0|0|0|160'#10 +
+    'anrede|Anrede|1|0|0|80'#10 +
+    'titel|Titel|1|0|0|80'#10 +
+    'vorname|Vorname|1|1|1|120'#10 +
+    'nachname|Nachname|1|1|1|140'#10 +
+    'strasse|Straße|1|0|0|200'#10 +
+    'plz|PLZ|1|0|1|70'#10 +
+    'ort|Ort|1|0|1|140'#10 +
+    'land|Land|1|0|0|120'#10 +
+    'telefon|Telefon|1|0|1|120'#10 +
+    'telefax|Telefax|0|0|0|120'#10 +
+    'email|E-Mail|1|0|1|180'#10 +
+    'notiz|Notiz|1|0|0|200'#10 +
+    'rabatt_prozent|Rabatt %|0|0|0|80';
+
+var
+  RolleId, MaskeId, Sehen, Neu, Aendern, Loeschen: Integer;
+begin
+  Direkt(
+    'CREATE TABLE IF NOT EXISTS maske (' +
+    'id INTEGER PRIMARY KEY, ' +
+    'kuerzel TEXT NOT NULL UNIQUE, ' +
+    'bezeichnung TEXT NOT NULL, ' +
+    'tabelle TEXT NOT NULL, ' +
+    'kategorie_id INTEGER REFERENCES adresskategorie(id), ' +
+    'fenster_links INTEGER NOT NULL DEFAULT 0, ' +
+    'fenster_oben INTEGER NOT NULL DEFAULT 0, ' +
+    'fenster_breite INTEGER NOT NULL DEFAULT 720, ' +
+    'fenster_hoehe INTEGER NOT NULL DEFAULT 480, ' +
+    'sortierung INTEGER NOT NULL DEFAULT 0, ' +
+    'aktiv INTEGER NOT NULL DEFAULT 1)');
+
+  Direkt(
+    'CREATE TABLE IF NOT EXISTS maskenfeld (' +
+    'id INTEGER PRIMARY KEY, ' +
+    'maske_id INTEGER NOT NULL REFERENCES maske(id), ' +
+    'spalte TEXT NOT NULL, ' +
+    'beschriftung TEXT NOT NULL, ' +
+    'reihenfolge INTEGER NOT NULL DEFAULT 0, ' +
+    'sichtbar INTEGER NOT NULL DEFAULT 1, ' +
+    'pflicht INTEGER NOT NULL DEFAULT 0, ' +
+    'in_liste INTEGER NOT NULL DEFAULT 1, ' +
+    'breite INTEGER NOT NULL DEFAULT 120, ' +
+    'UNIQUE (maske_id, spalte))');
+
+  Direkt(
+    'CREATE TABLE IF NOT EXISTS tastenbelegung (' +
+    'id INTEGER PRIMARY KEY, ' +
+    'maske_id INTEGER NOT NULL REFERENCES maske(id), ' +
+    'kontext TEXT NOT NULL, ' +
+    'ebene INTEGER NOT NULL, ' +
+    'taste INTEGER NOT NULL, ' +
+    'beschriftung TEXT NOT NULL, ' +
+    'aktion TEXT NOT NULL, ' +
+    'erlaubt INTEGER NOT NULL DEFAULT 1, ' +
+    'UNIQUE (maske_id, kontext, ebene, taste))');
+
+  Direkt(
+    'CREATE TABLE IF NOT EXISTS maskenrecht (' +
+    'id INTEGER PRIMARY KEY, ' +
+    'rolle_id INTEGER NOT NULL REFERENCES rolle(id), ' +
+    'maske_id INTEGER NOT NULL REFERENCES maske(id), ' +
+    'sehen INTEGER NOT NULL DEFAULT 0, ' +
+    'neu INTEGER NOT NULL DEFAULT 0, ' +
+    'aendern INTEGER NOT NULL DEFAULT 0, ' +
+    'loeschen INTEGER NOT NULL DEFAULT 0, ' +
+    'UNIQUE (rolle_id, maske_id))');
+
+  Direkt('CREATE INDEX IF NOT EXISTS idx_maskenfeld_maske ON maskenfeld(maske_id)');
+  Direkt('CREATE INDEX IF NOT EXISTS idx_taste_maske ON tastenbelegung(maske_id)');
+
+  Maske(1, 1, 40, 30, 860, 560, 10, 'kunde', 'Kunde');
+  Maske(2, 2, 70, 50, 840, 540, 20, 'lieferant', 'Lieferant');
+  Maske(3, 3, 100, 70, 720, 500, 30, 'kontakt', 'Kontakt');
+  Maske(4, 4, 130, 90, 700, 520, 40, 'mitarbeiter', 'Mitarbeiter');
+
+  Felder(1, FelderKunde);
+  Felder(2, FelderLieferant);
+  Felder(3, FelderKontakt);
+  Felder(4, FelderMitarbeiter);
+
+  TastenFuer(1, 1);
+  TastenFuer(2, 1);
+  { Kontakte: Löschen ist in der Tastenbelegung aus. Die Rollenrechte
+    stehen zusätzlich in maskenrecht und warten auf die Anmeldung. }
+  TastenFuer(3, 0);
+  TastenFuer(4, 1);
+
+  for RolleId := 1 to 3 do
+    for MaskeId := 1 to 4 do
+    begin
+      case RolleId of
+        1: begin
+             Sehen := 1; Neu := 1; Aendern := 1; Loeschen := 1;
+           end;
+        2: begin
+             Sehen := 1; Neu := 1; Aendern := 1; Loeschen := 0;
+           end;
+      else
+        begin
+          Sehen := 1; Neu := 1; Aendern := 0; Loeschen := 0;
+        end;
+      end;
+      Direkt(
+        'INSERT INTO maskenrecht (rolle_id, maske_id, sehen, neu, aendern, loeschen) ' +
+        'SELECT ' + IntToStr(RolleId) + ', ' + IntToStr(MaskeId) + ', ' +
+        IntToStr(Sehen) + ', ' + IntToStr(Neu) + ', ' + IntToStr(Aendern) + ', ' +
+        IntToStr(Loeschen) +
+        ' WHERE NOT EXISTS (SELECT 1 FROM maskenrecht WHERE rolle_id = ' +
+        IntToStr(RolleId) + ' AND maske_id = ' + IntToStr(MaskeId) + ')');
+    end;
 end;
 
 function TPlanlosDatenbank.Bericht: string;
@@ -689,8 +1068,10 @@ begin
         Trans.Commit;
       Zeilen.Add('');
       Zeilen.Add('Adressarten: ' + Arten);
-      Zeilen.Add('Adressen: ' + IntToStr(Ganzzahl('SELECT COUNT(*) FROM adresse')) +
-        ' (noch keine Beispieladresse)');
+      Zeilen.Add('Adressen: ' + IntToStr(Ganzzahl('SELECT COUNT(*) FROM adresse')));
+      Zeilen.Add('Kontaktmasken: ' +
+        IntToStr(Ganzzahl('SELECT COUNT(*) FROM maske')) +
+        ' (ein Fenster, je Maske andere Felder)');
       Zeilen.Add('');
       Zeilen.Add('Rollen:');
 
