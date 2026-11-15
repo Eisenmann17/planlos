@@ -1,0 +1,29 @@
+Alter Quellcode, nur zum Nachlesen
+=================================
+
+Dieser Ordner ist „Mein kleines Büro / MyOffice“, geschrieben in Delphi 4
+mit der Zeos-Bibliothek und MySQL 4.
+
+Er wird nicht übersetzt und nicht mit Lazarus gebaut. Er liegt hier,
+damit man nachsehen kann, wie Belegarten, Masken und Tasten früher
+als Datensätze gesteuert wurden.
+
+Die Dateien behalten ihre ursprüngliche Kodierung (Windows, Latin-1)
+und die alten Zeilenenden.
+
+Die Datei Lizens.txt ist der alte Hinweis zur Haftung, keine Open-Source-Lizenz.
+Das neue Programm Planlos steht unter der GPL-3.0. Der Text liegt im
+Hauptordner in der Datei LICENSE.
+
+Wichtige Einstiege:
+
+- Planlos.dpr              das alte Projekt
+- MYOFFICE.SQL             die 22 Tabellen, mit Beispieldaten
+- UnitModule.pas           das Hauptfenster, lädt die Modularten
+- UnitEinstellungModulart.pas   die Einstellungen einer Belegart
+- TempForm.pas             das eine Listenfenster für fast alle Suchen
+- UnitDB.pas               Anlegen, Kopieren und Löschen von Datensätzen
+- DB.INI                   früherer Verweis auf MySQL (localhost, mysql-4.0)
+
+Die Analyse und der Vorschlag für das neue Datenmodell stehen in
+docs/KONZEPT.md.

@@ -1,0 +1,37 @@
+# Free Pascal und Lazarus: Übersetzungsreste
+*.o
+*.ppu
+*.or
+*.obj
+*.dcu
+*.compiled
+*.a
+*.so
+*.dll
+*.dylib
+*.exe
+*.dbg
+*.lps
+*.bak
+*.~*
+*~
+
+# Ausgabeverzeichnisse des Projekts
+/bin/
+/lib/
+/src/lib/
+/src/backup/
+/src/*.res
+
+# Die Datenbank entsteht beim ersten Start und gehört nicht ins Repository.
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+
+# Betriebssystem
+.DS_Store
+Thumbs.db
