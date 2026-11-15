@@ -324,19 +324,26 @@ Eigene Felder des Benutzers, die keine echte Spalte sind, landen später in
 So entsteht „Arbeitsschuhe“ ohne `CREATE TABLE` durch den Benutzer.
 
 **benutzer** mit Name, Passwort als heutiger Hash, und `rolle_id`.
-Dann gelten die Zeilen in `maskenrecht` und `recht` für die Tasten.
+Die Anmeldung ist bewusst zurückgestellt. Dann gelten `maskenrecht`
+und `recht` für die Tasten.
 
-**beleg** als Nachfolger von `module`: `modulart_id`, Nummer aus dem
-Nummernkreis, `adresse_id`, später `kontakt_id`, `bezug_beleg_id` für
-den Vorgänger, Bezeichnung, Kopftext, Fußtext, Notiz, Ihr Zeichen,
-Erfassung, letzte Bearbeitung, Status `entwurf` oder `festgeschrieben`,
-Währung, und der MwSt-Satz als Kopie zum Zeitpunkt des Belegs.
+**beleg** und **belegposition** sind angelegt. Ein Fenster
+(`ubelegfenster.pas`), eine Suche (`ubelegsuche.pas`). Die Belegart
+in `modulart` bestimmt die sichtbaren Bereiche Kopf, Positionen, Summe
+und Fuß, die Empfänger-Maske (Angebot und Rechnung: Kunde, Bestellung:
+Lieferant, Projekt: keiner), ob MwSt gerechnet wird, Fenstermaß und
+Nummernkreis. `nummer_naechste` zählt je Art, das Format ist `ANG-1`.
 
-**belegposition** als Nachfolger von `artikelliste`: Beleg, Positionsnummer,
-optionale `artikel_id`, Text, Menge, Einheit, Einzelpreis in Cent,
-Rabatt. Die `artikel_id` darf leer werden, der Text und der Preis bleiben.
-Stücklisten werden später eine Position mit Unterpositionen, nicht eine
-zweite fast gleiche Tabelle.
+Beträge liegen in Cent, Mengen in Tausendsteln. Die Rundung ist
+kaufmännisch auf ganze Cent, je Steuersatz einmal auf die Nettosumme
+dieses Satzes. Erlaubte Sätze sind 19, 7 und 0. `artikel_id` auf der
+Position ist optional und noch ohne Artikelstamm.
+
+`folgebeleg` sagt, welcher Beleg aus welchem entstehen darf. Mitgeliefert:
+Angebot nach Auftragsbestätigung, Angebot nach Rechnung, Auftragsbestätigung
+nach Rechnung. Der Folgebeleg kopiert Kopf und Positionen, bekommt eine
+eigene Nummer und merkt sich den Vorgänger. Die Tasten dafür stehen in
+`belegtaste`.
 
 **artikel**, **artikelgruppe**, **einheit**, **berechnungsart** folgen,
 wenn die Positionen einen Stamm brauchen. Die Berechnungsart bleibt ein
@@ -349,10 +356,11 @@ Vier Schichten. Die oberen kennen die unteren, nicht umgekehrt.
 
 1. **Fenster**, LCL. `uhaupt.pas` ist das Hauptfenster, `ukindfenster.pas`
    öffnet leere Zusatzfenster, `utastenleiste.pas` ist die Leiste.
-   `usuche.pas` und `ueingabe.pas` sind das eine Kontaktfenster.
+   `usuche.pas` und `ueingabe.pas` sind das Kontaktfenster,
+   `ubelegsuche.pas` und `ubelegfenster.pas` das Belegfenster.
    Diese Units enthalten kein SQL.
-2. **Masken**, `umaske.pas`: Maske laden, Adresse speichern und suchen.
-   Beleg anlegen und Nummern vergeben kommen später.
+2. **Masken und Belege**, `umaske.pas` und `ubeleg.pas`: Adressen,
+   Belege, Nummern und Summen in Cent. Ein Artikelstamm kommt später.
 3. **Metadaten**, die Tabellen `modulart`, `maske`, `maskenfeld` und
    `tastenbelegung`. Sie steuern, was die generischen Fenster zeigen.
 4. **Datenzugriff**, nur `udatenbank.pas`. Klasse `TPlanlosDatenbank`.
@@ -428,17 +436,15 @@ nicht ein Zeitplan.
 1. **Suchfenster für Adressen.** Erledigt. Eine Unit, vier Masken.
 2. **Eingabefenster derselben Maske.** Erledigt. F2 legt an und wählt
    den neuen Satz in der Suche aus.
-3. **Benutzer und Anmeldung.** Passwort als Hash, eine Rolle je Benutzer.
-   Dann schalten `maskenrecht` und `recht` die Tasten aus.
-4. **Belegfenster.** Eine Form liest `modulart` und blendet Kopf, Summe
-   und Fuß nach den Schaltern ein. Tabellen `beleg` und `belegposition`,
-   Nummernkreis, Positionen zuerst als freie Zeile ohne Artikelstamm.
+3. **Benutzer und Anmeldung.** Zurückgestellt. Passwort als Hash, eine
+   Rolle je Benutzer. Dann schalten `maskenrecht` und `recht` die Tasten aus.
+4. **Belegfenster.** Erledigt. Eine Form, fünf Belegarten als Daten,
+   freie Positionen, Summen in Cent, Folgebeleg mit eigener Nummer.
 5. **Artikelstamm.** Übernahme in die Position kopiert Text und Preis.
-   Die `artikel_id` bleibt ein Verweis, der Text auf dem Beleg bleibt
-   stehen, wenn der Artikel sich ändert.
+   `artikel_id` ist schon vorgesehen und bleibt leer, solange es keinen Stamm gibt.
 6. **PostgreSQL** in `VerbindenPostgreSQL`, Auswahl über `datenbank_art`.
    Dieselben Anweisungen, ein Verbindungstest gegen einen Server.
-7. **PDF.** Eine Druckbeschreibung als Daten, Nachfolger von
+7. **Druck und PDF.** Eine Druckbeschreibung als Daten, Nachfolger von
    `einstellungdrucken`, ohne die gepackten Zwanzig-Felder-Ketten.
 8. **Festschreiben.** Status Entwurf oder festgeschrieben. Ein
    festgeschriebener Beleg nimmt keine Änderung mehr an. Das ist die
@@ -450,7 +456,6 @@ nicht ein Zeitplan.
 
 ## Bewusst noch nicht in diesem Stand
 
-Kein Angebot, kein Druck, keine Anmeldung, kein Netzwerk.
+Kein Druck, kein PDF, keine E-Rechnung, keine Anmeldung.
 Die leeren Zusatzfenster zeigen weiter nur die Kaskade.
-Der nächste sinnvolle Schritt ist die Anmeldung, damit die vorbereiteten
-Rechte gelten, und danach das Belegfenster, das die Kundensuche aufruft.
+Als Nächstes kommen Druck und PDF, danach die elektronische Rechnung.

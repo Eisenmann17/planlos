@@ -33,6 +33,7 @@ type
     function QueryNeu(const SQL: string; Parameter: TStrings): TSQLQuery;
     procedure TransaktionSchliessen;
     procedure MaskenAnlegen;
+    procedure BelegSchema;
   public
     constructor Create;
     destructor Destroy; override;
@@ -531,7 +532,7 @@ var
   Kennung: string;
   G: TGUID;
 begin
-  { Schema-Version 2. Vorhandene Zeilen werden nicht überschrieben,
+  { Schema-Version 3. Vorhandene Zeilen werden nicht überschrieben,
     damit eine spätere Umbenennung beim nächsten Start erhalten bleibt. }
 
   Direkt(
@@ -690,13 +691,14 @@ begin
   end;
 
   MaskenAnlegen;
+  BelegSchema;
 
   if Ganzzahl('SELECT COUNT(*) FROM schema_info') = 0 then
     Direkt(
-      'INSERT INTO schema_info (id, version, angelegt) VALUES (1, 2, ' +
+      'INSERT INTO schema_info (id, version, angelegt) VALUES (1, 3, ' +
       QuotedStr(FormatDateTime('yyyy-mm-dd"T"hh:nn:ss', Now)) + ')')
-  else if Ganzzahl('SELECT version FROM schema_info WHERE id = 1') < 2 then
-    Direkt('UPDATE schema_info SET version = 2 WHERE id = 1');
+  else if Ganzzahl('SELECT version FROM schema_info WHERE id = 1') < 3 then
+    Direkt('UPDATE schema_info SET version = 3 WHERE id = 1');
 end;
 
 procedure TPlanlosDatenbank.MaskenAnlegen;
@@ -940,6 +942,162 @@ begin
         ' WHERE NOT EXISTS (SELECT 1 FROM maskenrecht WHERE rolle_id = ' +
         IntToStr(RolleId) + ' AND maske_id = ' + IntToStr(MaskeId) + ')');
     end;
+end;
+
+procedure TPlanlosDatenbank.BelegSchema;
+
+  procedure Spalte(const Tabelle, Name, Definition: string);
+  begin
+    if Ganzzahl(
+      'SELECT COUNT(*) FROM pragma_table_info(' + QuotedStr(Tabelle) +
+      ') WHERE name = ' + QuotedStr(Name)) = 0 then
+      Direkt('ALTER TABLE ' + Tabelle + ' ADD COLUMN ' + Name + ' ' + Definition);
+  end;
+
+  procedure Folge(VonId, NachId: Integer);
+  begin
+    Direkt(
+      'INSERT INTO folgebeleg (von_modulart_id, nach_modulart_id) SELECT ' +
+      IntToStr(VonId) + ', ' + IntToStr(NachId) +
+      ' WHERE NOT EXISTS (SELECT 1 FROM folgebeleg WHERE von_modulart_id = ' +
+      IntToStr(VonId) + ' AND nach_modulart_id = ' + IntToStr(NachId) + ')');
+  end;
+
+  procedure Taste(ModulartId, Ebene, TasteNr, Erlaubt: Integer;
+    const Kontext, Beschriftung, Aktion: string);
+  begin
+    Direkt(
+      'INSERT INTO belegtaste (modulart_id, kontext, ebene, taste, beschriftung, ' +
+      'aktion, erlaubt) SELECT ' + IntToStr(ModulartId) + ', ' + QuotedStr(Kontext) +
+      ', ' + IntToStr(Ebene) + ', ' + IntToStr(TasteNr) + ', ' +
+      QuotedStr(Beschriftung) + ', ' + QuotedStr(Aktion) + ', ' + IntToStr(Erlaubt) +
+      ' WHERE NOT EXISTS (SELECT 1 FROM belegtaste WHERE modulart_id = ' +
+      IntToStr(ModulartId) + ' AND kontext = ' + QuotedStr(Kontext) +
+      ' AND ebene = ' + IntToStr(Ebene) + ' AND taste = ' + IntToStr(TasteNr) + ')');
+  end;
+
+  procedure TastenSuche(ModulartId: Integer);
+  begin
+    Taste(ModulartId, 1, 1, 1, 'suche', 'Hilfe', 'hilfe');
+    Taste(ModulartId, 1, 2, 1, 'suche', 'Neu', 'neu');
+    Taste(ModulartId, 1, 4, 1, 'suche', 'Suchen', 'filtern');
+    Taste(ModulartId, 1, 6, 1, 'suche', 'Öffnen', 'oeffnen');
+    Taste(ModulartId, 1, 10, 1, 'suche', 'Übernehmen', 'uebernehmen');
+    Taste(ModulartId, 1, 12, 1, 'suche', 'Schließen', 'schliessen');
+  end;
+
+  procedure TastenBeleg(ModulartId, Empfaenger, Positionen: Integer);
+  begin
+    Taste(ModulartId, 1, 1, 1, 'beleg', 'Hilfe', 'hilfe');
+    Taste(ModulartId, 1, 3, Empfaenger, 'beleg', 'Empfänger', 'empfaenger');
+    Taste(ModulartId, 1, 5, Positionen, 'beleg', 'Position', 'position');
+    Taste(ModulartId, 1, 8, Positionen, 'beleg', 'Entfernen', 'position_weg');
+    Taste(ModulartId, 1, 10, 1, 'beleg', 'Speichern', 'speichern');
+    Taste(ModulartId, 1, 12, 1, 'beleg', 'Schließen', 'schliessen');
+  end;
+
+begin
+  Spalte('modulart', 'bereich_positionen', 'INTEGER NOT NULL DEFAULT 1');
+  Spalte('modulart', 'mwst', 'INTEGER NOT NULL DEFAULT 1');
+  Spalte('modulart', 'empfaenger_maske', 'TEXT NOT NULL DEFAULT ''''');
+  Spalte('modulart', 'beschriftung_empfaenger', 'TEXT NOT NULL DEFAULT ''''');
+  Spalte('modulart', 'nummer_naechste', 'INTEGER NOT NULL DEFAULT 1');
+
+  Direkt(
+    'CREATE TABLE IF NOT EXISTS beleg (' +
+    'id INTEGER PRIMARY KEY, ' +
+    'modulart_id INTEGER NOT NULL REFERENCES modulart(id), ' +
+    'nummer TEXT NOT NULL, ' +
+    'adresse_id INTEGER REFERENCES adresse(id), ' +
+    'bezeichnung TEXT, ' +
+    'kopftext TEXT, ' +
+    'fusstext TEXT, ' +
+    'notiz TEXT, ' +
+    'bezug_beleg_id INTEGER REFERENCES beleg(id), ' +
+    'waehrung TEXT NOT NULL DEFAULT ''EUR'', ' +
+    'mwst_rechnen INTEGER NOT NULL DEFAULT 1, ' +
+    'angelegt TEXT NOT NULL, ' +
+    'geaendert TEXT NOT NULL)');
+  Direkt(
+    'CREATE UNIQUE INDEX IF NOT EXISTS idx_beleg_nummer ON beleg(modulart_id, nummer)');
+  Direkt(
+    'CREATE TABLE IF NOT EXISTS belegposition (' +
+    'id INTEGER PRIMARY KEY, ' +
+    'beleg_id INTEGER NOT NULL REFERENCES beleg(id), ' +
+    'position_nr INTEGER NOT NULL, ' +
+    'artikel_id INTEGER, ' +
+    'positionstext TEXT NOT NULL, ' +
+    'menge_milli INTEGER NOT NULL, ' +
+    'einheit TEXT, ' +
+    'einzelpreis_cent INTEGER NOT NULL, ' +
+    'mwst_satz INTEGER NOT NULL DEFAULT 0)');
+  Direkt(
+    'CREATE INDEX IF NOT EXISTS idx_belegposition_beleg ON belegposition(beleg_id)');
+  Direkt(
+    'CREATE TABLE IF NOT EXISTS folgebeleg (' +
+    'id INTEGER PRIMARY KEY, ' +
+    'von_modulart_id INTEGER NOT NULL REFERENCES modulart(id), ' +
+    'nach_modulart_id INTEGER NOT NULL REFERENCES modulart(id), ' +
+    'UNIQUE (von_modulart_id, nach_modulart_id))');
+  Direkt(
+    'CREATE TABLE IF NOT EXISTS belegtaste (' +
+    'id INTEGER PRIMARY KEY, ' +
+    'modulart_id INTEGER NOT NULL REFERENCES modulart(id), ' +
+    'kontext TEXT NOT NULL, ' +
+    'ebene INTEGER NOT NULL, ' +
+    'taste INTEGER NOT NULL, ' +
+    'beschriftung TEXT NOT NULL, ' +
+    'aktion TEXT NOT NULL, ' +
+    'erlaubt INTEGER NOT NULL DEFAULT 1, ' +
+    'UNIQUE (modulart_id, kontext, ebene, taste))');
+
+  if ParameterLesen('modulart_beleg_v3', '') = '' then
+  begin
+    Direkt(
+      'UPDATE modulart SET empfaenger_maske = ''kunde'', ' +
+      'beschriftung_empfaenger = ''Kunde'', mwst = 1, bereich_positionen = 1, ' +
+      'fenster_links = 40, fenster_oben = 30, fenster_breite = 920, fenster_hoehe = 680 ' +
+      'WHERE kuerzel = ''angebot''');
+    Direkt(
+      'UPDATE modulart SET empfaenger_maske = ''kunde'', ' +
+      'beschriftung_empfaenger = ''Kunde'', mwst = 1, bereich_positionen = 1, ' +
+      'fenster_links = 70, fenster_oben = 50, fenster_breite = 920, fenster_hoehe = 680 ' +
+      'WHERE kuerzel = ''auftragsbestaetigung''');
+    Direkt(
+      'UPDATE modulart SET empfaenger_maske = ''lieferant'', ' +
+      'beschriftung_empfaenger = ''Lieferant'', mwst = 1, bereich_positionen = 1, ' +
+      'fenster_links = 100, fenster_oben = 70, fenster_breite = 900, fenster_hoehe = 660 ' +
+      'WHERE kuerzel = ''bestellung''');
+    Direkt(
+      'UPDATE modulart SET empfaenger_maske = ''kunde'', ' +
+      'beschriftung_empfaenger = ''Kunde'', mwst = 1, bereich_positionen = 1, ' +
+      'fenster_links = 50, fenster_oben = 40, fenster_breite = 920, fenster_hoehe = 700 ' +
+      'WHERE kuerzel = ''rechnung''');
+    Direkt(
+      'UPDATE modulart SET empfaenger_maske = '''', beschriftung_empfaenger = '''', ' +
+      'mwst = 0, bereich_positionen = 0, bereich_summe = 0, bereich_fuss = 0, ' +
+      'fenster_links = 130, fenster_oben = 80, fenster_breite = 720, fenster_hoehe = 460 ' +
+      'WHERE kuerzel = ''projekt''');
+    ParameterSetzen('modulart_beleg_v3', '1');
+  end;
+
+  Folge(1, 2);
+  Folge(1, 4);
+  Folge(2, 4);
+
+  TastenSuche(1);
+  TastenSuche(2);
+  TastenSuche(3);
+  TastenSuche(4);
+  TastenSuche(5);
+  TastenBeleg(1, 1, 1);
+  TastenBeleg(2, 1, 1);
+  TastenBeleg(3, 1, 1);
+  TastenBeleg(4, 1, 1);
+  TastenBeleg(5, 0, 0);
+  Taste(1, 1, 6, 1, 'beleg', 'Auftrag', 'folge:auftragsbestaetigung');
+  Taste(1, 1, 7, 1, 'beleg', 'Rechnung', 'folge:rechnung');
+  Taste(2, 1, 6, 1, 'beleg', 'Rechnung', 'folge:rechnung');
 end;
 
 function TPlanlosDatenbank.Bericht: string;

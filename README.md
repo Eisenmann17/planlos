@@ -25,7 +25,7 @@ Es gilt Version 3, nicht automatisch eine spätere Fassung.
 
 ## Die Idee
 
-Es gibt später **ein** Fenster für Belege. Ob daraus ein Angebot, eine
+Es gibt **ein** Fenster für Belege. Ob daraus ein Angebot, eine
 Auftragsbestätigung, eine Bestellung oder eine Rechnung wird, entscheidet
 ein Datensatz, keine eigene Programmdatei.
 
@@ -77,13 +77,15 @@ Vorhanden:
 - das Kontaktfenster ist eines. Die Maske in der Datenbank macht daraus
   Kunde, Lieferant, Kontakt oder Mitarbeiter. Menü Adressen, im
   Hauptfenster auch F4 für Kunden. In der Suche legt F2 einen Satz an
+- das Belegfenster ist eines. Menü Belege öffnet die Suche. F2 legt den
+  Beleg an, F3 wählt den Empfänger. Aus einem Angebot kann eine
+  Auftragsbestätigung oder eine Rechnung entstehen
 
 Noch nicht vorhanden:
 
-- kein Artikel, kein Angebot, kein Druck
+- kein Artikelstamm, kein Druck, kein PDF, keine E-Rechnung
 - keine Anmeldung. Die Rollenrechte liegen in der Datenbank bereit
-- PostgreSQL ist in der Datenzugriffsklasse vorgesehen, aber noch nicht
-  angeschlossen
+- PostgreSQL ist vorgesehen, aber noch nicht angeschlossen
 
 Die Datenbankdatei heißt `planlos.sqlite`. Sie entsteht beim ersten Start
 im Ordner `data` neben dem Programm. Darin stehen fünf Belegarten,
