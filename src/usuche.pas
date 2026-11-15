@@ -41,6 +41,7 @@ type
     procedure WaehleId(Id: Int64);
     function GewaehlteId: Int64;
     procedure UebernehmenNeueId(Id: Int64);
+    procedure SetzeFilter(const Suchtext: string);
   end;
 
 procedure AdressSucheZeigen(const Kuerzel: string);
@@ -48,10 +49,19 @@ function AdressSucheWaehlen(const Kuerzel: string): Int64;
 
 implementation
 
+uses
+  ubenutzer;
+
 procedure AdressSucheZeigen(const Kuerzel: string);
 var
   Fenster: TSuchfenster;
+  Meldung: string;
 begin
+  if not AktionZulaessig('maske', Kuerzel, 'sehen', Meldung) then
+  begin
+    ShowMessage(Meldung);
+    Exit;
+  end;
   Fenster := TSuchfenster.Create(Application);
   if not Fenster.Oeffne(Kuerzel) then
   begin
@@ -65,8 +75,14 @@ end;
 function AdressSucheWaehlen(const Kuerzel: string): Int64;
 var
   Fenster: TSuchfenster;
+  Meldung: string;
 begin
   Result := 0;
+  if not AktionZulaessig('maske', Kuerzel, 'sehen', Meldung) then
+  begin
+    ShowMessage(Meldung);
+    Exit;
+  end;
   Fenster := TSuchfenster.Create(Application);
   try
     Fenster.FModal := True;
@@ -276,6 +292,12 @@ begin
   WaehleId(Id);
 end;
 
+procedure TSuchfenster.SetzeFilter(const Suchtext: string);
+begin
+  FFilter.Text := Suchtext;
+  ListeLaden;
+end;
+
 function TSuchfenster.EnthaeltText(const GesuchterText: string): Boolean;
 var
   Spalte, Zeile: Integer;
@@ -290,6 +312,7 @@ end;
 procedure TSuchfenster.AktionAusfuehren(const Aktionsname: string);
 var
   Id: Int64;
+  Meldung: string;
 begin
   if Aktionsname = 'hilfe' then
     ShowMessage(
@@ -300,12 +323,22 @@ begin
       LineEnding + 'F10 übernimmt die Zeile, F12 schließt.')
   else if Aktionsname = 'neu' then
   begin
+    if not AktionZulaessig('maske', FKuerzel, 'neu', Meldung) then
+    begin
+      ShowMessage(Meldung);
+      Exit;
+    end;
     Id := AdresseEingeben(FKuerzel, 0);
     if Id > 0 then
       UebernehmenNeueId(Id);
   end
   else if Aktionsname = 'aendern' then
   begin
+    if not AktionZulaessig('maske', FKuerzel, 'aendern', Meldung) then
+    begin
+      ShowMessage(Meldung);
+      Exit;
+    end;
     Id := GewaehlteId;
     if Id = 0 then
       ShowMessage('Bitte zuerst eine Zeile auswählen.')
@@ -318,9 +351,19 @@ begin
   end
   else if Aktionsname = 'loeschen' then
   begin
+    if not AktionZulaessig('maske', FKuerzel, 'loeschen', Meldung) then
+    begin
+      ShowMessage(Meldung);
+      Exit;
+    end;
     Id := GewaehlteId;
     if Id = 0 then
       Exit;
+    if Id = AngemeldeterMitarbeiter then
+    begin
+      ShowMessage('Der angemeldete Mitarbeiter kann nicht gelöscht werden.');
+      Exit;
+    end;
     if MessageDlg('Datensatz Nr. ' + IntToStr(Id) + ' löschen?',
       mtConfirmation, [mbYes, mbNo], 0) <> mrYes then
       Exit;

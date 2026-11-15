@@ -53,11 +53,32 @@ function BelegBearbeiten(const Kuerzel: string; Id: Int64): Int64;
 
 implementation
 
+uses
+  ubenutzer;
+
 function BelegBearbeiten(const Kuerzel: string; Id: Int64): Int64;
 var
   Fenster: TBelegfenster;
+  Meldung, Art: string;
 begin
   Result := 0;
+  if Id = 0 then
+    Art := Kuerzel
+  else
+    Art := BelegArtKuerzel(Id);
+  if Id = 0 then
+  begin
+    if not AktionZulaessig('beleg', Art, 'neu', Meldung) then
+    begin
+      ShowMessage(Meldung);
+      Exit;
+    end;
+  end
+  else if not AktionZulaessig('beleg', Art, 'sehen', Meldung) then
+  begin
+    ShowMessage(Meldung);
+    Exit;
+  end;
   Fenster := TBelegfenster.Create(Application);
   try
     if Id = 0 then
@@ -430,6 +451,11 @@ begin
     ShowMessage(Fehler);
     Exit;
   end;
+  if not AktionZulaessig('beleg', ZielKuerzel, 'neu', Fehler) then
+  begin
+    ShowMessage(Fehler);
+    Exit;
+  end;
   Neu := FolgebelegErzeugen(Bisher, ZielKuerzel, Fehler);
   if Neu = 0 then
     ShowMessage(Fehler)
@@ -466,6 +492,19 @@ begin
     PositionEntfernen
   else if Aktionsname = 'speichern' then
   begin
+    if FKopfDaten.Id = 0 then
+    begin
+      if not AktionZulaessig('beleg', FArt.Kuerzel, 'neu', Fehler) then
+      begin
+        ShowMessage(Fehler);
+        Exit;
+      end;
+    end
+    else if not AktionZulaessig('beleg', FArt.Kuerzel, 'aendern', Fehler) then
+    begin
+      ShowMessage(Fehler);
+      Exit;
+    end;
     if SpeichernStill(Fehler) = 0 then
       ShowMessage(Fehler)
     else

@@ -6,6 +6,8 @@ Planlos ausprobieren
    und sqlite3.dll im selben Ordner bleiben.
 
 2. planlos.exe mit einem Doppelklick starten.
+   Beim ersten Start ist der Anwender Admin, das Passwort 0000.
+   Danach können Sie es in der Datenbank nicht im Klartext nachlesen.
 
 3. Ihre Daten legt Planlos selbst an. Sie heißen planlos.sqlite und liegen
    im Ordner data neben dem Programm. Diesen Ordner können Sie kopieren,

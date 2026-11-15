@@ -74,7 +74,7 @@ var
 implementation
 
 uses
-  DB, SQLite3Conn, sqlite3dyn;
+  DB, SQLite3Conn, sqlite3dyn, ubenutzer;
 
 type
   TConn = TSQLite3Connection;
@@ -579,13 +579,21 @@ procedure TPlanlosDatenbank.SchemaSicherstellen;
       ' WHERE NOT EXISTS (SELECT 1 FROM rolle WHERE id = ' + IntToStr(Id) + ')');
   end;
 
+  procedure Spalte(const Tabelle, Name, Definition: string);
+  begin
+    if Ganzzahl(
+      'SELECT COUNT(*) FROM pragma_table_info(' + QuotedStr(Tabelle) +
+      ') WHERE name = ' + QuotedStr(Name)) = 0 then
+      Direkt('ALTER TABLE ' + Tabelle + ' ADD COLUMN ' + Name + ' ' + Definition);
+  end;
+
 var
   RolleId, ModulId, RechtId: Integer;
   Sehen, Neu, Aendern, Loeschen, Drucken: Integer;
   Kennung: string;
   G: TGUID;
 begin
-  { Schema-Version 3. Vorhandene Zeilen werden nicht überschrieben,
+  { Schema-Version 4. Vorhandene Zeilen werden nicht überschrieben,
     damit eine spätere Umbenennung beim nächsten Start erhalten bleibt. }
 
   Direkt(
@@ -639,6 +647,13 @@ begin
     'telefax TEXT, ' +
     'email TEXT, ' +
     'notiz TEXT, ' +
+    'telefon_privat TEXT, ' +
+    'telefon_andere TEXT, ' +
+    'adressblock TEXT, ' +
+    'frei1 TEXT, ' +
+    'frei2 TEXT, ' +
+    'frei3 TEXT, ' +
+    'frei4 TEXT, ' +
     'rabatt_prozent REAL NOT NULL DEFAULT 0, ' +
     'angelegt TEXT NOT NULL, ' +
     'geaendert TEXT NOT NULL)');
@@ -648,6 +663,16 @@ begin
     'id INTEGER PRIMARY KEY, ' +
     'bezeichnung TEXT NOT NULL UNIQUE, ' +
     'beschreibung TEXT)');
+
+  Direkt(
+    'CREATE TABLE IF NOT EXISTS benutzer (' +
+    'id INTEGER PRIMARY KEY, ' +
+    'name TEXT NOT NULL UNIQUE, ' +
+    'passwort_salz TEXT NOT NULL, ' +
+    'passwort_hash TEXT NOT NULL, ' +
+    'rolle_id INTEGER NOT NULL REFERENCES rolle(id), ' +
+    'adresse_id INTEGER REFERENCES adresse(id), ' +
+    'aktiv INTEGER NOT NULL DEFAULT 1)');
 
   Direkt(
     'CREATE TABLE IF NOT EXISTS recht (' +
@@ -660,6 +685,14 @@ begin
     'loeschen INTEGER NOT NULL DEFAULT 0, ' +
     'drucken INTEGER NOT NULL DEFAULT 0, ' +
     'UNIQUE (rolle_id, modulart_id))');
+
+  Spalte('adresse', 'telefon_privat', 'TEXT');
+  Spalte('adresse', 'telefon_andere', 'TEXT');
+  Spalte('adresse', 'adressblock', 'TEXT');
+  Spalte('adresse', 'frei1', 'TEXT');
+  Spalte('adresse', 'frei2', 'TEXT');
+  Spalte('adresse', 'frei3', 'TEXT');
+  Spalte('adresse', 'frei4', 'TEXT');
 
   Direkt('CREATE INDEX IF NOT EXISTS idx_adresse_kategorie ON adresse(kategorie_id)');
   Direkt('CREATE INDEX IF NOT EXISTS idx_adresse_nachname ON adresse(nachname)');
@@ -745,13 +778,18 @@ begin
 
   MaskenAnlegen;
   BelegSchema;
+  { PlanlosDB zeigt während des Anlegens auf diese Datei, auch wenn der
+    Aufrufer die Variable erst danach setzt. }
+  if PlanlosDB = nil then
+    PlanlosDB := Self;
+  BenutzerSicherstellen;
 
   if Ganzzahl('SELECT COUNT(*) FROM schema_info') = 0 then
     Direkt(
-      'INSERT INTO schema_info (id, version, angelegt) VALUES (1, 3, ' +
+      'INSERT INTO schema_info (id, version, angelegt) VALUES (1, 4, ' +
       QuotedStr(FormatDateTime('yyyy-mm-dd"T"hh:nn:ss', Now)) + ')')
-  else if Ganzzahl('SELECT version FROM schema_info WHERE id = 1') < 3 then
-    Direkt('UPDATE schema_info SET version = 3 WHERE id = 1');
+  else if Ganzzahl('SELECT version FROM schema_info WHERE id = 1') < 4 then
+    Direkt('UPDATE schema_info SET version = 4 WHERE id = 1');
 end;
 
 procedure TPlanlosDatenbank.MaskenAnlegen;
@@ -833,74 +871,131 @@ procedure TPlanlosDatenbank.MaskenAnlegen;
     Taste(MaskeId, 1, 10, 1, 'suche', 'Übernehmen', 'uebernehmen');
     Taste(MaskeId, 1, 12, 1, 'suche', 'Schließen', 'schliessen');
     Taste(MaskeId, 1, 1, 1, 'eingabe', 'Hilfe', 'hilfe');
+    Taste(MaskeId, 1, 4, 1, 'eingabe', 'Suchen', 'auswahl');
     Taste(MaskeId, 1, 10, 1, 'eingabe', 'Speichern', 'speichern');
     Taste(MaskeId, 1, 12, 1, 'eingabe', 'Abbrechen', 'abbrechen');
   end;
 
 const
+  { Beschriftungen und die spätere Anordnung kommen aus UnitAdresse.dfm.
+    Sichtbar und Pflicht bleiben je Maske verschieden. }
   FelderKunde =
-    'firma|Firma|1|0|1|180'#10 +
-    'anrede|Anrede|1|0|0|80'#10 +
-    'titel|Titel|1|0|0|80'#10 +
-    'vorname|Vorname|1|0|1|120'#10 +
+    'kategorie|Kategorie>|1|0|0|80'#10 +
     'nachname|Nachname|1|1|1|140'#10 +
-    'strasse|Straße|1|0|0|200'#10 +
-    'plz|PLZ|1|0|1|70'#10 +
-    'ort|Ort|1|0|1|140'#10 +
-    'land|Land|1|0|0|120'#10 +
-    'telefon|Telefon|1|0|1|120'#10 +
-    'telefax|Telefax|1|0|0|120'#10 +
-    'email|E-Mail|1|0|1|180'#10 +
-    'notiz|Notiz|1|0|0|200'#10 +
+    'vorname|Vorname:|1|0|1|120'#10 +
+    'titel|Titel:|1|0|0|80'#10 +
+    'firma|Firma:|1|0|1|180'#10 +
+    'telefon|Tel_Firma:|1|0|1|120'#10 +
+    'telefon_privat|Tel_Privat:|1|0|0|120'#10 +
+    'telefax|Tel_Fax:|1|0|0|120'#10 +
+    'telefon_andere|Tel_Andere:|1|0|0|120'#10 +
+    'email|E_Mail:|1|0|1|180'#10 +
+    'strasse|Strasse_Nr.:|1|0|0|200'#10 +
+    'plz|PLZ:|1|0|1|70'#10 +
+    'ort|Ort:|1|0|1|140'#10 +
+    'land|Land:|1|0|0|120'#10 +
+    'notiz|Notiz:|1|0|0|200'#10 +
+    'adressblock|Adresse:|1|0|0|200'#10 +
+    'frei1|Frei1:|1|0|0|80'#10 +
+    'frei2|Frei2:|1|0|0|80'#10 +
+    'frei3|Frei3:|1|0|0|80'#10 +
+    'frei4|Frei4:|1|0|0|80'#10 +
     'rabatt_prozent|Rabatt %|1|0|0|80';
   FelderLieferant =
-    'firma|Firma|1|1|1|180'#10 +
-    'anrede|Anrede|0|0|0|80'#10 +
-    'titel|Titel|0|0|0|80'#10 +
-    'vorname|Vorname|1|0|1|120'#10 +
+    'kategorie|Kategorie>|1|0|0|80'#10 +
     'nachname|Nachname|1|0|1|140'#10 +
-    'strasse|Straße|1|0|0|200'#10 +
-    'plz|PLZ|1|0|1|70'#10 +
-    'ort|Ort|1|0|1|140'#10 +
-    'land|Land|1|0|0|120'#10 +
-    'telefon|Telefon|1|0|1|120'#10 +
-    'telefax|Telefax|1|0|1|120'#10 +
-    'email|E-Mail|1|0|1|180'#10 +
-    'notiz|Notiz|1|0|0|200'#10 +
+    'vorname|Vorname:|1|0|1|120'#10 +
+    'titel|Titel:|0|0|0|80'#10 +
+    'firma|Firma:|1|1|1|180'#10 +
+    'telefon|Tel_Firma:|1|0|1|120'#10 +
+    'telefon_privat|Tel_Privat:|1|0|0|120'#10 +
+    'telefax|Tel_Fax:|1|0|1|120'#10 +
+    'telefon_andere|Tel_Andere:|1|0|0|120'#10 +
+    'email|E_Mail:|1|0|1|180'#10 +
+    'strasse|Strasse_Nr.:|1|0|0|200'#10 +
+    'plz|PLZ:|1|0|1|70'#10 +
+    'ort|Ort:|1|0|1|140'#10 +
+    'land|Land:|1|0|0|120'#10 +
+    'notiz|Notiz:|1|0|0|200'#10 +
+    'adressblock|Adresse:|1|0|0|200'#10 +
+    'frei1|Frei1:|1|0|0|80'#10 +
+    'frei2|Frei2:|1|0|0|80'#10 +
+    'frei3|Frei3:|1|0|0|80'#10 +
+    'frei4|Frei4:|1|0|0|80'#10 +
     'rabatt_prozent|Rabatt %|0|0|0|80';
   FelderKontakt =
-    'firma|Firma|1|0|1|160'#10 +
-    'anrede|Anrede|1|0|0|80'#10 +
-    'titel|Titel|1|0|0|80'#10 +
-    'vorname|Vorname|1|1|1|120'#10 +
+    'kategorie|Kategorie>|1|0|0|80'#10 +
     'nachname|Nachname|1|1|1|140'#10 +
-    'strasse|Straße|1|0|0|200'#10 +
-    'plz|PLZ|1|0|0|70'#10 +
-    'ort|Ort|1|0|1|140'#10 +
-    'land|Land|0|0|0|120'#10 +
-    'telefon|Telefon|1|0|1|120'#10 +
-    'telefax|Telefax|0|0|0|120'#10 +
-    'email|E-Mail|1|0|1|180'#10 +
-    'notiz|Notiz|1|0|0|200'#10 +
+    'vorname|Vorname:|1|1|1|120'#10 +
+    'titel|Titel:|1|0|0|80'#10 +
+    'firma|Firma:|1|0|1|160'#10 +
+    'telefon|Tel_Firma:|1|0|1|120'#10 +
+    'telefon_privat|Tel_Privat:|1|0|0|120'#10 +
+    'telefax|Tel_Fax:|0|0|0|120'#10 +
+    'telefon_andere|Tel_Andere:|1|0|0|120'#10 +
+    'email|E_Mail:|1|0|1|180'#10 +
+    'strasse|Strasse_Nr.:|1|0|0|200'#10 +
+    'plz|PLZ:|1|0|0|70'#10 +
+    'ort|Ort:|1|0|1|140'#10 +
+    'land|Land:|0|0|0|120'#10 +
+    'notiz|Notiz:|1|0|0|200'#10 +
+    'adressblock|Adresse:|1|0|0|200'#10 +
+    'frei1|Frei1:|1|0|0|80'#10 +
+    'frei2|Frei2:|1|0|0|80'#10 +
+    'frei3|Frei3:|1|0|0|80'#10 +
+    'frei4|Frei4:|1|0|0|80'#10 +
     'rabatt_prozent|Rabatt %|0|0|0|80';
   FelderMitarbeiter =
-    'firma|Firma|0|0|0|160'#10 +
-    'anrede|Anrede|1|0|0|80'#10 +
-    'titel|Titel|1|0|0|80'#10 +
-    'vorname|Vorname|1|1|1|120'#10 +
+    'kategorie|Kategorie>|1|0|0|80'#10 +
     'nachname|Nachname|1|1|1|140'#10 +
-    'strasse|Straße|1|0|0|200'#10 +
-    'plz|PLZ|1|0|1|70'#10 +
-    'ort|Ort|1|0|1|140'#10 +
-    'land|Land|1|0|0|120'#10 +
-    'telefon|Telefon|1|0|1|120'#10 +
-    'telefax|Telefax|0|0|0|120'#10 +
-    'email|E-Mail|1|0|1|180'#10 +
-    'notiz|Notiz|1|0|0|200'#10 +
+    'vorname|Vorname:|1|1|1|120'#10 +
+    'titel|Titel:|1|0|0|80'#10 +
+    'firma|Firma:|0|0|0|160'#10 +
+    'telefon|Tel_Firma:|1|0|1|120'#10 +
+    'telefon_privat|Tel_Privat:|1|0|0|120'#10 +
+    'telefax|Tel_Fax:|0|0|0|120'#10 +
+    'telefon_andere|Tel_Andere:|1|0|0|120'#10 +
+    'email|E_Mail:|1|0|1|180'#10 +
+    'strasse|Strasse_Nr.:|1|0|0|200'#10 +
+    'plz|PLZ:|1|0|1|70'#10 +
+    'ort|Ort:|1|0|1|140'#10 +
+    'land|Land:|1|0|0|120'#10 +
+    'notiz|Notiz:|1|0|0|200'#10 +
+    'adressblock|Adresse:|1|0|0|200'#10 +
+    'frei1|Frei1:|1|0|0|80'#10 +
+    'frei2|Frei2:|1|0|0|80'#10 +
+    'frei3|Frei3:|1|0|0|80'#10 +
+    'frei4|Frei4:|1|0|0|80'#10 +
     'rabatt_prozent|Rabatt %|0|0|0|80';
+  { spalte|beschriftung|links|oben|breite|hoehe|art|hintergrund
+    Maße der Eingabefelder aus UnitAdresse.dfm. }
+  LayoutAdresse =
+    'kategorie|Kategorie>|79|28|140|21|auswahl|'#10 +
+    'nachname|Nachname|79|50|265|21|zeile|'#10 +
+    'vorname|Vorname:|79|72|265|21|zeile|'#10 +
+    'titel|Titel:|79|94|265|21|zeile|'#10 +
+    'firma|Firma:|79|116|265|21|zeile|lime'#10 +
+    'telefon|Tel_Firma:|79|138|140|21|zeile|'#10 +
+    'telefon_privat|Tel_Privat:|79|160|140|21|zeile|'#10 +
+    'telefax|Tel_Fax:|79|182|140|21|zeile|'#10 +
+    'telefon_andere|Tel_Andere:|79|204|140|21|zeile|'#10 +
+    'email|E_Mail:|79|226|265|21|zeile|'#10 +
+    'strasse|Strasse_Nr.:|79|248|265|21|zeile|'#10 +
+    'plz|PLZ:|79|270|140|21|zeile|'#10 +
+    'ort|Ort:|79|292|265|21|zeile|'#10 +
+    'land|Land:|79|314|265|21|zeile|'#10 +
+    'notiz|Notiz:|455|58|185|89|memo|'#10 +
+    'adressblock|Adresse:|455|148|185|89|memo|'#10 +
+    'frei1|Frei1:|455|242|265|21|zeile|'#10 +
+    'frei2|Frei2:|455|264|265|21|zeile|'#10 +
+    'frei3|Frei3:|455|286|265|21|zeile|'#10 +
+    'frei4|Frei4:|455|308|265|21|zeile|'#10 +
+    'rabatt_prozent|Rabatt %|455|332|120|21|zeile|';
 
 var
-  RolleId, MaskeId, Sehen, Neu, Aendern, Loeschen: Integer;
+  RolleId, MaskeId, Sehen, Neu, Aendern, Loeschen, i: Integer;
+  Zeilen, Teile: TStringList;
+  Hintergrund: string;
 begin
   Direkt(
     'CREATE TABLE IF NOT EXISTS maske (' +
@@ -927,6 +1022,12 @@ begin
     'pflicht INTEGER NOT NULL DEFAULT 0, ' +
     'in_liste INTEGER NOT NULL DEFAULT 1, ' +
     'breite INTEGER NOT NULL DEFAULT 120, ' +
+    'links INTEGER NOT NULL DEFAULT 0, ' +
+    'oben INTEGER NOT NULL DEFAULT 0, ' +
+    'feldbreite INTEGER NOT NULL DEFAULT 0, ' +
+    'feldhoehe INTEGER NOT NULL DEFAULT 0, ' +
+    'feldart TEXT NOT NULL DEFAULT ''zeile'', ' +
+    'hintergrund TEXT NOT NULL DEFAULT '''', ' +
     'UNIQUE (maske_id, spalte))');
 
   Direkt(
@@ -952,6 +1053,17 @@ begin
     'loeschen INTEGER NOT NULL DEFAULT 0, ' +
     'UNIQUE (rolle_id, maske_id))');
 
+  if Ganzzahl(
+    'SELECT COUNT(*) FROM pragma_table_info(''maskenfeld'') WHERE name = ''links''') = 0 then
+  begin
+    Direkt('ALTER TABLE maskenfeld ADD COLUMN links INTEGER NOT NULL DEFAULT 0');
+    Direkt('ALTER TABLE maskenfeld ADD COLUMN oben INTEGER NOT NULL DEFAULT 0');
+    Direkt('ALTER TABLE maskenfeld ADD COLUMN feldbreite INTEGER NOT NULL DEFAULT 0');
+    Direkt('ALTER TABLE maskenfeld ADD COLUMN feldhoehe INTEGER NOT NULL DEFAULT 0');
+    Direkt('ALTER TABLE maskenfeld ADD COLUMN feldart TEXT NOT NULL DEFAULT ''zeile''');
+    Direkt('ALTER TABLE maskenfeld ADD COLUMN hintergrund TEXT NOT NULL DEFAULT ''''');
+  end;
+
   Direkt('CREATE INDEX IF NOT EXISTS idx_maskenfeld_maske ON maskenfeld(maske_id)');
   Direkt('CREATE INDEX IF NOT EXISTS idx_taste_maske ON tastenbelegung(maske_id)');
 
@@ -967,8 +1079,8 @@ begin
 
   TastenFuer(1, 1);
   TastenFuer(2, 1);
-  { Kontakte: Löschen ist in der Tastenbelegung aus. Die Rollenrechte
-    stehen zusätzlich in maskenrecht und warten auf die Anmeldung. }
+  { Kontakte: Löschen ist in der Tastenbelegung aus. Zusätzlich
+    entscheidet maskenrecht nach der Anmeldung. }
   TastenFuer(3, 0);
   TastenFuer(4, 1);
 
@@ -995,6 +1107,40 @@ begin
         ' WHERE NOT EXISTS (SELECT 1 FROM maskenrecht WHERE rolle_id = ' +
         IntToStr(RolleId) + ' AND maske_id = ' + IntToStr(MaskeId) + ')');
     end;
+
+  if ParameterLesen('masken_layout_v4', '') = '' then
+  begin
+    Zeilen := TStringList.Create;
+    Teile := TStringList.Create;
+    try
+      Zeilen.Text := LayoutAdresse;
+      Teile.StrictDelimiter := True;
+      Teile.Delimiter := '|';
+      for i := 0 to Zeilen.Count - 1 do
+      begin
+        if Trim(Zeilen[i]) = '' then
+          Continue;
+        Teile.DelimitedText := Zeilen[i];
+        if Teile.Count < 7 then
+          raise Exception.Create('Maskenlayout unvollständig: ' + Zeilen[i]);
+        if Teile.Count > 7 then
+          Hintergrund := Teile[7]
+        else
+          Hintergrund := '';
+        Direkt(
+          'UPDATE maskenfeld SET beschriftung = ' + QuotedStr(Teile[1]) +
+          ', links = ' + Teile[2] + ', oben = ' + Teile[3] +
+          ', feldbreite = ' + Teile[4] + ', feldhoehe = ' + Teile[5] +
+          ', feldart = ' + QuotedStr(Teile[6]) +
+          ', hintergrund = ' + QuotedStr(Hintergrund) +
+          ' WHERE spalte = ' + QuotedStr(Teile[0]));
+      end;
+    finally
+      Teile.Free;
+      Zeilen.Free;
+    end;
+    ParameterSetzen('masken_layout_v4', '1');
+  end;
 end;
 
 procedure TPlanlosDatenbank.BelegSchema;
@@ -1069,8 +1215,14 @@ begin
     'bezug_beleg_id INTEGER REFERENCES beleg(id), ' +
     'waehrung TEXT NOT NULL DEFAULT ''EUR'', ' +
     'mwst_rechnen INTEGER NOT NULL DEFAULT 1, ' +
+    'bearbeiter_id INTEGER REFERENCES adresse(id), ' +
+    'gruppierung TEXT, ' +
+    'projekt_id INTEGER REFERENCES beleg(id), ' +
     'angelegt TEXT NOT NULL, ' +
     'geaendert TEXT NOT NULL)');
+  Spalte('beleg', 'bearbeiter_id', 'INTEGER');
+  Spalte('beleg', 'gruppierung', 'TEXT');
+  Spalte('beleg', 'projekt_id', 'INTEGER');
   Direkt(
     'CREATE UNIQUE INDEX IF NOT EXISTS idx_beleg_nummer ON beleg(modulart_id, nummer)');
   Direkt(
