@@ -1,7 +1,8 @@
 unit ueingabe;
 
-{ Das eine Eingabefenster. Welche Felder es zeigt, steht in der Maske.
-  Die Stellen und Beschriftungen kommen aus der alten Adressmaske.
+{ Das eine Eingabefenster für Adressen. Das Aussehen steht in
+  ueingabe.lfm, nach der alten UnitAdresse.dfm. Welche Felder
+  sichtbar sind, entscheidet weiter die Maske in der Datenbank.
   Copyright (C) 2026 Günther Stadtler
   Lizenz: GNU GPL, Version 3. Text in der Datei LICENSE. }
 
@@ -16,10 +17,61 @@ uses
 
 type
   TEingabefenster = class(TForm)
+    LabelNr: TLabel;
+    LabelNrWert: TLabel;
+    LabelKategorie: TLabel;
+    LabelNachname: TLabel;
+    LabelVorname: TLabel;
+    LabelTitel: TLabel;
+    LabelFirma: TLabel;
+    LabelTelFirma: TLabel;
+    LabelTelPrivat: TLabel;
+    LabelTelFax: TLabel;
+    LabelTelAndere: TLabel;
+    LabelEMail: TLabel;
+    LabelStrasse: TLabel;
+    LabelPLZ: TLabel;
+    LabelOrt: TLabel;
+    LabelLand: TLabel;
+    LabelNotiz: TLabel;
+    LabelAdresse: TLabel;
+    LabelFrei1: TLabel;
+    LabelFrei2: TLabel;
+    LabelFrei3: TLabel;
+    LabelFrei4: TLabel;
+    LabelRabatt: TLabel;
+    EditKategorie: TEdit;
+    EditNachname: TEdit;
+    EditVorname: TEdit;
+    EditTitel: TEdit;
+    EditFirma: TEdit;
+    EditTelFirma: TEdit;
+    EditTelPrivat: TEdit;
+    EditTelFax: TEdit;
+    EditTelAndere: TEdit;
+    EditEMail: TEdit;
+    EditStrasse: TEdit;
+    EditPLZ: TEdit;
+    EditOrt: TEdit;
+    EditLand: TEdit;
+    MemoNotiz: TMemo;
+    MemoAdresse: TMemo;
+    EditFrei1: TEdit;
+    EditFrei2: TEdit;
+    EditFrei3: TEdit;
+    EditFrei4: TEdit;
+    EditRabatt: TEdit;
+    PanelTasten: TPanel;
+    ButtonAbbrechen: TButton;
+    ButtonSuchen: TButton;
+    ButtonOk: TButton;
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure KategorieKlick(Sender: TObject);
+    procedure AbbruchKlick(Sender: TObject);
+    procedure SuchenKlick(Sender: TObject);
+    procedure OkKlick(Sender: TObject);
   private
-    FFlaeche: TPanel;
     FTasten: TTastenleiste;
-    FNr: TLabel;
     FKuerzel: string;
     FBezeichnung: string;
     FId: Int64;
@@ -27,15 +79,16 @@ type
     FTastenInfo: TTastenListe;
     FSpalten: array of string;
     FArten: array of string;
-    FPflicht: array of Boolean;
     FEingaben: array of TControl;
-    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+    FBeschriftungen: array of TLabel;
+    FGrundtext: array of string;
+    procedure SteuerungBinden;
+    procedure Merke(const Spalte, Art: string; Eingabe: TControl; Beschriftung: TLabel);
     procedure TasteGedrueckt(Sender: TObject; Ebene, Taste: Integer);
-    procedure FeldKlick(Sender: TObject);
     procedure TastenAusDaten;
     procedure AktionAusfuehren(const Aktionsname: string);
-    procedure AuswahlOeffnen(Index: Integer);
-    function IndexVon(Feld: TObject): Integer;
+    procedure AuswahlOeffnen;
+    function IndexVon(const Spalte: string): Integer;
     function TextVon(Feld: TControl): string;
     procedure TextNach(Feld: TControl; const Wert: string);
     function WerteSammeln: TStringList;
@@ -53,6 +106,8 @@ function AdresseEingeben(const Kuerzel: string; Id: Int64): Int64;
 function ListeWaehlen(const Titel: string; Anzeige: TStrings; out Index: Integer): Boolean;
 
 implementation
+
+{$R *.lfm}
 
 uses
   ubenutzer;
@@ -121,32 +176,69 @@ end;
 
 constructor TEingabefenster.Create(TheOwner: TComponent);
 begin
-  inherited CreateNew(TheOwner, 1);
-  Position := poDesigned;
-  KeyPreview := True;
-  OnKeyDown := @FormKeyDown;
-
+  inherited Create(TheOwner);
   FTasten := TTastenleiste.Create(Self);
-  FTasten.Parent := Self;
+  FTasten.Parent := PanelTasten;
   FTasten.Align := alBottom;
-  FTasten.Height := 96;
+  FTasten.Height := 84;
   FTasten.OnTaste := @TasteGedrueckt;
-
-  FFlaeche := TPanel.Create(Self);
-  FFlaeche.Parent := Self;
-  FFlaeche.Align := alClient;
-  FFlaeche.BevelOuter := bvNone;
-  FFlaeche.Caption := '';
-  FFlaeche.Color := clBtnFace;
+  SteuerungBinden;
 end;
 
-function TEingabefenster.IndexVon(Feld: TObject): Integer;
+procedure TEingabefenster.Merke(const Spalte, Art: string; Eingabe: TControl;
+  Beschriftung: TLabel);
+var
+  n: Integer;
+begin
+  n := Length(FSpalten);
+  SetLength(FSpalten, n + 1);
+  SetLength(FArten, n + 1);
+  SetLength(FEingaben, n + 1);
+  SetLength(FBeschriftungen, n + 1);
+  SetLength(FGrundtext, n + 1);
+  FSpalten[n] := Spalte;
+  FArten[n] := Art;
+  FEingaben[n] := Eingabe;
+  FBeschriftungen[n] := Beschriftung;
+  if Beschriftung <> nil then
+    FGrundtext[n] := Beschriftung.Caption
+  else
+    FGrundtext[n] := '';
+end;
+
+procedure TEingabefenster.SteuerungBinden;
+begin
+  SetLength(FSpalten, 0);
+  Merke('kategorie', 'auswahl', EditKategorie, LabelKategorie);
+  Merke('nachname', 'zeile', EditNachname, LabelNachname);
+  Merke('vorname', 'zeile', EditVorname, LabelVorname);
+  Merke('titel', 'zeile', EditTitel, LabelTitel);
+  Merke('firma', 'zeile', EditFirma, LabelFirma);
+  Merke('telefon', 'zeile', EditTelFirma, LabelTelFirma);
+  Merke('telefon_privat', 'zeile', EditTelPrivat, LabelTelPrivat);
+  Merke('telefax', 'zeile', EditTelFax, LabelTelFax);
+  Merke('telefon_andere', 'zeile', EditTelAndere, LabelTelAndere);
+  Merke('email', 'zeile', EditEMail, LabelEMail);
+  Merke('strasse', 'zeile', EditStrasse, LabelStrasse);
+  Merke('plz', 'zeile', EditPLZ, LabelPLZ);
+  Merke('ort', 'zeile', EditOrt, LabelOrt);
+  Merke('land', 'zeile', EditLand, LabelLand);
+  Merke('notiz', 'memo', MemoNotiz, LabelNotiz);
+  Merke('adressblock', 'memo', MemoAdresse, LabelAdresse);
+  Merke('frei1', 'zeile', EditFrei1, LabelFrei1);
+  Merke('frei2', 'zeile', EditFrei2, LabelFrei2);
+  Merke('frei3', 'zeile', EditFrei3, LabelFrei3);
+  Merke('frei4', 'zeile', EditFrei4, LabelFrei4);
+  Merke('rabatt_prozent', 'zeile', EditRabatt, LabelRabatt);
+end;
+
+function TEingabefenster.IndexVon(const Spalte: string): Integer;
 var
   i: Integer;
 begin
   Result := -1;
-  for i := 0 to High(FEingaben) do
-    if FEingaben[i] = Feld then
+  for i := 0 to High(FSpalten) do
+    if FSpalten[i] = Spalte then
       Exit(i);
 end;
 
@@ -173,167 +265,65 @@ var
   Info: TMaskenInfo;
   Felder: TFeldListe;
   Alt: TStringList;
-  i, Sichtbar, Y, FeldLinks, FeldOben, FeldBreite, FeldHoehe: Integer;
-  Beschriftung: TLabel;
-  Eingabe: TControl;
-  Stapel: Boolean;
+  i, n: Integer;
 begin
   FKuerzel := Kuerzel;
   FId := Id;
   FGespeichert := 0;
+  for i := 0 to High(FEingaben) do
+  begin
+    FEingaben[i].Visible := False;
+    if FBeschriftungen[i] <> nil then
+    begin
+      FBeschriftungen[i].Visible := False;
+      FBeschriftungen[i].Caption := FGrundtext[i];
+    end;
+  end;
+  if Id = 0 then
+    LabelNrWert.Caption := 'neu'
+  else
+    LabelNrWert.Caption := IntToStr(Id);
   if not MaskeLaden(Kuerzel, Info) then
   begin
-    Caption := 'Planlos';
+    Caption := 'Adresse';
     Exit;
   end;
   FBezeichnung := Info.Bezeichnung;
   Caption := 'Adresse';
-  Position := poDesigned;
-  if Info.Links > 0 then
-    Left := Info.Links + 24;
-  if Info.Oben > 0 then
-    Top := Info.Oben + 24;
-  Width := Info.Breite;
-  Height := Info.Hoehe;
-  if Width < 760 then
-    Width := 760;
-  if Height < 520 then
-    Height := 520;
-  Color := clBtnFace;
-
-  while FFlaeche.ControlCount > 0 do
-    FFlaeche.Controls[0].Free;
-  SetLength(FSpalten, 0);
-  SetLength(FArten, 0);
-  SetLength(FPflicht, 0);
-  SetLength(FEingaben, 0);
-
-  Beschriftung := TLabel.Create(Self);
-  Beschriftung.Parent := FFlaeche;
-  Beschriftung.Left := 6;
-  Beschriftung.Top := 9;
-  Beschriftung.Width := 67;
-  Beschriftung.Height := 13;
-  Beschriftung.Alignment := taRightJustify;
-  Beschriftung.AutoSize := False;
-  Beschriftung.Caption := 'Nr';
-  FNr := TLabel.Create(Self);
-  FNr.Parent := FFlaeche;
-  FNr.Left := 83;
-  FNr.Top := 8;
-  FNr.Width := 80;
-  FNr.Height := 17;
-  FNr.AutoSize := False;
-  if Id = 0 then
-    FNr.Caption := 'neu'
-  else
-    FNr.Caption := IntToStr(Id);
-
   Felder := FelderLaden(Kuerzel);
-  Sichtbar := 0;
-  for i := 0 to High(Felder) do
-    if Felder[i].Sichtbar then
-      Inc(Sichtbar);
-  SetLength(FSpalten, Sichtbar);
-  SetLength(FArten, Sichtbar);
-  SetLength(FPflicht, Sichtbar);
-  SetLength(FEingaben, Sichtbar);
-
-  Y := 40;
-  Sichtbar := 0;
   for i := 0 to High(Felder) do
   begin
     if not Felder[i].Sichtbar then
       Continue;
-    Stapel := Felder[i].Feldbreite <= 0;
-    if Stapel then
+    n := IndexVon(Felder[i].Spalte);
+    if n < 0 then
+      Continue;
+    FEingaben[n].Visible := True;
+    if FBeschriftungen[n] <> nil then
     begin
-      FeldLinks := 79;
-      FeldOben := Y;
-      FeldBreite := 265;
-      FeldHoehe := 21;
-    end
-    else
-    begin
-      FeldLinks := Felder[i].Links;
-      FeldOben := Felder[i].Oben;
-      FeldBreite := Felder[i].Feldbreite;
-      FeldHoehe := Felder[i].Feldhoehe;
-      if FeldHoehe <= 0 then
-        FeldHoehe := 21;
+      FBeschriftungen[n].Visible := True;
+      if Felder[i].Pflicht then
+        FBeschriftungen[n].Caption := FGrundtext[n] + ' *';
     end;
-
-    Beschriftung := TLabel.Create(Self);
-    Beschriftung.Parent := FFlaeche;
-    Beschriftung.AutoSize := False;
-    Beschriftung.Alignment := taRightJustify;
-    Beschriftung.Width := 67;
-    Beschriftung.Height := 16;
-    Beschriftung.Left := FeldLinks - 73;
-    if Beschriftung.Left < 0 then
-      Beschriftung.Left := 4;
-    Beschriftung.Top := FeldOben + 3;
-    Beschriftung.Caption := Felder[i].Beschriftung;
-    if Felder[i].Pflicht then
-      Beschriftung.Caption := Beschriftung.Caption + ' *';
-    if Felder[i].Feldart = 'auswahl' then
-      Beschriftung.OnClick := @FeldKlick;
-
-    if Felder[i].Feldart = 'memo' then
-    begin
-      Eingabe := TMemo.Create(Self);
-      Eingabe.Parent := FFlaeche;
-      TMemo(Eingabe).Left := FeldLinks;
-      TMemo(Eingabe).Top := FeldOben;
-      TMemo(Eingabe).Width := FeldBreite;
-      TMemo(Eingabe).Height := FeldHoehe;
-      TMemo(Eingabe).ScrollBars := ssVertical;
-    end
-    else
-    begin
-      Eingabe := TEdit.Create(Self);
-      Eingabe.Parent := FFlaeche;
-      TEdit(Eingabe).Left := FeldLinks;
-      TEdit(Eingabe).Top := FeldOben;
-      TEdit(Eingabe).Width := FeldBreite;
-      TEdit(Eingabe).Height := FeldHoehe;
-      if Felder[i].Feldart = 'auswahl' then
-      begin
-        TEdit(Eingabe).ReadOnly := True;
-        TEdit(Eingabe).Color := clSilver;
-        TEdit(Eingabe).TabStop := False;
-        TEdit(Eingabe).OnClick := @FeldKlick;
-        TEdit(Eingabe).Cursor := crHandPoint;
-      end
-      else if Felder[i].Hintergrund = 'lime' then
-        TEdit(Eingabe).Color := clLime;
-    end;
-    Eingabe.Tag := Sichtbar;
-    Beschriftung.Tag := Sichtbar;
-    FSpalten[Sichtbar] := Felder[i].Spalte;
-    FArten[Sichtbar] := Felder[i].Feldart;
-    FPflicht[Sichtbar] := Felder[i].Pflicht;
-    FEingaben[Sichtbar] := Eingabe;
-    Inc(Sichtbar);
-    if Stapel then
-      Y := FeldOben + FeldHoehe + 8;
   end;
-
   if Id > 0 then
   begin
     Alt := TStringList.Create;
     try
       AdresseLesen(Id, Alt);
       for i := 0 to High(FSpalten) do
-        if FSpalten[i] = 'kategorie' then
-          SetzeWert('kategorie', Alt.Values['kategorie_id'])
-        else
-          SetzeWert(FSpalten[i], Alt.Values[FSpalten[i]]);
+        if FEingaben[i].Visible then
+        begin
+          if FSpalten[i] = 'kategorie' then
+            SetzeWert('kategorie', Alt.Values['kategorie_id'])
+          else
+            SetzeWert(FSpalten[i], Alt.Values[FSpalten[i]]);
+        end;
     finally
       Alt.Free;
     end;
   end
-  else
+  else if EditKategorie.Visible then
     SetzeWert('kategorie', IntToStr(Info.KategorieId));
   TastenAusDaten;
 end;
@@ -351,41 +341,35 @@ end;
 
 function TEingabefenster.HatFeld(const Spalte: string): Boolean;
 var
-  i: Integer;
+  n: Integer;
 begin
-  Result := False;
-  for i := 0 to High(FSpalten) do
-    if FSpalten[i] = Spalte then
-      Exit(True);
+  n := IndexVon(Spalte);
+  Result := (n >= 0) and FEingaben[n].Visible;
 end;
 
 function TEingabefenster.FeldBei(const Spalte: string; Links, Oben: Integer): Boolean;
 var
-  i: Integer;
+  n: Integer;
 begin
-  Result := False;
-  for i := 0 to High(FSpalten) do
-    if FSpalten[i] = Spalte then
-      Exit((FEingaben[i].Left = Links) and (FEingaben[i].Top = Oben));
+  n := IndexVon(Spalte);
+  Result := (n >= 0) and (FEingaben[n].Left = Links) and (FEingaben[n].Top = Oben);
 end;
 
 procedure TEingabefenster.SetzeWert(const Spalte, Wert: string);
 var
-  i, Kategorie: Integer;
+  n, Kategorie: Integer;
 begin
-  for i := 0 to High(FSpalten) do
-    if FSpalten[i] = Spalte then
-    begin
-      if FArten[i] = 'auswahl' then
-      begin
-        FEingaben[i].Hint := Wert;
-        Kategorie := StrToIntDef(Wert, 0);
-        TextNach(FEingaben[i], KategorieName(Kategorie));
-      end
-      else
-        TextNach(FEingaben[i], Wert);
-      Exit;
-    end;
+  n := IndexVon(Spalte);
+  if n < 0 then
+    Exit;
+  if FArten[n] = 'auswahl' then
+  begin
+    FEingaben[n].Hint := Wert;
+    Kategorie := StrToIntDef(Wert, 0);
+    TextNach(FEingaben[n], KategorieName(Kategorie));
+  end
+  else
+    TextNach(FEingaben[n], Wert);
 end;
 
 function TEingabefenster.WerteSammeln: TStringList;
@@ -394,10 +378,13 @@ var
 begin
   Result := TStringList.Create;
   for i := 0 to High(FSpalten) do
-    if FArten[i] = 'auswahl' then
-      Result.Values[FSpalten[i]] := FEingaben[i].Hint
-    else
-      Result.Values[FSpalten[i]] := TextVon(FEingaben[i]);
+    if FEingaben[i].Visible then
+    begin
+      if FArten[i] = 'auswahl' then
+        Result.Values[FSpalten[i]] := FEingaben[i].Hint
+      else
+        Result.Values[FSpalten[i]] := TextVon(FEingaben[i]);
+    end;
 end;
 
 function TEingabefenster.SpeichernStill(out Fehler: string): Int64;
@@ -418,26 +405,21 @@ begin
     begin
       FGespeichert := Result;
       FId := Result;
-      if FNr <> nil then
-        FNr.Caption := IntToStr(Result);
+      LabelNrWert.Caption := IntToStr(Result);
     end;
   finally
     Werte.Free;
   end;
 end;
 
-procedure TEingabefenster.AuswahlOeffnen(Index: Integer);
+procedure TEingabefenster.AuswahlOeffnen;
 var
   Roh, Namen: TStringList;
   i, Gewaehlt, Kategorie, TabPos: Integer;
   Zeile, Kuerzel, Bisher: string;
   Werte: TStringList;
 begin
-  if (Index < 0) or (Index > High(FArten)) then
-    Exit;
-  if FArten[Index] <> 'auswahl' then
-    Exit;
-  if FSpalten[Index] <> 'kategorie' then
+  if not EditKategorie.Visible then
     Exit;
   Roh := TStringList.Create;
   Namen := TStringList.Create;
@@ -482,43 +464,40 @@ begin
   end;
 end;
 
-procedure TEingabefenster.FeldKlick(Sender: TObject);
-var
-  Index: Integer;
+procedure TEingabefenster.KategorieKlick(Sender: TObject);
 begin
-  Index := -1;
-  if Sender is TControl then
-    Index := TControl(Sender).Tag;
-  if Index < 0 then
-    Index := IndexVon(Sender);
-  AuswahlOeffnen(Index);
+  AuswahlOeffnen;
+end;
+
+procedure TEingabefenster.SuchenKlick(Sender: TObject);
+begin
+  AuswahlOeffnen;
+end;
+
+procedure TEingabefenster.AbbruchKlick(Sender: TObject);
+begin
+  ModalResult := mrCancel;
+end;
+
+procedure TEingabefenster.OkKlick(Sender: TObject);
+begin
+  AktionAusfuehren('speichern');
 end;
 
 procedure TEingabefenster.AktionAusfuehren(const Aktionsname: string);
 var
   Fehler: string;
-  Neu, i: Int64;
+  Neu: Int64;
 begin
   if Aktionsname = 'hilfe' then
     ShowMessage(
       'Maske ' + FBezeichnung + '.' + LineEnding +
-      'Die Stellen stehen so wie in der alten Adressmaske.' + LineEnding +
+      'Die Stellen stehen in der Formulardatei und lassen sich im' + LineEnding +
+      'Lazarus-Designer ändern.' + LineEnding +
       'Ein Feld mit > öffnet eine Liste, per Klick oder mit F4.' + LineEnding +
       'F10 speichert, F12 bricht ab.')
   else if Aktionsname = 'auswahl' then
-  begin
-    i := -1;
-    if ActiveControl <> nil then
-      i := IndexVon(ActiveControl);
-    if (i < 0) or (FArten[i] <> 'auswahl') then
-      for Neu := 0 to High(FArten) do
-        if FArten[Neu] = 'auswahl' then
-        begin
-          i := Neu;
-          Break;
-        end;
-    AuswahlOeffnen(i);
-  end
+    AuswahlOeffnen
   else if Aktionsname = 'speichern' then
   begin
     Neu := SpeichernStill(Fehler);

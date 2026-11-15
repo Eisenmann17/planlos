@@ -26,6 +26,7 @@ type
     FBezeichnung: string;
     FTastenInfo: TTastenListe;
     FIds: array of Int64;
+    FAuswahl: Integer;
     FModal: Boolean;
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
@@ -254,9 +255,15 @@ begin
           FListe.Cells[Spalte, Zeile + 1] := '';
     end;
     if Zeilen.Count = 0 then
+    begin
       FListe.RowCount := 2;
-    if Zeilen.Count > 0 then
+      FAuswahl := 0;
+    end
+    else
+    begin
       FListe.Row := 1;
+      FAuswahl := 1;
+    end;
     FStatus.Caption := IntToStr(Zeilen.Count) + ' Treffer in ' + FBezeichnung;
   finally
     TeileZeile.Free;
@@ -266,11 +273,16 @@ begin
 end;
 
 function TSuchfenster.GewaehlteId: Int64;
+var
+  Zeile: Integer;
 begin
   Result := 0;
-  if (FListe.Row < 1) or (FListe.Row > Length(FIds)) then
+  Zeile := FListe.Row;
+  if (Zeile < 1) or (Zeile > Length(FIds)) then
+    Zeile := FAuswahl;
+  if (Zeile < 1) or (Zeile > Length(FIds)) then
     Exit;
-  Result := FIds[FListe.Row - 1];
+  Result := FIds[Zeile - 1];
 end;
 
 procedure TSuchfenster.WaehleId(Id: Int64);
@@ -281,6 +293,7 @@ begin
     if FIds[i] = Id then
     begin
       FListe.Row := i + 1;
+      FAuswahl := i + 1;
       FStatus.Caption := 'Ausgewählt: Nr. ' + IntToStr(Id);
       Exit;
     end;

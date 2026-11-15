@@ -142,6 +142,33 @@ Der Übersetzer kann Hinweise zu AnsiString und UnicodeString ausgeben.
 Die Umlaute bleiben erhalten. Geprüft ist das an der Bezeichnung
 „Auftragsbestätigung“.
 
+## Masken selbst anpassen in Lazarus
+
+Drei Fenster sind echte Formulare. Sie lassen sich im Lazarus-Designer
+öffnen, ohne den Ablauf im Programmtext anzufassen.
+
+| Datei | Fenster |
+| --- | --- |
+| `src/uanmeldung.lfm` | die Anmeldung |
+| `src/uhaupt.lfm` | das Hauptfenster „Mein kleines Büro“ |
+| `src/ueingabe.lfm` | die Adressmaske |
+
+Im Lazarus `src/planlos.lpi` öffnen, links die Unit anklicken und das
+Formular mit Doppelklick aufmachen. Rechts liegt der Objektinspektor.
+
+- **Height** und **Width** ändern die Höhe und Breite des markierten
+  Feldes oder Knopfes.
+- **Color** ändert die Farbe. Bei der Firma ist das Grün schon gesetzt.
+- **Anchors** sagt, an welchen Rändern das Teil klebt, wenn das Fenster
+  größer gezogen wird. Die Belegliste und die rechte Spalte der Adresse
+  wachsen mit. Wer ein Feld festnageln will, nimmt die Haken weg.
+- **Caption** ändert die Beschriftung.
+- **Left** und **Top** verschieben das Teil.
+
+Speichern, danach das Programm neu bauen und starten. Die Stelle im
+Formular gilt. Welche Felder bei Kunde, Lieferant, Mitarbeiter oder
+Kontakt sichtbar sind, steht weiter in der Datenbank.
+
 ## Ordner
 
 | Ordner | Inhalt |
