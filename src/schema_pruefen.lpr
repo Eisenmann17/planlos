@@ -12,15 +12,20 @@ uses
   cwstring,
   {$ENDIF}
   Classes, SysUtils,
-  udatenbank, umaske;
+  udatenbank, umaske, ubeleg;
 
 var
   DB: TPlanlosDatenbank;
   Pfad, Id1, Eltern, Name, Fehler, Aktion: string;
   Frisch, Erlaubt: Boolean;
   Werte, Gelesen: TStringList;
-  MitarbeiterId, KundeId: Int64;
+  MitarbeiterId, KundeId, AngebotId, RechnungId, ZweitesId: Int64;
   Tasten: TTastenListe;
+  Positionen: TPosListe;
+  Summe: TBelegSumme;
+  Kopf: TBelegKopf;
+  Art: TBelegart;
+  FolgeFehler: string;
   FS: TFormatSettings;
   Rabatt: Double;
 
@@ -80,8 +85,8 @@ begin
         Fehlschlag('Die Installationskennung hat sich geändert.');
       if DB.Ganzzahl('SELECT COUNT(*) FROM modulart') <> 5 then
         Fehlschlag('Das Schema hat Belegarten verdoppelt.');
-      if DB.Ganzzahl('SELECT version FROM schema_info WHERE id = 1') <> 2 then
-        Fehlschlag('Das Schema soll auf Version 2 stehen.');
+      if DB.Ganzzahl('SELECT version FROM schema_info WHERE id = 1') <> 3 then
+        Fehlschlag('Das Schema soll auf Version 3 stehen.');
       if DB.Ganzzahl('SELECT COUNT(*) FROM maske') <> 4 then
         Fehlschlag('Es sollen 4 Kontaktmasken angelegt sein.');
       if DB.Ganzzahl('SELECT COUNT(*) FROM maskenfeld') < 56 then
@@ -158,6 +163,77 @@ begin
       Tasten := TastenLaden('kunde', 'eingabe');
       if not TasteFinden(Tasten, 1, 10, Aktion, Erlaubt) or (Aktion <> 'speichern') then
         Fehlschlag('F10 der Eingabe soll Speichern sein.');
+
+      SetLength(Positionen, 2);
+      Positionen[0].Text := 'Beratung';
+      Positionen[0].MengeMilli := 1000;
+      Positionen[0].Einheit := 'Stück';
+      Positionen[0].EinzelpreisCent := 1001;
+      Positionen[0].MwstSatz := 19;
+      Positionen[1].Text := 'Material';
+      Positionen[1].MengeMilli := 2500;
+      Positionen[1].Einheit := 'Stück';
+      Positionen[1].EinzelpreisCent := 333;
+      Positionen[1].MwstSatz := 7;
+      if PositionNetto(Positionen[0]) <> 1001 then
+        Fehlschlag('Netto der ersten Position ist falsch.');
+      if PositionNetto(Positionen[1]) <> 833 then
+        Fehlschlag('Netto der zweiten Position rundet nicht kaufmännisch.');
+      Summe := SummeRechnen(Positionen, True);
+      if Summe.NettoCent <> 1834 then
+        Fehlschlag('Netto gesamt ist ' + IntToStr(Summe.NettoCent));
+      if Summe.SteuerCent <> 248 then
+        Fehlschlag('MwSt gesamt ist ' + IntToStr(Summe.SteuerCent));
+      if Summe.BruttoCent <> 2082 then
+        Fehlschlag('Brutto ist ' + IntToStr(Summe.BruttoCent));
+      Kopf.Modulart := 'angebot';
+      Kopf.AdresseId := KundeId;
+      Kopf.Bezeichnung := 'Testangebot';
+      Kopf.Id := 0;
+      AngebotId := BelegSpeichern(Kopf, Positionen, FolgeFehler);
+      if AngebotId = 0 then
+        Fehlschlag(FolgeFehler);
+      if BelegNummer(AngebotId) <> 'ANG-1' then
+        Fehlschlag('Angebotsnummer ist ' + BelegNummer(AngebotId));
+      RechnungId := FolgebelegErzeugen(AngebotId, 'rechnung', FolgeFehler);
+      if RechnungId = 0 then
+        Fehlschlag(FolgeFehler);
+      if BelegNummer(RechnungId) <> 'RE-1' then
+        Fehlschlag('Rechnungsnummer ist ' + BelegNummer(RechnungId));
+      if not BelegLaden(RechnungId, Kopf, Positionen) then
+        Fehlschlag('Die Rechnung lässt sich nicht lesen.');
+      if Kopf.BezugNummer <> 'ANG-1' then
+        Fehlschlag('Die Rechnung merkt sich das Angebot nicht.');
+      if Length(Positionen) <> 2 then
+        Fehlschlag('Die Rechnung hat die Positionen nicht übernommen.');
+      Summe := SummeRechnen(Positionen, Kopf.MwstRechnen);
+      if Summe.BruttoCent <> 2082 then
+        Fehlschlag('Die Rechnungssumme weicht ab.');
+      if (Positionen[0].MwstSatz <> 19) or (Positionen[1].MwstSatz <> 7) then
+        Fehlschlag('Die Steuersätze wurden nicht kopiert.');
+      Kopf.Id := 0;
+      Kopf.Modulart := 'angebot';
+      Kopf.AdresseId := KundeId;
+      Kopf.Bezeichnung := 'Zweites Angebot';
+      Kopf.BezugId := 0;
+      SetLength(Positionen, 0);
+      ZweitesId := BelegSpeichern(Kopf, Positionen, FolgeFehler);
+      if ZweitesId = 0 then
+        Fehlschlag(FolgeFehler);
+      if BelegNummer(ZweitesId) <> 'ANG-2' then
+        Fehlschlag('Das zweite Angebot hat die Nummer ' + BelegNummer(ZweitesId));
+      if FolgebelegErzeugen(AngebotId, 'bestellung', FolgeFehler) <> 0 then
+        Fehlschlag('Aus einem Angebot darf keine Bestellung entstehen.');
+      if not BelegartLaden('bestellung', Art) or (Art.EmpfaengerMaske <> 'lieferant') then
+        Fehlschlag('Eine Bestellung sucht den Lieferanten.');
+      if not BelegartLaden('projekt', Art) or Art.Summe or Art.Mwst or Art.Positionen then
+        Fehlschlag('Ein Projekt hat keine Positionen und keine MwSt.');
+      if BelegAnzahl('angebot', 'Meier') <> 0 then
+        Fehlschlag('Die Belegsuche findet einen falschen Namen.');
+      if BelegAnzahl('angebot', 'ANG-1') <> 1 then
+        Fehlschlag('Die Belegsuche findet ANG-1 nicht.');
+      if BelegAnzahl('rechnung', '') <> 1 then
+        Fehlschlag('Es soll genau eine Rechnung geben.');
 
       DB.SchemaSicherstellen;
       if TrefferZahl('mitarbeiter', 'Meier') <> 1 then

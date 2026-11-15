@@ -16,7 +16,7 @@ interface
 uses
   Classes, SysUtils, Forms, Controls, StdCtrls, ExtCtrls, Dialogs, Menus,
   Graphics, LCLType, utastenleiste, ukindfenster, udatenbank, umaske,
-  usuche, ueingabe;
+  usuche, ueingabe, ubelegsuche;
 
 type
   THauptfenster = class(TForm)
@@ -41,6 +41,11 @@ type
     procedure MenueLieferant(Sender: TObject);
     procedure MenueKontakt(Sender: TObject);
     procedure MenueMitarbeiter(Sender: TObject);
+    procedure MenueAngebot(Sender: TObject);
+    procedure MenueAuftrag(Sender: TObject);
+    procedure MenueBestellung(Sender: TObject);
+    procedure MenueRechnung(Sender: TObject);
+    procedure MenueProjekt(Sender: TObject);
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure FormShow(Sender: TObject);
     procedure TaktTimer(Sender: TObject);
@@ -154,6 +159,15 @@ begin
   Eintrag(Fenster, '&Kontakte', @MenueKontakt);
   Eintrag(Fenster, '&Mitarbeiter', @MenueMitarbeiter);
 
+  Fenster := TMenuItem.Create(Self);
+  Fenster.Caption := '&Belege';
+  Menue.Items.Add(Fenster);
+  Eintrag(Fenster, '&Angebot', @MenueAngebot);
+  Eintrag(Fenster, 'Auftrags&bestätigung', @MenueAuftrag);
+  Eintrag(Fenster, '&Bestellung', @MenueBestellung);
+  Eintrag(Fenster, '&Rechnung', @MenueRechnung);
+  Eintrag(Fenster, '&Projekt', @MenueProjekt);
+
   Hilfe := TMenuItem.Create(Self);
   Hilfe.Caption := '&Hilfe';
   Menue.Items.Add(Hilfe);
@@ -184,11 +198,10 @@ begin
   Einleitung :=
     'Planlos' + LineEnding +
     LineEnding +
-    'Es gibt ein Kontaktfenster. Die Maske in der Datenbank macht daraus' + LineEnding +
-    'Kunde, Lieferant, Kontakt oder Mitarbeiter, mit eigenen Feldern.' + LineEnding +
-    LineEnding +
-    'Das Menü Adressen öffnet die Suche. F4 im Hauptfenster öffnet Kunden.' + LineEnding +
-    'In der Suche legt F2 einen neuen Satz an und wählt ihn danach aus.' + LineEnding +
+    'Adressen und Belege sind je ein Fenster. Die Art steht in der Datenbank.' + LineEnding +
+    'Menü Adressen: Kunde, Lieferant, Kontakt, Mitarbeiter. F4 öffnet Kunden.' + LineEnding +
+    'Menü Belege: Angebot, Auftragsbestätigung, Bestellung, Rechnung, Projekt.' + LineEnding +
+    'In der Liste legt F2 neu an. Im Beleg wählt F3 den Empfänger.' + LineEnding +
     LineEnding +
     'Unten liegt die Tastenleiste. F1 bis F12 sind anklickbar.' + LineEnding +
     'Umschalt und Alt wechseln die Beschriftung.' + LineEnding +
@@ -327,6 +340,31 @@ end;
 procedure THauptfenster.MenueMitarbeiter(Sender: TObject);
 begin
   AdressSucheZeigen('mitarbeiter');
+end;
+
+procedure THauptfenster.MenueAngebot(Sender: TObject);
+begin
+  BelegsucheZeigen('angebot');
+end;
+
+procedure THauptfenster.MenueAuftrag(Sender: TObject);
+begin
+  BelegsucheZeigen('auftragsbestaetigung');
+end;
+
+procedure THauptfenster.MenueBestellung(Sender: TObject);
+begin
+  BelegsucheZeigen('bestellung');
+end;
+
+procedure THauptfenster.MenueRechnung(Sender: TObject);
+begin
+  BelegsucheZeigen('rechnung');
+end;
+
+procedure THauptfenster.MenueProjekt(Sender: TObject);
+begin
+  BelegsucheZeigen('projekt');
 end;
 
 function KontaktPruefen(Protokoll: TStrings): string;
