@@ -79,19 +79,64 @@ uses
 type
   TConn = TSQLite3Connection;
 
+{ SQLite liefert UTF-8. Unter Windows hängt an dem Text sonst die
+  ANSI-Codepage, und „Auftragsbestätigung“ wird falsch verglichen. }
+function Utf8Text(const Quelle: string): string;
+var
+  Roh: RawByteString;
+begin
+  Roh := Quelle;
+  SetCodePage(Roh, CP_UTF8, False);
+  Result := Roh;
+end;
+
+function PlanlosAnwendungsname: string;
+begin
+  Result := 'planlos';
+end;
+
+function OrdnerIstBeschreibbar(const Ordner: string): Boolean;
+var
+  Probe: string;
+  Griff: THandle;
+begin
+  Result := False;
+  if not ForceDirectories(Ordner) then
+    Exit;
+  Probe := IncludeTrailingPathDelimiter(Ordner) + '.planlos-schreibprobe';
+  Griff := FileCreate(Probe);
+  if Griff = THandle(feInvalidHandle) then
+    Exit;
+  FileClose(Griff);
+  Result := DeleteFile(Probe);
+end;
+
 function PlanlosDatenDatei: string;
 var
-  Env, Ordner: string;
+  Env, NebenProgramm, ImProfil: string;
 begin
   Env := Trim(GetEnvironmentVariable('PLANLOS_DATEN'));
   if Env <> '' then
+  begin
+    if (ExtractFilePath(Env) <> '') and not DirectoryExists(ExtractFilePath(Env)) then
+      if not ForceDirectories(ExtractFilePath(Env)) then
+        raise Exception.Create(
+          'Der Ordner für die Datenbank konnte nicht angelegt werden: ' +
+          ExtractFilePath(Env));
     Exit(Env);
-  Ordner := IncludeTrailingPathDelimiter(ExtractFilePath(ParamStr(0))) + 'data';
-  if not DirectoryExists(Ordner) then
-    if not ForceDirectories(Ordner) then
-      raise Exception.Create(
-        'Der Ordner für die Datenbank konnte nicht angelegt werden: ' + Ordner);
-  Result := IncludeTrailingPathDelimiter(Ordner) + 'planlos.sqlite';
+  end;
+  { Neben der Programmdatei, wenn Windows das Schreiben erlaubt.
+    Sonst im eigenen Bereich des Benutzers, zum Beispiel unter AppData. }
+  NebenProgramm := IncludeTrailingPathDelimiter(ExtractFilePath(ParamStr(0))) + 'data';
+  if OrdnerIstBeschreibbar(NebenProgramm) then
+    Exit(IncludeTrailingPathDelimiter(NebenProgramm) + 'planlos.sqlite');
+  OnGetApplicationName := @PlanlosAnwendungsname;
+  ImProfil := IncludeTrailingPathDelimiter(GetAppConfigDir(False)) + 'data';
+  if not OrdnerIstBeschreibbar(ImProfil) then
+    raise Exception.Create(
+      'Die Datenbank konnte weder neben dem Programm noch im Benutzerordner angelegt werden.' +
+      LineEnding + NebenProgramm + LineEnding + ImProfil);
+  Result := IncludeTrailingPathDelimiter(ImProfil) + 'planlos.sqlite';
 end;
 
 function KaskadeAktiv: Boolean;
@@ -213,7 +258,9 @@ begin
     Q.Open;
     try
       if not Q.EOF then
-        Result := Q.Fields[0].AsString;
+      begin
+        Result := Utf8Text(Q.Fields[0].AsString);
+      end;
     finally
       Q.Close;
     end;
@@ -267,7 +314,9 @@ begin
     Q.Open;
     try
       if not Q.EOF then
-        Result := Q.Fields[0].AsString;
+      begin
+        Result := Utf8Text(Q.Fields[0].AsString);
+      end;
     finally
       Q.Close;
     end;
@@ -304,7 +353,9 @@ begin
     try
       if not Q.EOF then
         for i := 0 to Q.Fields.Count - 1 do
-          Ziel.Values[Q.Fields[i].FieldName] := Q.Fields[i].AsString;
+        begin
+          Ziel.Values[Q.Fields[i].FieldName] := Utf8Text(Q.Fields[i].AsString);
+        end;
     finally
       Q.Close;
     end;
@@ -334,7 +385,7 @@ begin
         Zeile := '';
         for i := 0 to Q.Fields.Count - 1 do
         begin
-          Wert := StringReplace(Q.Fields[i].AsString, #9, ' ', [rfReplaceAll]);
+          Wert := StringReplace(Utf8Text(Q.Fields[i].AsString), #9, ' ', [rfReplaceAll]);
           if i > 0 then
             Zeile := Zeile + #9;
           Zeile := Zeile + Wert;
@@ -367,7 +418,9 @@ begin
     Q.Open;
     try
       if not Q.EOF then
-        Result := Q.Fields[0].AsString;
+      begin
+        Result := Utf8Text(Q.Fields[0].AsString);
+      end;
     finally
       Q.Close;
     end;
@@ -1264,5 +1317,13 @@ begin
     Zeilen.Free;
   end;
 end;
+
+initialization
+  { Auf Windows ist die normale Zeichentabelle nicht UTF-8.
+    SQLite und die Quelltexte sind UTF-8. Diese Zuordnung sorgt dafür,
+    dass Umlaute auf dem Weg in die Datenbank nicht verändert werden. }
+  {$IFDEF MSWINDOWS}
+  DefaultSystemCodePage := CP_UTF8;
+  {$ENDIF}
 
 end.

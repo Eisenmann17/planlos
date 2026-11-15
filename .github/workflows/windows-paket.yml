@@ -1,0 +1,90 @@
+name: Windows-Paket
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  paket:
+    name: planlos.exe bauen
+    runs-on: windows-latest
+    steps:
+      - name: Quelltext holen
+        uses: actions/checkout@v4
+
+      - name: Lazarus installieren
+        uses: gcarreno/setup-lazarus@v3
+        with:
+          lazarus-version: "3.0"
+
+      - name: sqlite3.dll holen
+        shell: pwsh
+        run: |
+          $url = "https://www.sqlite.org/2026/sqlite-dll-win-x64-3540100.zip"
+          $zip = "sqlite-dll.zip"
+          Invoke-WebRequest -Uri $url -OutFile $zip
+          $hash = (Get-FileHash $zip -Algorithm SHA256).Hash
+          if ($hash -ne "F436F53AD8F965AF43F3817B42C99C0689E6787F6B7ACE208FE38DAB7FFC4971") {
+            throw "Prüfsumme der SQLite-DLL stimmt nicht: $hash"
+          }
+          Expand-Archive -Path $zip -DestinationPath "sqlite-dll" -Force
+          if (-not (Test-Path "sqlite-dll\sqlite3.dll")) {
+            throw "sqlite3.dll fehlt im Archiv."
+          }
+
+      - name: Programm übersetzen
+        run: lazbuild --cpu=x86_64 --os=win64 src\planlos.lpi
+
+      - name: Schema prüfen
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path bin | Out-Null
+          fpc -Mobjfpc -FcUTF8 "-Fusrc" "-obin/schema_pruefen.exe" "src/schema_pruefen.lpr"
+          $exe = Get-ChildItem -Recurse -Filter "schema_pruefen.exe" | Select-Object -First 1
+          if (-not $exe) { throw "schema_pruefen.exe wurde nicht erzeugt." }
+          Copy-Item "sqlite-dll\sqlite3.dll" (Join-Path $exe.DirectoryName "sqlite3.dll") -Force
+          & $exe.FullName
+          if ($LASTEXITCODE -ne 0) { throw "Die Schema-Prüfung ist fehlgeschlagen." }
+
+      - name: ZIP packen
+        shell: pwsh
+        run: |
+          $ziel = "paket\planlos"
+          New-Item -ItemType Directory -Force -Path $ziel | Out-Null
+          Copy-Item bin\planlos.exe "$ziel\planlos.exe" -Force
+          Copy-Item sqlite-dll\sqlite3.dll "$ziel\sqlite3.dll" -Force
+          $text = [System.IO.File]::ReadAllText((Resolve-Path "dist\LIESMICH.txt"))
+          $text = $text -replace "(?<!\r)\n", "`r`n"
+          [System.IO.File]::WriteAllText("$ziel\LIESMICH.txt", $text)
+          if (Test-Path planlos-windows.zip) { Remove-Item planlos-windows.zip }
+          Compress-Archive -Path $ziel -DestinationPath planlos-windows.zip
+          if (-not (Test-Path planlos-windows.zip)) { throw "Die ZIP wurde nicht erzeugt." }
+          Get-Item planlos-windows.zip | Format-List Name, Length
+
+      - name: ZIP als Bau-Ergebnis ablegen
+        uses: actions/upload-artifact@v4
+        with:
+          name: planlos-windows
+          path: planlos-windows.zip
+          if-no-files-found: error
+
+      - name: Als Release veröffentlichen
+        if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && 'windows-snapshot' || github.ref_name }}
+          name: ${{ github.event_name == 'workflow_dispatch' && 'Windows-Probelauf' || format('Planlos {0}', github.ref_name) }}
+          prerelease: ${{ github.event_name == 'workflow_dispatch' }}
+          make_latest: ${{ github.event_name != 'workflow_dispatch' }}
+          body: |
+            Windows-64-Bit-Fassung von Planlos.
+
+            Die ZIP entpacken und planlos.exe starten. sqlite3.dll muss im selben Ordner bleiben.
+            Die Daten legt das Programm im Ordner data an.
+          files: planlos-windows.zip

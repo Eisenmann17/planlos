@@ -13,6 +13,7 @@
       <UseXPManifest Value="True"/>
       <XPManifest>
         <DpiAware Value="True"/>
+        <AnsiUTF8 Value="True"/>
       </XPManifest>
     </General>
     <BuildModes Count="1">

@@ -3,3 +3,6 @@
 # Historischer Delphi-Bestand: Bytes bleiben, auch CRLF und Latin-1.
 # linguist-vendored: zählt nicht als Sprache des neuen Programms.
 alt/** -text -eol linguist-vendored
+
+# Die Anleitung in der Windows-ZIP soll Windows-Zeilenenden haben.
+dist/LIESMICH.txt text eol=crlf
