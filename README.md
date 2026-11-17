@@ -181,3 +181,17 @@ Kontakt sichtbar sind, steht weiter in der Datenbank.
 ## Kontakt
 
 Projekt von Günther Stadtler (GitHub: Eisenmann17).
+
+E-Mail: [planlos@stadtler.eu](mailto:planlos@stadtler.eu)
+
+## Mitmachen
+
+Zurzeit wird das alte Delphi-Programm „Mein kleines Büro“ Maske für
+Maske nachgebaut. Neue Funktionen bitte als Wunsch (Issue) eintragen.
+Sie kommen nach dem Nachbau dran. Fehlerberichte sind jederzeit
+willkommen.
+
+Masken werden im Lazarus-Designer (`.lfm`) gestaltet. Verhalten und
+Logik gehören in die `.pas`-Datei, nicht in den Designer. Wer an einer
+Maske arbeitet, sagt vorher kurz Bescheid (Issue), damit nicht zwei
+Leute dieselbe `.lfm` gleichzeitig ändern.
