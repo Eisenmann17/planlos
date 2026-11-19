@@ -623,7 +623,7 @@ procedure THauptfenster.KopfFarbe(Sender: TObject; ACol, ARow: Integer;
   AState: TGridDrawState);
 const
   Farben: array[0..8] of TColor = (
-    clAqua, clLime, clTeal, clLime, clGreen, clGray, clBtnFace, clBtnFace, clBtnFace);
+    clAqua, clLime, clTeal, clOlive, clGreen, clGray, clBtnFace, clBtnFace, clBtnFace);
 begin
   if (ARow = 0) and (ACol >= 0) and (ACol <= 8) then
   begin
