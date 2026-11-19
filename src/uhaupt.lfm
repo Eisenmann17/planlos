@@ -331,25 +331,97 @@ object Hauptfenster: THauptfenster
         ParentBackground = False
         TabOrder = 5
       end
-      object ButtonAendern: TButton
-        Left = 359
-        Height = 20
-        Top = 474
-        Width = 77
-        Anchors = [akLeft, akBottom]
-        Caption = 'ändern'
+      object PanelFunktion: TPanel
+        Left = 256
+        Height = 46
+        Top = 470
+        Width = 848
+        Anchors = [akLeft, akRight, akBottom]
+        BevelOuter = bvNone
+        Caption = ''
         TabOrder = 6
-        OnClick = ZeileOeffnen
-      end
-      object ButtonEnde: TButton
-        Left = 1118
-        Height = 20
-        Top = 474
-        Width = 140
-        Anchors = [akRight, akBottom]
-        Caption = 'mein kleines Büro beenden'
-        TabOrder = 7
-        OnClick = MenueBeenden
+        object LabelF5: TLabel
+          Left = 8
+          Height = 13
+          Top = 0
+          Width = 14
+          Caption = 'F5'
+        end
+        object ButtonKopieren: TButton
+          Left = 8
+          Height = 22
+          Top = 16
+          Width = 77
+          Caption = 'kopieren'
+          TabOrder = 0
+          OnClick = KopierenKlick
+        end
+        object LabelF6: TLabel
+          Left = 96
+          Height = 13
+          Top = 0
+          Width = 14
+          Caption = 'F6'
+        end
+        object ButtonAendern: TButton
+          Left = 96
+          Height = 22
+          Top = 16
+          Width = 77
+          Caption = 'ändern'
+          TabOrder = 1
+          OnClick = ZeileOeffnen
+        end
+        object LabelF7: TLabel
+          Left = 184
+          Height = 13
+          Top = 0
+          Width = 14
+          Caption = 'F7'
+        end
+        object ButtonSortieren: TButton
+          Left = 184
+          Height = 22
+          Top = 16
+          Width = 77
+          Caption = 'sortieren'
+          TabOrder = 2
+          OnClick = SortierenKlick
+        end
+        object LabelF8: TLabel
+          Left = 272
+          Height = 13
+          Top = 0
+          Width = 14
+          Caption = 'F8'
+        end
+        object ButtonLoeschen: TButton
+          Left = 272
+          Height = 22
+          Top = 16
+          Width = 77
+          Caption = 'löschen'
+          TabOrder = 3
+          OnClick = LoeschenKlick
+        end
+        object LabelF10: TLabel
+          Left = 680
+          Height = 13
+          Top = 0
+          Width = 18
+          Anchors = [akTop, akRight]
+          Caption = 'F10'
+        end
+        object ButtonEnde: TButton
+          Left = 680
+          Height = 22
+          Top = 16
+          Width = 160
+          Anchors = [akTop, akRight]
+          Caption = 'mein kleines Büro beenden'
+          TabOrder = 4
+          OnClick = MenueBeenden
+        end
       end
     end
     object TabStammdaten: TTabSheet

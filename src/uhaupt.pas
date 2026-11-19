@@ -49,7 +49,16 @@ type
     RadioGruppe: TRadioButton;
     GridModule: TStringGrid;
     ScrollBoxNeu: TScrollBox;
+    PanelFunktion: TPanel;
+    LabelF5: TLabel;
+    ButtonKopieren: TButton;
+    LabelF6: TLabel;
     ButtonAendern: TButton;
+    LabelF7: TLabel;
+    ButtonSortieren: TButton;
+    LabelF8: TLabel;
+    ButtonLoeschen: TButton;
+    LabelF10: TLabel;
     ButtonEnde: TButton;
     LabelKontakte: TLabel;
     ButtonKunden: TButton;
@@ -111,8 +120,12 @@ type
     procedure ModulGewaehlt(Sender: TObject);
     procedure NeuBeleg(Sender: TObject);
     procedure ZeileOeffnen(Sender: TObject);
+    procedure KopierenKlick(Sender: TObject);
+    procedure SortierenKlick(Sender: TObject);
+    procedure LoeschenKlick(Sender: TObject);
     procedure KontaktOeffnen(Sender: TObject);
     procedure KopfFarbe(Sender: TObject; ACol, ARow: Integer; AState: TGridDrawState);
+    procedure ZelleGewaehlt(Sender: TObject; aCol, aRow: Integer; var CanSelect: Boolean);
   private
     DbFehler: string;
     SelbsttestAn: Boolean;
@@ -129,7 +142,12 @@ type
     ProjektId: Int64;
     BearbeiterId: Int64;
     GruppenText: string;
+    SortierArt: Integer;
     procedure TasteAusfuehren(Sender: TObject; Ebene, Taste: Integer);
+    procedure KnoepfeStellen;
+    procedure KnoepfeFuer(Zeile: Integer);
+    function GewaehlteZeilenArt: string;
+    function GewaehlteZeilenId: Int64;
     procedure AnsichtNachziehen(Sender: TObject);
     procedure DatenbankOeffnen;
     procedure ModulListe;
@@ -194,6 +212,7 @@ begin
   NeuKnoepfe;
   JahreFuellen;
   Bereit := True;
+  GridModule.OnSelectCell := @ZelleGewaehlt;
   ExplorerLaden;
   AnsichtAktualisieren;
   SelbsttestAn := GetEnvironmentVariable('PLANLOS_SELBSTTEST') = '1';
@@ -343,6 +362,7 @@ begin
   Filter.Sonstiges := TSonstiges(SonstigesWahl);
   Filter.BearbeiterId := BearbeiterId;
   Filter.Gruppe := GruppenText;
+  Filter.Sortierung := SortierArt;
 
   Spalten := TStringList.Create;
   Zeilen := TStringList.Create;
@@ -376,6 +396,7 @@ begin
     Zeilen.Free;
     Spalten.Free;
   end;
+  KnoepfeStellen;
 end;
 
 procedure THauptfenster.FilterModul(Sender: TObject);
@@ -585,6 +606,120 @@ begin
   end;
 end;
 
+function THauptfenster.GewaehlteZeilenArt: string;
+var
+  Zeile: Integer;
+begin
+  Result := '';
+  Zeile := GridModule.Row;
+  if (Zeile < 1) or (Zeile > Length(ZeilenArt)) then
+    Exit;
+  Result := ZeilenArt[Zeile - 1];
+end;
+
+function THauptfenster.GewaehlteZeilenId: Int64;
+var
+  Zeile: Integer;
+begin
+  Result := 0;
+  Zeile := GridModule.Row;
+  if (Zeile < 1) or (Zeile > Length(ZeilenIds)) then
+    Exit;
+  Result := ZeilenIds[Zeile - 1];
+end;
+
+procedure THauptfenster.KnoepfeStellen;
+begin
+  KnoepfeFuer(GridModule.Row);
+end;
+
+procedure THauptfenster.ZelleGewaehlt(Sender: TObject; aCol, aRow: Integer;
+  var CanSelect: Boolean);
+begin
+  if CanSelect then
+    KnoepfeFuer(aRow);
+end;
+
+procedure THauptfenster.KnoepfeFuer(Zeile: Integer);
+var
+  Art, Meldung: string;
+begin
+  Art := '';
+  if (Zeile >= 1) and (Zeile <= Length(ZeilenArt)) then
+    Art := ZeilenArt[Zeile - 1];
+  ButtonKopieren.Enabled := (Art <> '') and
+    AktionZulaessig('beleg', Art, 'kopieren', Meldung);
+  ButtonAendern.Enabled := (Art <> '') and
+    AktionZulaessig('beleg', Art, 'aendern', Meldung);
+  ButtonLoeschen.Enabled := (Art <> '') and
+    AktionZulaessig('beleg', Art, 'loeschen', Meldung);
+  ButtonSortieren.Hint := 'Sortierung: Datum absteigend';
+  if SortierArt = 1 then
+    ButtonSortieren.Hint := 'Sortierung: Datum aufsteigend'
+  else if SortierArt = 2 then
+    ButtonSortieren.Hint := 'Sortierung: Nummer'
+  else if SortierArt = 3 then
+    ButtonSortieren.Hint := 'Sortierung: Bezeichnung';
+  ButtonSortieren.ShowHint := True;
+end;
+
+procedure THauptfenster.KopierenKlick(Sender: TObject);
+var
+  Art, Meldung, Fehler: string;
+  Id, Neu: Int64;
+begin
+  Art := GewaehlteZeilenArt;
+  Id := GewaehlteZeilenId;
+  if (Art = '') or (Id = 0) then
+  begin
+    ShowMessage('Bitte zuerst einen Beleg auswählen.');
+    Exit;
+  end;
+  if not AktionZulaessig('beleg', Art, 'kopieren', Meldung) then
+  begin
+    ShowMessage(Meldung);
+    Exit;
+  end;
+  Neu := BelegKopieren(Id, Fehler);
+  if Neu = 0 then
+    ShowMessage(Fehler)
+  else
+    ExplorerLaden;
+end;
+
+procedure THauptfenster.SortierenKlick(Sender: TObject);
+begin
+  SortierArt := (SortierArt + 1) mod 4;
+  ExplorerLaden;
+end;
+
+procedure THauptfenster.LoeschenKlick(Sender: TObject);
+var
+  Art, Meldung, Fehler, Nummer: string;
+  Id: Int64;
+begin
+  Art := GewaehlteZeilenArt;
+  Id := GewaehlteZeilenId;
+  if (Art = '') or (Id = 0) then
+  begin
+    ShowMessage('Bitte zuerst einen Beleg auswählen.');
+    Exit;
+  end;
+  if not AktionZulaessig('beleg', Art, 'loeschen', Meldung) then
+  begin
+    ShowMessage(Meldung);
+    Exit;
+  end;
+  Nummer := BelegNummer(Id);
+  if MessageDlg('Beleg ' + Nummer + ' löschen?', mtConfirmation,
+    [mbYes, mbNo], 0) <> mrYes then
+    Exit;
+  if not BelegLoeschen(Id, Fehler) then
+    ShowMessage(Fehler)
+  else
+    ExplorerLaden;
+end;
+
 procedure THauptfenster.ZeileOeffnen(Sender: TObject);
 var
   Zeile: Integer;
@@ -596,7 +731,7 @@ begin
     ShowMessage('Bitte zuerst einen Beleg auswählen.');
     Exit;
   end;
-  if not AktionZulaessig('beleg', ZeilenArt[Zeile - 1], 'sehen', Meldung) then
+  if not AktionZulaessig('beleg', ZeilenArt[Zeile - 1], 'aendern', Meldung) then
   begin
     ShowMessage(Meldung);
     Exit;
@@ -702,7 +837,11 @@ begin
         end;
       3: KindfensterOeffnen;
       4: AdressSucheZeigen('kunde');
+      5: KopierenKlick(Self);
       6: ZeileOeffnen(Self);
+      7: SortierenKlick(Self);
+      8: LoeschenKlick(Self);
+      10: MenueBeenden(Self);
       11:
         begin
           PageControl1.ActivePageIndex := 3;
@@ -897,6 +1036,7 @@ end;
 
 procedure THauptfenster.FormShow(Sender: TObject);
 begin
+  ExplorerLaden;
   AnsichtAktualisieren;
   if SelbsttestAn and not SelbsttestGelaufen then
   begin

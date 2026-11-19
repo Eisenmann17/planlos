@@ -23,7 +23,24 @@ type
     FArt: TBelegart;
     FTastenInfo: TBelegTasten;
     FIds: array of Int64;
+    FLeiste: TPanel;
+    FNeu: TButton;
+    FKopieren: TButton;
+    FAendern: TButton;
+    FLoeschen: TButton;
+    FSchliessen: TButton;
+    FLabelSchluss: TLabel;
+    FNeuAn: Boolean;
+    FKopierenAn: Boolean;
+    FAendernAn: Boolean;
+    FLoeschenAn: Boolean;
+    FVorgabe: Boolean;
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure KnopfKlick(Sender: TObject);
+    procedure ListeKlick(Sender: TObject);
+    procedure LeisteRichten(Sender: TObject);
+    procedure KnoepfeStellen;
+    function VorgabeErlaubt(const Aktionsname: string): Boolean;
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure FilterTaste(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure TasteGedrueckt(Sender: TObject; Ebene, Taste: Integer);
@@ -34,6 +51,7 @@ type
   public
     constructor Create(TheOwner: TComponent); override;
     function Oeffne(const Kuerzel: string): Boolean;
+    procedure SetzeFunktionen(Neu, Kopieren, Aendern, Loeschen: Boolean);
   end;
 
 procedure BelegsucheZeigen(const Kuerzel: string);
@@ -84,12 +102,58 @@ begin
 end;
 
 constructor TBelegsuche.Create(TheOwner: TComponent);
+
+  function Knopf(const Taste, Text, Aktion: string; Links: Integer): TButton;
+  var
+    Schild: TLabel;
+  begin
+    Schild := TLabel.Create(Self);
+    Schild.Parent := FLeiste;
+    Schild.Left := Links;
+    Schild.Top := 2;
+    Schild.Caption := Taste;
+    Result := TButton.Create(Self);
+    Result.Parent := FLeiste;
+    Result.Left := Links;
+    Result.Top := 18;
+    Result.Width := 77;
+    Result.Height := 22;
+    Result.Caption := Text;
+    Result.Hint := Aktion;
+    Result.OnClick := @KnopfKlick;
+  end;
+
 begin
   inherited CreateNew(TheOwner, 1);
   Position := poDesigned;
   KeyPreview := True;
   OnKeyDown := @FormKeyDown;
   OnClose := @FormClose;
+
+  FLeiste := TPanel.Create(Self);
+  FLeiste.Parent := Self;
+  FLeiste.Align := alBottom;
+  FLeiste.Height := 46;
+  FLeiste.BevelOuter := bvNone;
+  FLeiste.Caption := '';
+  FLeiste.OnResize := @LeisteRichten;
+  FNeu := Knopf('F2', 'neu', 'neu', 8);
+  FKopieren := Knopf('F5', 'kopieren', 'kopieren', 96);
+  FAendern := Knopf('F6', 'ändern', 'oeffnen', 184);
+  FLoeschen := Knopf('F8', 'löschen', 'loeschen', 272);
+  FLabelSchluss := TLabel.Create(Self);
+  FLabelSchluss.Parent := FLeiste;
+  FLabelSchluss.Caption := 'F12';
+  FLabelSchluss.Top := 2;
+  FSchliessen := TButton.Create(Self);
+  FSchliessen.Parent := FLeiste;
+  FSchliessen.Top := 18;
+  FSchliessen.Width := 92;
+  FSchliessen.Height := 22;
+  FSchliessen.Caption := 'schließen';
+  FSchliessen.Hint := 'schliessen';
+  FSchliessen.OnClick := @KnopfKlick;
+  FSchliessen.Anchors := [akTop, akRight];
 
   FStatus := TLabel.Create(Self);
   FStatus.Parent := Self;
@@ -122,6 +186,7 @@ begin
   FListe.Options := [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine,
     goRowSelect, goColSizing, goThumbTracking];
   FListe.BorderSpacing.Around := 6;
+  FListe.OnClick := @ListeKlick;
 end;
 
 procedure TBelegsuche.FormClose(Sender: TObject; var CloseAction: TCloseAction);
@@ -144,6 +209,8 @@ begin
     '. Nummernkreis ' + FArt.Nummernkreis + '. F2 legt einen neuen Beleg an.';
   FTastenInfo := BelegTasten(FArt.Kuerzel, 'suche');
   ListeLaden;
+  KnoepfeStellen;
+  LeisteRichten(nil);
 end;
 
 procedure TBelegsuche.ListeLaden;
@@ -186,6 +253,7 @@ begin
     if Zeilen.Count > 0 then
       FListe.Row := 1;
     FStatus.Caption := IntToStr(Zeilen.Count) + ' ' + FArt.Bezeichnung;
+    KnoepfeStellen;
   finally
     TeileZeile.Free;
     Zeilen.Free;
@@ -213,11 +281,77 @@ begin
     end;
 end;
 
+procedure TBelegsuche.KnopfKlick(Sender: TObject);
+begin
+  Aktion(TButton(Sender).Hint);
+end;
+
+procedure TBelegsuche.ListeKlick(Sender: TObject);
+begin
+  KnoepfeStellen;
+end;
+
+procedure TBelegsuche.LeisteRichten(Sender: TObject);
+begin
+  if (FSchliessen = nil) or (FLeiste = nil) then
+    Exit;
+  FSchliessen.Left := FLeiste.ClientWidth - FSchliessen.Width - 8;
+  FLabelSchluss.Left := FSchliessen.Left;
+end;
+
+procedure TBelegsuche.SetzeFunktionen(Neu, Kopieren, Aendern, Loeschen: Boolean);
+begin
+  FVorgabe := True;
+  FNeuAn := Neu;
+  FKopierenAn := Kopieren;
+  FAendernAn := Aendern;
+  FLoeschenAn := Loeschen;
+  KnoepfeStellen;
+end;
+
+function TBelegsuche.VorgabeErlaubt(const Aktionsname: string): Boolean;
+begin
+  Result := True;
+  if not FVorgabe then
+    Exit;
+  if (Aktionsname = 'neu') then
+    Result := FNeuAn
+  else if Aktionsname = 'kopieren' then
+    Result := FKopierenAn
+  else if (Aktionsname = 'oeffnen') or (Aktionsname = 'aendern') then
+    Result := FAendernAn
+  else if Aktionsname = 'loeschen' then
+    Result := FLoeschenAn;
+end;
+
+procedure TBelegsuche.KnoepfeStellen;
+var
+  Meldung: string;
+  ZeileDa: Boolean;
+begin
+  if FNeu = nil then
+    Exit;
+  ZeileDa := GewaehlteId > 0;
+  FNeu.Enabled := VorgabeErlaubt('neu') and
+    AktionZulaessig('beleg', FArt.Kuerzel, 'neu', Meldung);
+  FKopieren.Enabled := ZeileDa and VorgabeErlaubt('kopieren') and
+    AktionZulaessig('beleg', FArt.Kuerzel, 'kopieren', Meldung);
+  FAendern.Enabled := ZeileDa and VorgabeErlaubt('oeffnen') and
+    AktionZulaessig('beleg', FArt.Kuerzel, 'aendern', Meldung);
+  FLoeschen.Enabled := ZeileDa and VorgabeErlaubt('loeschen') and
+    AktionZulaessig('beleg', FArt.Kuerzel, 'loeschen', Meldung);
+end;
+
 procedure TBelegsuche.Aktion(const Aktionsname: string);
 var
   Id: Int64;
   Meldung: string;
 begin
+  if not VorgabeErlaubt(Aktionsname) then
+  begin
+    ShowMessage('Diese Funktion ist in diesem Fenster ausgeschaltet.');
+    Exit;
+  end;
   if Aktionsname = 'hilfe' then
     ShowMessage(
       'Suche für ' + FArt.Bezeichnung + '.' + LineEnding +
@@ -241,6 +375,11 @@ begin
   end
   else if Aktionsname = 'oeffnen' then
   begin
+    if not AktionZulaessig('beleg', FArt.Kuerzel, 'aendern', Meldung) then
+    begin
+      ShowMessage(Meldung);
+      Exit;
+    end;
     Id := GewaehlteId;
     if Id = 0 then
       ShowMessage('Bitte zuerst eine Zeile auswählen.')
@@ -250,6 +389,46 @@ begin
       ListeLaden;
       WaehleId(Id);
     end;
+  end
+  else if Aktionsname = 'kopieren' then
+  begin
+    if not AktionZulaessig('beleg', FArt.Kuerzel, 'kopieren', Meldung) then
+    begin
+      ShowMessage(Meldung);
+      Exit;
+    end;
+    Id := GewaehlteId;
+    if Id = 0 then
+    begin
+      ShowMessage('Bitte zuerst einen Beleg auswählen.');
+      Exit;
+    end;
+    Id := BelegKopieren(Id, Meldung);
+    if Id = 0 then
+      ShowMessage(Meldung)
+    else
+    begin
+      ListeLaden;
+      WaehleId(Id);
+    end;
+  end
+  else if Aktionsname = 'loeschen' then
+  begin
+    if not AktionZulaessig('beleg', FArt.Kuerzel, 'loeschen', Meldung) then
+    begin
+      ShowMessage(Meldung);
+      Exit;
+    end;
+    Id := GewaehlteId;
+    if Id = 0 then
+      Exit;
+    if MessageDlg('Beleg ' + BelegNummer(Id) + ' löschen?', mtConfirmation,
+      [mbYes, mbNo], 0) <> mrYes then
+      Exit;
+    if not BelegLoeschen(Id, Meldung) then
+      ShowMessage(Meldung)
+    else
+      ListeLaden;
   end
   else if Aktionsname = 'uebernehmen' then
     FStatus.Caption := 'Ausgewählt: ' + BelegNummer(GewaehlteId)

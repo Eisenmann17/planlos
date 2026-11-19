@@ -593,7 +593,7 @@ var
   Kennung: string;
   G: TGUID;
 begin
-  { Schema-Version 4. Vorhandene Zeilen werden nicht überschrieben,
+  { Schema-Version 5. Vorhandene Zeilen werden nicht überschrieben,
     damit eine spätere Umbenennung beim nächsten Start erhalten bleibt. }
 
   Direkt(
@@ -624,6 +624,10 @@ begin
     'nummernkreis TEXT, ' +
     'sortierung INTEGER NOT NULL DEFAULT 0, ' +
     'aktiv INTEGER NOT NULL DEFAULT 1)');
+  Spalte('modulart', 'datensatz_neu', 'INTEGER NOT NULL DEFAULT 1');
+  Spalte('modulart', 'datensatz_kopieren', 'INTEGER NOT NULL DEFAULT 1');
+  Spalte('modulart', 'datensatz_aendern', 'INTEGER NOT NULL DEFAULT 1');
+  Spalte('modulart', 'datensatz_loeschen', 'INTEGER NOT NULL DEFAULT 1');
 
   Direkt(
     'CREATE TABLE IF NOT EXISTS adresskategorie (' +
@@ -684,7 +688,9 @@ begin
     'aendern INTEGER NOT NULL DEFAULT 0, ' +
     'loeschen INTEGER NOT NULL DEFAULT 0, ' +
     'drucken INTEGER NOT NULL DEFAULT 0, ' +
+    'kopieren INTEGER NOT NULL DEFAULT 1, ' +
     'UNIQUE (rolle_id, modulart_id))');
+  Spalte('recht', 'kopieren', 'INTEGER NOT NULL DEFAULT 1');
 
   Spalte('adresse', 'telefon_privat', 'TEXT');
   Spalte('adresse', 'telefon_andere', 'TEXT');
@@ -746,12 +752,17 @@ begin
       end;
       Direkt(
         'INSERT INTO recht (id, rolle_id, modulart_id, sehen, neu, aendern, ' +
-        'loeschen, drucken) SELECT ' +
+        'loeschen, drucken, kopieren) SELECT ' +
         IntToStr(RechtId) + ', ' + IntToStr(RolleId) + ', ' + IntToStr(ModulId) + ', ' +
         IntToStr(Sehen) + ', ' + IntToStr(Neu) + ', ' + IntToStr(Aendern) + ', ' +
-        IntToStr(Loeschen) + ', ' + IntToStr(Drucken) +
+        IntToStr(Loeschen) + ', ' + IntToStr(Drucken) + ', ' + IntToStr(Neu) +
         ' WHERE NOT EXISTS (SELECT 1 FROM recht WHERE id = ' + IntToStr(RechtId) + ')');
     end;
+  if ParameterLesen('recht_kopieren_v5', '') = '' then
+  begin
+    Direkt('UPDATE recht SET kopieren = neu');
+    ParameterSetzen('recht_kopieren_v5', '1');
+  end;
 
   Merkmal('kaskade', '1');
   Merkmal('schritt_oben', '26');
@@ -786,13 +797,21 @@ begin
 
   if Ganzzahl('SELECT COUNT(*) FROM schema_info') = 0 then
     Direkt(
-      'INSERT INTO schema_info (id, version, angelegt) VALUES (1, 4, ' +
+      'INSERT INTO schema_info (id, version, angelegt) VALUES (1, 5, ' +
       QuotedStr(FormatDateTime('yyyy-mm-dd"T"hh:nn:ss', Now)) + ')')
-  else if Ganzzahl('SELECT version FROM schema_info WHERE id = 1') < 4 then
-    Direkt('UPDATE schema_info SET version = 4 WHERE id = 1');
+  else if Ganzzahl('SELECT version FROM schema_info WHERE id = 1') < 5 then
+    Direkt('UPDATE schema_info SET version = 5 WHERE id = 1');
 end;
 
 procedure TPlanlosDatenbank.MaskenAnlegen;
+
+  procedure Spalte(const Tabelle, Name, Definition: string);
+  begin
+    if Ganzzahl(
+      'SELECT COUNT(*) FROM pragma_table_info(' + QuotedStr(Tabelle) +
+      ') WHERE name = ' + QuotedStr(Name)) = 0 then
+      Direkt('ALTER TABLE ' + Tabelle + ' ADD COLUMN ' + Name + ' ' + Definition);
+  end;
 
   procedure Maske(Id, Kategorie, Links, Oben, Breite, Hoehe, Sortierung: Integer;
     const Kuerzel, Bezeichnung: string);
@@ -866,6 +885,7 @@ procedure TPlanlosDatenbank.MaskenAnlegen;
   begin
     Taste(MaskeId, 1, 1, 1, 'suche', 'Hilfe', 'hilfe');
     Taste(MaskeId, 1, 2, 1, 'suche', 'Neu', 'neu');
+    Taste(MaskeId, 1, 5, 1, 'suche', 'Kopieren', 'kopieren');
     Taste(MaskeId, 1, 6, 1, 'suche', 'Ändern', 'aendern');
     Taste(MaskeId, 1, 8, LoeschenFrei, 'suche', 'Löschen', 'loeschen');
     Taste(MaskeId, 1, 10, 1, 'suche', 'Übernehmen', 'uebernehmen');
@@ -1010,6 +1030,10 @@ begin
     'fenster_hoehe INTEGER NOT NULL DEFAULT 480, ' +
     'sortierung INTEGER NOT NULL DEFAULT 0, ' +
     'aktiv INTEGER NOT NULL DEFAULT 1)');
+  Spalte('maske', 'neu_an', 'INTEGER NOT NULL DEFAULT 1');
+  Spalte('maske', 'kopieren_an', 'INTEGER NOT NULL DEFAULT 1');
+  Spalte('maske', 'aendern_an', 'INTEGER NOT NULL DEFAULT 1');
+  Spalte('maske', 'loeschen_an', 'INTEGER NOT NULL DEFAULT 1');
 
   Direkt(
     'CREATE TABLE IF NOT EXISTS maskenfeld (' +
@@ -1051,7 +1075,9 @@ begin
     'neu INTEGER NOT NULL DEFAULT 0, ' +
     'aendern INTEGER NOT NULL DEFAULT 0, ' +
     'loeschen INTEGER NOT NULL DEFAULT 0, ' +
+    'kopieren INTEGER NOT NULL DEFAULT 1, ' +
     'UNIQUE (rolle_id, maske_id))');
+  Spalte('maskenrecht', 'kopieren', 'INTEGER NOT NULL DEFAULT 1');
 
   if Ganzzahl(
     'SELECT COUNT(*) FROM pragma_table_info(''maskenfeld'') WHERE name = ''links''') = 0 then
@@ -1100,13 +1126,18 @@ begin
         end;
       end;
       Direkt(
-        'INSERT INTO maskenrecht (rolle_id, maske_id, sehen, neu, aendern, loeschen) ' +
+        'INSERT INTO maskenrecht (rolle_id, maske_id, sehen, neu, aendern, loeschen, kopieren) ' +
         'SELECT ' + IntToStr(RolleId) + ', ' + IntToStr(MaskeId) + ', ' +
         IntToStr(Sehen) + ', ' + IntToStr(Neu) + ', ' + IntToStr(Aendern) + ', ' +
-        IntToStr(Loeschen) +
+        IntToStr(Loeschen) + ', ' + IntToStr(Neu) +
         ' WHERE NOT EXISTS (SELECT 1 FROM maskenrecht WHERE rolle_id = ' +
         IntToStr(RolleId) + ' AND maske_id = ' + IntToStr(MaskeId) + ')');
     end;
+  if ParameterLesen('maskenrecht_kopieren_v5', '') = '' then
+  begin
+    Direkt('UPDATE maskenrecht SET kopieren = neu');
+    ParameterSetzen('maskenrecht_kopieren_v5', '1');
+  end;
 
   if ParameterLesen('masken_layout_v4', '') = '' then
   begin
@@ -1180,7 +1211,9 @@ procedure TPlanlosDatenbank.BelegSchema;
     Taste(ModulartId, 1, 1, 1, 'suche', 'Hilfe', 'hilfe');
     Taste(ModulartId, 1, 2, 1, 'suche', 'Neu', 'neu');
     Taste(ModulartId, 1, 4, 1, 'suche', 'Suchen', 'filtern');
+    Taste(ModulartId, 1, 5, 1, 'suche', 'Kopieren', 'kopieren');
     Taste(ModulartId, 1, 6, 1, 'suche', 'Öffnen', 'oeffnen');
+    Taste(ModulartId, 1, 8, 1, 'suche', 'Löschen', 'loeschen');
     Taste(ModulartId, 1, 10, 1, 'suche', 'Übernehmen', 'uebernehmen');
     Taste(ModulartId, 1, 12, 1, 'suche', 'Schließen', 'schliessen');
   end;
