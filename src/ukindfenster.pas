@@ -21,7 +21,6 @@ type
   TKindfenster = class(TForm)
   private
     FText: TMemo;
-    FTasten: TTastenleiste;
     FNummer: Integer;
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
@@ -87,17 +86,10 @@ begin
   Caption := 'Planlos - Fenster';
   Position := poDesigned;
   Width := 640;
-  Height := 420;
+  Height := 324;
   KeyPreview := True;
   OnKeyDown := @FormKeyDown;
   OnClose := @FormClose;
-
-  FTasten := TTastenleiste.Create(Self);
-  FTasten.Parent := Self;
-  FTasten.Align := alBottom;
-  FTasten.Height := 96;
-  FTasten.OnTaste := @TasteAusfuehren;
-  StandardBelegung(FTasten);
 
   FText := TMemo.Create(Self);
   FText.Parent := Self;

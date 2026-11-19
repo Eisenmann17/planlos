@@ -26,7 +26,6 @@ type
     FListe: TStringGrid;
     FSumme: TMemo;
     FFusstext: TMemo;
-    FTasten: TTastenleiste;
     FArt: TBelegart;
     FKopfDaten: TBelegKopf;
     FTastenInfo: TBelegTasten;
@@ -102,12 +101,6 @@ begin
   KeyPreview := True;
   OnKeyDown := @FormKeyDown;
   Caption := 'Planlos';
-
-  FTasten := TTastenleiste.Create(Self);
-  FTasten.Parent := Self;
-  FTasten.Align := alBottom;
-  FTasten.Height := 96;
-  FTasten.OnTaste := @TasteGedrueckt;
 
   FFusstext := TMemo.Create(Self);
   FFusstext.Parent := Self;
@@ -206,14 +199,8 @@ begin
 end;
 
 procedure TBelegfenster.TastenAusDaten;
-var
-  i: Integer;
 begin
   FTastenInfo := BelegTasten(FArt.Kuerzel, 'beleg');
-  FTasten.AlleBeschriftungenLoeschen;
-  for i := 0 to High(FTastenInfo) do
-    FTasten.SetzeTaste(FTastenInfo[i].Ebene, FTastenInfo[i].Taste,
-      FTastenInfo[i].Beschriftung, FTastenInfo[i].Erlaubt);
 end;
 
 procedure TBelegfenster.EmpfaengerZeigen;

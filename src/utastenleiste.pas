@@ -132,9 +132,8 @@ begin
   Text :=
     'Planlos, Grundgerüst' + LineEnding +
     LineEnding +
-    'Unten liegen die Tasten F1 bis F12. Drücken oder anklicken.' + LineEnding +
-    'Umschalt zeigt die zweite Beschriftung, Alt die dritte.' + LineEnding +
-    'Wer die Taste nicht halten will, klickt oben auf Normal, Umschalt oder Alt.' + LineEnding +
+    'F1 bis F12 gelten über die Tastatur.' + LineEnding +
+    'Umschalt ist die zweite Ebene, Alt die dritte.' + LineEnding +
     LineEnding +
     'F3 öffnet ein weiteres Fenster, versetzt von links oben.' + LineEnding +
     'F11 zeigt, was in der Datenbank steht.' + LineEnding +
@@ -153,14 +152,11 @@ end;
 procedure ZeigeTastenhilfe;
 begin
   ShowMessage(
-    'Die Leiste hat drei Ebenen.' + LineEnding +
+    'Die Tasten haben drei Ebenen.' + LineEnding +
     LineEnding +
-    'Normal: die Beschriftung ohne Zusatztaste.' + LineEnding +
-    'Umschalt: die Umschalttaste halten, oder oben auf Umschalt klicken.' + LineEnding +
-    'Alt: die Alt-Taste halten, oder oben auf Alt klicken.' + LineEnding +
-    LineEnding +
-    'Solange Umschalt oder Alt wirklich gehalten werden, gilt diese Ebene,' + LineEnding +
-    'auch wenn oben etwas anderes fest gewählt ist.');
+    'Normal: ohne Zusatztaste.' + LineEnding +
+    'Umschalt: die Umschalttaste halten.' + LineEnding +
+    'Alt: die Alt-Taste halten.');
 end;
 
 procedure ZeigeUeberPlanlos;

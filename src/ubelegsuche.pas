@@ -20,7 +20,6 @@ type
     FHinweis: TLabel;
     FListe: TStringGrid;
     FStatus: TLabel;
-    FTasten: TTastenleiste;
     FArt: TBelegart;
     FTastenInfo: TBelegTasten;
     FIds: array of Int64;
@@ -92,12 +91,6 @@ begin
   OnKeyDown := @FormKeyDown;
   OnClose := @FormClose;
 
-  FTasten := TTastenleiste.Create(Self);
-  FTasten.Parent := Self;
-  FTasten.Align := alBottom;
-  FTasten.Height := 96;
-  FTasten.OnTaste := @TasteGedrueckt;
-
   FStatus := TLabel.Create(Self);
   FStatus.Parent := Self;
   FStatus.Align := alBottom;
@@ -137,8 +130,6 @@ begin
 end;
 
 function TBelegsuche.Oeffne(const Kuerzel: string): Boolean;
-var
-  i: Integer;
 begin
   Result := BelegartLaden(Kuerzel, FArt);
   if not Result then
@@ -152,10 +143,6 @@ begin
   FHinweis.Caption := 'Belegart ' + FArt.Bezeichnung +
     '. Nummernkreis ' + FArt.Nummernkreis + '. F2 legt einen neuen Beleg an.';
   FTastenInfo := BelegTasten(FArt.Kuerzel, 'suche');
-  FTasten.AlleBeschriftungenLoeschen;
-  for i := 0 to High(FTastenInfo) do
-    FTasten.SetzeTaste(FTastenInfo[i].Ebene, FTastenInfo[i].Taste,
-      FTastenInfo[i].Beschriftung, FTastenInfo[i].Erlaubt);
   ListeLaden;
 end;
 

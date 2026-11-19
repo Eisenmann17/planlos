@@ -21,7 +21,6 @@ type
     FHinweis: TLabel;
     FListe: TStringGrid;
     FStatus: TLabel;
-    FTasten: TTastenleiste;
     FKuerzel: string;
     FBezeichnung: string;
     FTastenInfo: TTastenListe;
@@ -105,12 +104,6 @@ begin
   OnKeyDown := @FormKeyDown;
   OnClose := @FormClose;
 
-  FTasten := TTastenleiste.Create(Self);
-  FTasten.Parent := Self;
-  FTasten.Align := alBottom;
-  FTasten.Height := 96;
-  FTasten.OnTaste := @TasteGedrueckt;
-
   FStatus := TLabel.Create(Self);
   FStatus.Parent := Self;
   FStatus.Align := alBottom;
@@ -188,14 +181,8 @@ begin
 end;
 
 procedure TSuchfenster.TastenAusDaten;
-var
-  i: Integer;
 begin
   FTastenInfo := TastenLaden(FKuerzel, 'suche');
-  FTasten.AlleBeschriftungenLoeschen;
-  for i := 0 to High(FTastenInfo) do
-    FTasten.SetzeTaste(FTastenInfo[i].Ebene, FTastenInfo[i].Taste,
-      FTastenInfo[i].Beschriftung, FTastenInfo[i].Erlaubt);
 end;
 
 procedure Teile(const Zeile: string; Ziel: TStrings);

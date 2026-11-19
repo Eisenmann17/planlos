@@ -439,12 +439,12 @@ object Hauptfenster: THauptfenster
   end
   object PanelTasten: TPanel
     Left = 0
-    Height = 118
-    Top = 624
+    Height = 22
+    Top = 720
     Width = 1306
     Align = alBottom
     BevelOuter = bvNone
-    ClientHeight = 118
+    ClientHeight = 22
     ClientWidth = 1306
     ParentBackground = False
     TabOrder = 1

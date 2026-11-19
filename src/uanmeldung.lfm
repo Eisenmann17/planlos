@@ -1,12 +1,12 @@
 object AnmeldeFenster: TAnmeldeFenster
   Left = 230
-  Height = 300
+  Height = 171
   Top = 121
-  Width = 640
+  Width = 333
   BorderStyle = bsDialog
   Caption = 'Planlos'
-  ClientHeight = 300
-  ClientWidth = 640
+  ClientHeight = 171
+  ClientWidth = 333
   Color = clBtnFace
   Font.Color = clWindowText
   Font.Height = -11
@@ -83,15 +83,5 @@ object AnmeldeFenster: TAnmeldeFenster
     Default = True
     OnClick = OkKlick
     TabOrder = 3
-  end
-  object PanelTasten: TPanel
-    Left = 0
-    Height = 110
-    Top = 190
-    Width = 640
-    Align = alBottom
-    BevelOuter = bvNone
-    Caption = ''
-    TabOrder = 4
   end
 end
