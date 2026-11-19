@@ -1,11 +1,11 @@
 object Eingabefenster: TEingabefenster
   Left = 235
-  Height = 520
+  Height = 406
   Top = 80
-  Width = 760
+  Width = 726
   Caption = 'Adresse'
-  ClientHeight = 520
-  ClientWidth = 760
+  ClientHeight = 406
+  ClientWidth = 726
   Color = clBtnFace
   Font.Color = clWindowText
   Font.Height = -11
@@ -389,43 +389,35 @@ object Eingabefenster: TEingabefenster
     Anchors = [akTop, akRight]
     TabOrder = 20
   end
-  object PanelTasten: TPanel
-    Left = 0
-    Height = 118
-    Top = 402
-    Width = 760
-    Align = alBottom
-    BevelOuter = bvNone
-    Caption = ''
+  object ButtonAbbrechen: TButton
+    Left = 8
+    Height = 22
+    Top = 376
+    Width = 92
+    Anchors = [akLeft, akBottom]
+    Caption = 'abbrechen'
+    OnClick = AbbruchKlick
     TabOrder = 21
-    object ButtonAbbrechen: TButton
-      Left = 8
-      Height = 22
-      Top = 6
-      Width = 92
-      Caption = 'abbrechen'
-      OnClick = AbbruchKlick
-      TabOrder = 0
-    end
-    object ButtonSuchen: TButton
-      Left = 318
-      Height = 22
-      Top = 6
-      Width = 75
-      Caption = 'Suchen'
-      OnClick = SuchenKlick
-      TabOrder = 1
-    end
-    object ButtonOk: TButton
-      Left = 640
-      Height = 22
-      Top = 6
-      Width = 75
-      Anchors = [akTop, akRight]
-      Caption = 'Ok'
-      Default = True
-      OnClick = OkKlick
-      TabOrder = 2
-    end
+  end
+  object ButtonSuchen: TButton
+    Left = 318
+    Height = 22
+    Top = 376
+    Width = 75
+    Anchors = [akLeft, akBottom]
+    Caption = 'Suchen'
+    OnClick = SuchenKlick
+    TabOrder = 22
+  end
+  object ButtonOk: TButton
+    Left = 640
+    Height = 22
+    Top = 376
+    Width = 75
+    Anchors = [akRight, akBottom]
+    Caption = 'Ok'
+    Default = True
+    OnClick = OkKlick
+    TabOrder = 23
   end
 end

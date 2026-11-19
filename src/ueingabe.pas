@@ -61,7 +61,6 @@ type
     EditFrei3: TEdit;
     EditFrei4: TEdit;
     EditRabatt: TEdit;
-    PanelTasten: TPanel;
     ButtonAbbrechen: TButton;
     ButtonSuchen: TButton;
     ButtonOk: TButton;
@@ -71,7 +70,6 @@ type
     procedure SuchenKlick(Sender: TObject);
     procedure OkKlick(Sender: TObject);
   private
-    FTasten: TTastenleiste;
     FKuerzel: string;
     FBezeichnung: string;
     FId: Int64;
@@ -177,11 +175,6 @@ end;
 constructor TEingabefenster.Create(TheOwner: TComponent);
 begin
   inherited Create(TheOwner);
-  FTasten := TTastenleiste.Create(Self);
-  FTasten.Parent := PanelTasten;
-  FTasten.Align := alBottom;
-  FTasten.Height := 84;
-  FTasten.OnTaste := @TasteGedrueckt;
   SteuerungBinden;
 end;
 
@@ -329,14 +322,8 @@ begin
 end;
 
 procedure TEingabefenster.TastenAusDaten;
-var
-  i: Integer;
 begin
   FTastenInfo := TastenLaden(FKuerzel, 'eingabe');
-  FTasten.AlleBeschriftungenLoeschen;
-  for i := 0 to High(FTastenInfo) do
-    FTasten.SetzeTaste(FTastenInfo[i].Ebene, FTastenInfo[i].Taste,
-      FTastenInfo[i].Beschriftung, FTastenInfo[i].Erlaubt);
 end;
 
 function TEingabefenster.HatFeld(const Spalte: string): Boolean;

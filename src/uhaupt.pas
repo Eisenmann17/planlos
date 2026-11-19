@@ -5,7 +5,7 @@ unit uhaupt;
   Lizenz: GNU GPL, Version 3. Text in der Datei LICENSE.
 
   Oben die Reiter Explorer, Stammdaten, Einstellungen und Wartung/Hilfe.
-  Unten die Tastenleiste. Die Belegarten und Kontaktarten kommen aus
+  Unten liegt nur die Statuszeile. Die Belegarten und Kontaktarten kommen aus
   der Datenbank. }
 
 {$mode objfpc}{$H+}
@@ -114,7 +114,6 @@ type
     procedure KontaktOeffnen(Sender: TObject);
     procedure KopfFarbe(Sender: TObject; ACol, ARow: Integer; AState: TGridDrawState);
   private
-    Tastenleiste: TTastenleiste;
     DbFehler: string;
     SelbsttestAn: Boolean;
     SelbsttestGelaufen: Boolean;
@@ -187,14 +186,6 @@ var
 begin
   inherited Create(TheOwner);
   ModulKuerzel := TStringList.Create;
-  Tastenleiste := TTastenleiste.Create(Self);
-  Tastenleiste.Parent := PanelTasten;
-  Tastenleiste.Align := alClient;
-  Tastenleiste.OnTaste := @TasteAusfuehren;
-  StandardBelegung(Tastenleiste);
-  Tastenleiste.SetzeText(1, 2, 'Neu');
-  Tastenleiste.SetzeText(1, 4, 'Kunden');
-  Tastenleiste.SetzeText(1, 6, 'Öffnen');
   for i := 0 to 8 do
     GridModule.Cells[i, 0] := SpaltenTitel[i];
   DatenbankOeffnen;

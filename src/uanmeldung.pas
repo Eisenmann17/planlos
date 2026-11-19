@@ -12,7 +12,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, StdCtrls, ExtCtrls, Dialogs, Graphics,
-  LCLType, utastenleiste;
+  LCLType;
 
 type
   TAnmeldeFenster = class(TForm)
@@ -22,17 +22,12 @@ type
     EditPasswort: TEdit;
     ButtonAbbrechen: TButton;
     ButtonOk: TButton;
-    PanelTasten: TPanel;
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure AbbruchKlick(Sender: TObject);
     procedure OkKlick(Sender: TObject);
     procedure FormZeigen(Sender: TObject);
   private
-    FTasten: TTastenleiste;
-    procedure TasteGedrueckt(Sender: TObject; Ebene, Taste: Integer);
     procedure Pruefen;
-  public
-    constructor Create(TheOwner: TComponent); override;
   end;
 
 function AnmeldungZeigen: Boolean;
@@ -54,19 +49,6 @@ begin
   finally
     Fenster.Free;
   end;
-end;
-
-constructor TAnmeldeFenster.Create(TheOwner: TComponent);
-begin
-  inherited Create(TheOwner);
-  FTasten := TTastenleiste.Create(Self);
-  FTasten.Parent := PanelTasten;
-  FTasten.Align := alBottom;
-  FTasten.Height := 96;
-  FTasten.OnTaste := @TasteGedrueckt;
-  FTasten.AlleBeschriftungenLoeschen;
-  FTasten.SetzeTaste(1, 10, 'Ok', True);
-  FTasten.SetzeTaste(1, 12, 'Zurück', True);
 end;
 
 procedure TAnmeldeFenster.FormZeigen(Sender: TObject);
@@ -99,20 +81,10 @@ begin
   ModalResult := mrCancel;
 end;
 
-procedure TAnmeldeFenster.TasteGedrueckt(Sender: TObject; Ebene, Taste: Integer);
-begin
-  if Ebene <> 1 then
-    Exit;
-  if Taste = 10 then
-    Pruefen
-  else if Taste = 12 then
-    ModalResult := mrCancel;
-end;
-
 procedure TAnmeldeFenster.FormKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
 begin
-  if Key = VK_ESCAPE then
+  if (Key = VK_ESCAPE) or (Key = VK_F12) then
   begin
     ModalResult := mrCancel;
     Key := 0;
@@ -120,12 +92,6 @@ begin
   else if (Key = VK_RETURN) or (Key = VK_F10) then
   begin
     Pruefen;
-    Key := 0;
-  end
-  else if (Key >= VK_F1) and (Key <= VK_F12) then
-  begin
-    AlleLeistenNachziehen;
-    TasteGedrueckt(Self, AktuelleEbene, Key - VK_F1 + 1);
     Key := 0;
   end;
 end;
