@@ -23,13 +23,21 @@ type
     FArt: TBelegart;
     FTastenInfo: TBelegTasten;
     FIds: array of Int64;
+    FFuss: TPanel;
     FLeiste: TPanel;
     FNeu: TButton;
     FKopieren: TButton;
     FAendern: TButton;
+    FSortieren: TButton;
     FLoeschen: TButton;
-    FSchliessen: TButton;
-    FLabelSchluss: TLabel;
+    FEnde: TButton;
+    FLabelNeu: TLabel;
+    FLabelKopieren: TLabel;
+    FLabelAendern: TLabel;
+    FLabelSortieren: TLabel;
+    FLabelLoeschen: TLabel;
+    FLabelEnde: TLabel;
+    FSortierung: Integer;
     FNeuAn: Boolean;
     FKopierenAn: Boolean;
     FAendernAn: Boolean;
@@ -38,7 +46,10 @@ type
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure KnopfKlick(Sender: TObject);
     procedure ListeKlick(Sender: TObject);
+    procedure ListeDoppel(Sender: TObject);
     procedure LeisteRichten(Sender: TObject);
+    procedure ZeilenSortieren;
+    function SortierText: string;
     procedure KnoepfeStellen;
     function VorgabeErlaubt(const Aktionsname: string): Boolean;
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
@@ -103,19 +114,26 @@ end;
 
 constructor TBelegsuche.Create(TheOwner: TComponent);
 
-  function Knopf(const Taste, Text, Aktion: string; Links: Integer): TButton;
-  var
-    Schild: TLabel;
+  function Schild(const Taste: string): TLabel;
   begin
-    Schild := TLabel.Create(Self);
-    Schild.Parent := FLeiste;
-    Schild.Left := Links;
-    Schild.Top := 2;
-    Schild.Caption := Taste;
+    Result := TLabel.Create(Self);
+    Result.Parent := FLeiste;
+    Result.Top := 0;
+    Result.Height := 14;
+    Result.Caption := Taste;
+    Result.Alignment := taCenter;
+    Result.AutoSize := False;
+    Result.Font.Color := clTeal;
+    Result.Font.Height := -11;
+    Result.Font.Name := 'MS Sans Serif';
+    Result.ParentFont := False;
+  end;
+
+  function Knopf(const Text, Aktion: string): TButton;
+  begin
     Result := TButton.Create(Self);
     Result.Parent := FLeiste;
-    Result.Left := Links;
-    Result.Top := 18;
+    Result.Top := 16;
     Result.Width := 77;
     Result.Height := 22;
     Result.Caption := Text;
@@ -130,33 +148,36 @@ begin
   OnKeyDown := @FormKeyDown;
   OnClose := @FormClose;
 
+  FFuss := TPanel.Create(Self);
+  FFuss.Parent := Self;
+  FFuss.Align := alBottom;
+  FFuss.Height := 60;
+  FFuss.BevelOuter := bvNone;
+  FFuss.Caption := '';
+
   FLeiste := TPanel.Create(Self);
-  FLeiste.Parent := Self;
-  FLeiste.Align := alBottom;
-  FLeiste.Height := 46;
+  FLeiste.Parent := FFuss;
+  FLeiste.Align := alClient;
+  FLeiste.Height := 40;
   FLeiste.BevelOuter := bvNone;
   FLeiste.Caption := '';
   FLeiste.OnResize := @LeisteRichten;
-  FNeu := Knopf('F2', 'neu', 'neu', 8);
-  FKopieren := Knopf('F5', 'kopieren', 'kopieren', 96);
-  FAendern := Knopf('F6', 'ändern', 'oeffnen', 184);
-  FLoeschen := Knopf('F8', 'löschen', 'loeschen', 272);
-  FLabelSchluss := TLabel.Create(Self);
-  FLabelSchluss.Parent := FLeiste;
-  FLabelSchluss.Caption := 'F12';
-  FLabelSchluss.Top := 2;
-  FSchliessen := TButton.Create(Self);
-  FSchliessen.Parent := FLeiste;
-  FSchliessen.Top := 18;
-  FSchliessen.Width := 92;
-  FSchliessen.Height := 22;
-  FSchliessen.Caption := 'schließen';
-  FSchliessen.Hint := 'schliessen';
-  FSchliessen.OnClick := @KnopfKlick;
-  FSchliessen.Anchors := [akTop, akRight];
+  FLabelNeu := Schild('F2');
+  FNeu := Knopf('neu', 'neu');
+  FLabelKopieren := Schild('F5');
+  FKopieren := Knopf('kopieren', 'kopieren');
+  FLabelAendern := Schild('F6');
+  FAendern := Knopf('ändern', 'oeffnen');
+  FLabelSortieren := Schild('F7');
+  FSortieren := Knopf('sortieren', 'sortieren');
+  FLabelLoeschen := Schild('F8');
+  FLoeschen := Knopf('löschen', 'loeschen');
+  FLabelEnde := Schild('F10');
+  FEnde := Knopf('Ende', 'schliessen');
+  FEnde.Width := 92;
 
   FStatus := TLabel.Create(Self);
-  FStatus.Parent := Self;
+  FStatus.Parent := FFuss;
   FStatus.Align := alBottom;
   FStatus.Height := 20;
   FStatus.AutoSize := False;
@@ -185,8 +206,9 @@ begin
   FListe.RowCount := 1;
   FListe.Options := [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine,
     goRowSelect, goColSizing, goThumbTracking];
-  FListe.BorderSpacing.Around := 6;
   FListe.OnClick := @ListeKlick;
+  FListe.OnDblClick := @ListeDoppel;
+  LeisteRichten(nil);
 end;
 
 procedure TBelegsuche.FormClose(Sender: TObject; var CloseAction: TCloseAction);
@@ -252,7 +274,9 @@ begin
     end;
     if Zeilen.Count > 0 then
       FListe.Row := 1;
-    FStatus.Caption := IntToStr(Zeilen.Count) + ' ' + FArt.Bezeichnung;
+    ZeilenSortieren;
+    FStatus.Caption := IntToStr(Length(FIds)) + ' ' + FArt.Bezeichnung +
+      ' · Sortierung: ' + SortierText;
     KnoepfeStellen;
   finally
     TeileZeile.Free;
@@ -291,12 +315,98 @@ begin
   KnoepfeStellen;
 end;
 
-procedure TBelegsuche.LeisteRichten(Sender: TObject);
+procedure TBelegsuche.ListeDoppel(Sender: TObject);
 begin
-  if (FSchliessen = nil) or (FLeiste = nil) then
+  Aktion('oeffnen');
+end;
+
+procedure TBelegsuche.LeisteRichten(Sender: TObject);
+var
+  Knoepfe: array[0..4] of TButton;
+  Schilder: array[0..4] of TLabel;
+  i, Rest, Slot, Links, Breite: Integer;
+begin
+  if (FLeiste = nil) or (FEnde = nil) then
     Exit;
-  FSchliessen.Left := FLeiste.ClientWidth - FSchliessen.Width - 8;
-  FLabelSchluss.Left := FSchliessen.Left;
+  FEnde.Left := FLeiste.ClientWidth - FEnde.Width - 4;
+  FLabelEnde.Left := FEnde.Left;
+  FLabelEnde.Width := FEnde.Width;
+  Knoepfe[0] := FNeu;
+  Knoepfe[1] := FKopieren;
+  Knoepfe[2] := FAendern;
+  Knoepfe[3] := FSortieren;
+  Knoepfe[4] := FLoeschen;
+  Schilder[0] := FLabelNeu;
+  Schilder[1] := FLabelKopieren;
+  Schilder[2] := FLabelAendern;
+  Schilder[3] := FLabelSortieren;
+  Schilder[4] := FLabelLoeschen;
+  Rest := FEnde.Left - 8;
+  if Rest < 40 then
+    Exit;
+  Slot := Rest div 5;
+  Breite := 77;
+  if Slot < Breite then
+    Breite := Slot;
+  for i := 0 to 4 do
+  begin
+    Links := i * Slot + (Slot - Breite) div 2;
+    if Links < i * Slot then
+      Links := i * Slot;
+    Knoepfe[i].Width := Breite;
+    Knoepfe[i].Left := Links;
+    Schilder[i].Left := Links;
+    Schilder[i].Width := Breite;
+  end;
+end;
+
+procedure TBelegsuche.ZeilenSortieren;
+var
+  i, j, Spalte, c: Integer;
+  Zelle: string;
+  Id: Int64;
+
+  function Kleiner(a, b: Integer): Boolean;
+  begin
+    Result := FListe.Cells[Spalte, a] < FListe.Cells[Spalte, b];
+  end;
+
+begin
+  if (FSortierung = 0) or (Length(FIds) < 2) then
+    Exit;
+  case FSortierung of
+    2: Spalte := 2;
+    3: Spalte := 3;
+  else
+    Spalte := 1;
+  end;
+  if Spalte >= FListe.ColCount then
+    Spalte := 1;
+  for i := 1 to Length(FIds) - 1 do
+    for j := i + 1 to Length(FIds) do
+      if Kleiner(j, i) then
+      begin
+        for c := 0 to FListe.ColCount - 1 do
+        begin
+          Zelle := FListe.Cells[c, i];
+          FListe.Cells[c, i] := FListe.Cells[c, j];
+          FListe.Cells[c, j] := Zelle;
+        end;
+        Id := FIds[i - 1];
+        FIds[i - 1] := FIds[j - 1];
+        FIds[j - 1] := Id;
+      end;
+end;
+
+function TBelegsuche.SortierText: string;
+begin
+  case FSortierung of
+    1: Result := 'Nummer';
+    2: Result := 'Empfänger';
+    3: Result := 'Bezeichnung';
+  else
+    Result := 'neueste';
+  end;
 end;
 
 procedure TBelegsuche.SetzeFunktionen(Neu, Kopieren, Aendern, Loeschen: Boolean);
@@ -355,8 +465,8 @@ begin
   if Aktionsname = 'hilfe' then
     ShowMessage(
       'Suche für ' + FArt.Bezeichnung + '.' + LineEnding +
-      'F2 legt einen neuen Beleg an. Im Beleg wählt F3 den Empfänger,' + LineEnding +
-      'dort kann mit F2 ein neuer Kontakt angelegt und mit F10 übernommen werden.')
+      'F2 legt einen neuen Beleg an. F7 schaltet die Sortierung um, F10 schließt.' +
+      LineEnding + 'Im Beleg wählt F3 den Empfänger. Dort übernimmt ein Doppelklick den Kontakt.')
   else if Aktionsname = 'filtern' then
     ListeLaden
   else if Aktionsname = 'neu' then
@@ -372,6 +482,11 @@ begin
       ListeLaden;
       WaehleId(Id);
     end;
+  end
+  else if Aktionsname = 'sortieren' then
+  begin
+    FSortierung := (FSortierung + 1) mod 4;
+    ListeLaden;
   end
   else if Aktionsname = 'oeffnen' then
   begin
@@ -467,6 +582,23 @@ begin
   if Key = VK_ESCAPE then
   begin
     Close;
+    Key := 0;
+    Exit;
+  end;
+  if Key = VK_F7 then
+  begin
+    Aktion('sortieren');
+    Key := 0;
+    Exit;
+  end;
+  if Key = VK_F10 then
+  begin
+    Aktion('schliessen');
+    Key := 0;
+    Exit;
+  end;
+  if Key = VK_F12 then
+  begin
     Key := 0;
     Exit;
   end;
