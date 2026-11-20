@@ -19,7 +19,7 @@ var
   Pfad, Id1, Eltern, Name, Fehler, Aktion: string;
   Frisch, Erlaubt: Boolean;
   Werte, Gelesen: TStringList;
-  MitarbeiterId, KundeId, AngebotId, RechnungId, ZweitesId: Int64;
+  MitarbeiterId, KundeId, AngebotId, RechnungId, ZweitesId, KopieId: Int64;
   Tasten: TTastenListe;
   Positionen: TPosListe;
   Summe: TBelegSumme;
@@ -115,8 +115,14 @@ begin
         Fehlschlag('Die Installationskennung hat sich geändert.');
       if DB.Ganzzahl('SELECT COUNT(*) FROM modulart') <> 5 then
         Fehlschlag('Das Schema hat Belegarten verdoppelt.');
-      if DB.Ganzzahl('SELECT version FROM schema_info WHERE id = 1') <> 4 then
-        Fehlschlag('Das Schema soll auf Version 4 stehen.');
+      if DB.Ganzzahl('SELECT version FROM schema_info WHERE id = 1') <> 5 then
+        Fehlschlag('Das Schema soll auf Version 5 stehen.');
+      if DB.Ganzzahl(
+        'SELECT datensatz_kopieren FROM modulart WHERE kuerzel = ''angebot''') <> 1 then
+        Fehlschlag('DatensatzKopieren soll für Angebote an sein.');
+      if DB.Ganzzahl(
+        'SELECT kopieren_an FROM maske WHERE kuerzel = ''kunde''') <> 1 then
+        Fehlschlag('KopierenAn soll für Kunden an sein.');
       if DB.Ganzzahl('SELECT COUNT(*) FROM maske') <> 4 then
         Fehlschlag('Es sollen 4 Kontaktmasken angelegt sein.');
       if DB.Ganzzahl('SELECT COUNT(*) FROM maskenfeld') < 80 then
@@ -272,6 +278,19 @@ begin
         Fehlschlag(FolgeFehler);
       if BelegNummer(ZweitesId) <> 'ANG-2' then
         Fehlschlag('Das zweite Angebot hat die Nummer ' + BelegNummer(ZweitesId));
+      KopieId := BelegKopieren(AngebotId, FolgeFehler);
+      if KopieId = 0 then
+        Fehlschlag(FolgeFehler);
+      if BelegNummer(KopieId) <> 'ANG-3' then
+        Fehlschlag('Die Kopie hat die Nummer ' + BelegNummer(KopieId));
+      if not BelegLaden(KopieId, Kopf, Positionen) then
+        Fehlschlag('Die Kopie lässt sich nicht lesen.');
+      if (Kopf.Bezeichnung <> 'Testangebot') or (Length(Positionen) <> 2) then
+        Fehlschlag('Die Kopie übernimmt Kopf oder Positionen nicht.');
+      if not BelegLoeschen(KopieId, FolgeFehler) then
+        Fehlschlag(FolgeFehler);
+      if BelegLaden(KopieId, Kopf, Positionen) then
+        Fehlschlag('Der gelöschte Beleg ist noch da.');
       if FolgebelegErzeugen(AngebotId, 'bestellung', FolgeFehler) <> 0 then
         Fehlschlag('Aus einem Angebot darf keine Bestellung entstehen.');
       if not BelegartLaden('bestellung', Art) or (Art.EmpfaengerMaske <> 'lieferant') then
@@ -304,6 +323,20 @@ begin
         Fehlschlag('Admin darf Mitarbeiter löschen: ' + Meldung);
       if not AktionZulaessig('beleg', 'rechnung', 'drucken', Meldung) then
         Fehlschlag('Admin darf drucken: ' + Meldung);
+      if not AktionZulaessig('beleg', 'angebot', 'kopieren', Meldung) then
+        Fehlschlag('Admin darf Angebote kopieren: ' + Meldung);
+      DB.Ausfuehren(
+        'UPDATE modulart SET datensatz_kopieren = 0 WHERE kuerzel = ''angebot''', nil);
+      if AktionZulaessig('beleg', 'angebot', 'kopieren', Meldung) then
+        Fehlschlag('DatensatzKopieren aus schaltet den Knopf nicht ab.');
+      DB.Ausfuehren(
+        'UPDATE modulart SET datensatz_kopieren = 1 WHERE kuerzel = ''angebot''', nil);
+      DB.Ausfuehren(
+        'UPDATE maske SET kopieren_an = 0 WHERE kuerzel = ''kunde''', nil);
+      if AktionZulaessig('maske', 'kunde', 'kopieren', Meldung) then
+        Fehlschlag('KopierenAn aus schaltet die Liste nicht ab.');
+      DB.Ausfuehren(
+        'UPDATE maske SET kopieren_an = 1 WHERE kuerzel = ''kunde''', nil);
       Sitz := Sitzung;
       Sitz.Rolle := 'Gruppenleiter';
       SitzungSetzen(Sitz);
@@ -311,6 +344,10 @@ begin
         Fehlschlag('Der Gruppenleiter darf nicht löschen.');
       if not AktionZulaessig('maske', 'kunde', 'neu', Meldung) then
         Fehlschlag('Der Gruppenleiter darf anlegen.');
+      if not AktionZulaessig('beleg', 'angebot', 'kopieren', Meldung) then
+        Fehlschlag('Der Gruppenleiter darf kopieren.');
+      if AktionZulaessig('beleg', 'angebot', 'aendern', Meldung) then
+        Fehlschlag('Der Gruppenleiter darf nicht ändern.');
       if AktionZulaessig('beleg', 'rechnung', 'drucken', Meldung) then
         Fehlschlag('Der Gruppenleiter darf nicht drucken.');
       if not Anmelden('Admin', '0000', Meldung) then
@@ -350,6 +387,16 @@ begin
         ExplorerLesen(Filter, SpaltenX, ZeilenX);
         if ZeilenX.Count <> 0 then
           Fehlschlag('Der Gruppenfilter lässt eine fremde Gruppe durch.');
+        Filter := Default(TExplorerFilter);
+        Filter.Modulart := 'angebot';
+        Filter.Sortierung := 2;
+        ExplorerLesen(Filter, SpaltenX, ZeilenX);
+        if (ZeilenX.Count < 2) or (Pos('ANG-1', ZeilenX[0]) = 0) then
+          Fehlschlag('Die Sortierung nach Nummer stellt ANG-1 nicht nach vorn.');
+        Filter.Sortierung := 0;
+        ExplorerLesen(Filter, SpaltenX, ZeilenX);
+        if (ZeilenX.Count < 2) or (Pos('ANG-2', ZeilenX[0]) = 0) then
+          Fehlschlag('Die Standardsortierung stellt das neuere Angebot nicht nach vorn.');
       finally
         ZeilenX.Free;
         SpaltenX.Free;

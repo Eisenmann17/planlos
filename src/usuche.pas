@@ -27,7 +27,24 @@ type
     FIds: array of Int64;
     FAuswahl: Integer;
     FModal: Boolean;
+    FLeiste: TPanel;
+    FNeu: TButton;
+    FKopieren: TButton;
+    FAendern: TButton;
+    FLoeschen: TButton;
+    FSchliessen: TButton;
+    FLabelSchluss: TLabel;
+    FNeuAn: Boolean;
+    FKopierenAn: Boolean;
+    FAendernAn: Boolean;
+    FLoeschenAn: Boolean;
+    FVorgabe: Boolean;
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure KnopfKlick(Sender: TObject);
+    procedure ListeKlick(Sender: TObject);
+    procedure LeisteRichten(Sender: TObject);
+    procedure KnoepfeStellen;
+    function VorgabeErlaubt(const Aktionsname: string): Boolean;
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure FilterTaste(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure TasteGedrueckt(Sender: TObject; Ebene, Taste: Integer);
@@ -42,6 +59,7 @@ type
     function GewaehlteId: Int64;
     procedure UebernehmenNeueId(Id: Int64);
     procedure SetzeFilter(const Suchtext: string);
+    procedure SetzeFunktionen(Neu, Kopieren, Aendern, Loeschen: Boolean);
   end;
 
 procedure AdressSucheZeigen(const Kuerzel: string);
@@ -96,6 +114,27 @@ begin
 end;
 
 constructor TSuchfenster.Create(TheOwner: TComponent);
+
+  function Knopf(const Taste, Text, Aktion: string; Links: Integer): TButton;
+  var
+    Schild: TLabel;
+  begin
+    Schild := TLabel.Create(Self);
+    Schild.Parent := FLeiste;
+    Schild.Left := Links;
+    Schild.Top := 2;
+    Schild.Caption := Taste;
+    Result := TButton.Create(Self);
+    Result.Parent := FLeiste;
+    Result.Left := Links;
+    Result.Top := 18;
+    Result.Width := 77;
+    Result.Height := 22;
+    Result.Caption := Text;
+    Result.Hint := Aktion;
+    Result.OnClick := @KnopfKlick;
+  end;
+
 begin
   inherited CreateNew(TheOwner, 1);
   Position := poDesigned;
@@ -103,6 +142,31 @@ begin
   Caption := 'Planlos';
   OnKeyDown := @FormKeyDown;
   OnClose := @FormClose;
+
+  FLeiste := TPanel.Create(Self);
+  FLeiste.Parent := Self;
+  FLeiste.Align := alBottom;
+  FLeiste.Height := 46;
+  FLeiste.BevelOuter := bvNone;
+  FLeiste.Caption := '';
+  FLeiste.OnResize := @LeisteRichten;
+  FNeu := Knopf('F2', 'neu', 'neu', 8);
+  FKopieren := Knopf('F5', 'kopieren', 'kopieren', 96);
+  FAendern := Knopf('F6', 'ändern', 'aendern', 184);
+  FLoeschen := Knopf('F8', 'löschen', 'loeschen', 272);
+  FLabelSchluss := TLabel.Create(Self);
+  FLabelSchluss.Parent := FLeiste;
+  FLabelSchluss.Caption := 'F12';
+  FLabelSchluss.Top := 2;
+  FSchliessen := TButton.Create(Self);
+  FSchliessen.Parent := FLeiste;
+  FSchliessen.Top := 18;
+  FSchliessen.Width := 92;
+  FSchliessen.Height := 22;
+  FSchliessen.Caption := 'schließen';
+  FSchliessen.Hint := 'schliessen';
+  FSchliessen.OnClick := @KnopfKlick;
+  FSchliessen.Anchors := [akTop, akRight];
 
   FStatus := TLabel.Create(Self);
   FStatus.Parent := Self;
@@ -139,6 +203,7 @@ begin
   FListe.Options := [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine,
     goRowSelect, goColSizing, goThumbTracking];
   FListe.BorderSpacing.Around := 6;
+  FListe.OnClick := @ListeKlick;
 end;
 
 procedure TSuchfenster.FormClose(Sender: TObject; var CloseAction: TCloseAction);
@@ -178,6 +243,8 @@ begin
     '. Felder und Tasten kommen aus der Datenbank.';
   TastenAusDaten;
   ListeLaden;
+  KnoepfeStellen;
+  LeisteRichten(nil);
 end;
 
 procedure TSuchfenster.TastenAusDaten;
@@ -252,6 +319,7 @@ begin
       FAuswahl := 1;
     end;
     FStatus.Caption := IntToStr(Zeilen.Count) + ' Treffer in ' + FBezeichnung;
+    KnoepfeStellen;
   finally
     TeileZeile.Free;
     Zeilen.Free;
@@ -309,11 +377,79 @@ begin
         Exit(True);
 end;
 
+procedure TSuchfenster.KnopfKlick(Sender: TObject);
+begin
+  AktionAusfuehren(TButton(Sender).Hint);
+end;
+
+procedure TSuchfenster.ListeKlick(Sender: TObject);
+begin
+  if (FListe.Row >= 1) and (FListe.Row <= Length(FIds)) then
+    FAuswahl := FListe.Row;
+  KnoepfeStellen;
+end;
+
+procedure TSuchfenster.LeisteRichten(Sender: TObject);
+begin
+  if (FSchliessen = nil) or (FLeiste = nil) then
+    Exit;
+  FSchliessen.Left := FLeiste.ClientWidth - FSchliessen.Width - 8;
+  FLabelSchluss.Left := FSchliessen.Left;
+end;
+
+procedure TSuchfenster.SetzeFunktionen(Neu, Kopieren, Aendern, Loeschen: Boolean);
+begin
+  FVorgabe := True;
+  FNeuAn := Neu;
+  FKopierenAn := Kopieren;
+  FAendernAn := Aendern;
+  FLoeschenAn := Loeschen;
+  KnoepfeStellen;
+end;
+
+function TSuchfenster.VorgabeErlaubt(const Aktionsname: string): Boolean;
+begin
+  Result := True;
+  if not FVorgabe then
+    Exit;
+  if Aktionsname = 'neu' then
+    Result := FNeuAn
+  else if Aktionsname = 'kopieren' then
+    Result := FKopierenAn
+  else if Aktionsname = 'aendern' then
+    Result := FAendernAn
+  else if Aktionsname = 'loeschen' then
+    Result := FLoeschenAn;
+end;
+
+procedure TSuchfenster.KnoepfeStellen;
+var
+  Meldung: string;
+  ZeileDa: Boolean;
+begin
+  if FNeu = nil then
+    Exit;
+  ZeileDa := GewaehlteId > 0;
+  FNeu.Enabled := VorgabeErlaubt('neu') and
+    AktionZulaessig('maske', FKuerzel, 'neu', Meldung);
+  FKopieren.Enabled := ZeileDa and VorgabeErlaubt('kopieren') and
+    AktionZulaessig('maske', FKuerzel, 'kopieren', Meldung);
+  FAendern.Enabled := ZeileDa and VorgabeErlaubt('aendern') and
+    AktionZulaessig('maske', FKuerzel, 'aendern', Meldung);
+  FLoeschen.Enabled := ZeileDa and VorgabeErlaubt('loeschen') and
+    AktionZulaessig('maske', FKuerzel, 'loeschen', Meldung);
+end;
+
 procedure TSuchfenster.AktionAusfuehren(const Aktionsname: string);
 var
   Id: Int64;
   Meldung: string;
 begin
+  if not VorgabeErlaubt(Aktionsname) then
+  begin
+    ShowMessage('Diese Funktion ist in diesem Fenster ausgeschaltet.');
+    Exit;
+  end;
   if Aktionsname = 'hilfe' then
     ShowMessage(
       'Suche in der Maske ' + FBezeichnung + '.' + LineEnding +
@@ -330,6 +466,25 @@ begin
     end;
     Id := AdresseEingeben(FKuerzel, 0);
     if Id > 0 then
+      UebernehmenNeueId(Id);
+  end
+  else if Aktionsname = 'kopieren' then
+  begin
+    if not AktionZulaessig('maske', FKuerzel, 'kopieren', Meldung) then
+    begin
+      ShowMessage(Meldung);
+      Exit;
+    end;
+    Id := GewaehlteId;
+    if Id = 0 then
+    begin
+      ShowMessage('Bitte zuerst eine Zeile auswählen.');
+      Exit;
+    end;
+    Id := AdresseKopieren(FKuerzel, Id, Meldung);
+    if Id = 0 then
+      ShowMessage(Meldung)
+    else
       UebernehmenNeueId(Id);
   end
   else if Aktionsname = 'aendern' then

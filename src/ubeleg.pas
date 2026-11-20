@@ -122,7 +122,11 @@ type
     Sonstiges: TSonstiges;
     BearbeiterId: Int64;
     Gruppe: string;
+    Sortierung: Integer;
   end;
+
+function BelegKopieren(Id: Int64; out Fehler: string): Int64;
+function BelegLoeschen(Id: Int64; out Fehler: string): Boolean;
 
 { Zeilen: id, kuerzel, Modulart, Bezeichnung, Adressname, Nr, Projektname,
   Erfassungsdatum, Bearbeiter, Gruppierung, LetzteBearbeitung. }
@@ -706,6 +710,53 @@ begin
   end;
 end;
 
+function BelegKopieren(Id: Int64; out Fehler: string): Int64;
+var
+  Kopf: TBelegKopf;
+  Positionen: TPosListe;
+begin
+  Fehler := '';
+  Result := 0;
+  if not BelegLaden(Id, Kopf, Positionen) then
+  begin
+    Fehler := 'Der Beleg wurde nicht gefunden.';
+    Exit;
+  end;
+  Kopf.Id := 0;
+  Kopf.Nummer := '';
+  Kopf.BezugId := 0;
+  Kopf.BezugNummer := '';
+  Result := BelegSpeichern(Kopf, Positionen, Fehler);
+end;
+
+function BelegLoeschen(Id: Int64; out Fehler: string): Boolean;
+var
+  Parameter: TStringList;
+begin
+  Fehler := '';
+  Result := False;
+  if not Bereit then
+  begin
+    Fehler := 'Die Datenbank ist nicht geöffnet.';
+    Exit;
+  end;
+  Parameter := TStringList.Create;
+  try
+    Parameter.Values['id'] := IntToStr(Id);
+    PlanlosDB.Ausfuehren(
+      'UPDATE beleg SET bezug_beleg_id = NULL WHERE bezug_beleg_id = :id', Parameter);
+    PlanlosDB.Ausfuehren(
+      'UPDATE beleg SET projekt_id = NULL WHERE projekt_id = :id', Parameter);
+    PlanlosDB.Ausfuehren('DELETE FROM belegposition WHERE beleg_id = :id', Parameter);
+    if PlanlosDB.Ausfuehren('DELETE FROM beleg WHERE id = :id', Parameter) < 1 then
+      Fehler := 'Der Beleg konnte nicht gelöscht werden.'
+    else
+      Result := True;
+  finally
+    Parameter.Free;
+  end;
+end;
+
 function BelegNummer(Id: Int64): string;
 var
   Parameter: TStringList;
@@ -962,7 +1013,13 @@ begin
           Parameter.Values['gruppe'] := Filter.Gruppe;
         end;
     end;
-    SQL := SQL + ' ORDER BY b.angelegt DESC, b.id DESC';
+    case Filter.Sortierung of
+      1: SQL := SQL + ' ORDER BY b.angelegt, b.id';
+      2: SQL := SQL + ' ORDER BY b.nummer, b.id';
+      3: SQL := SQL + ' ORDER BY b.bezeichnung, b.id';
+    else
+      SQL := SQL + ' ORDER BY b.angelegt DESC, b.id DESC';
+    end;
     PlanlosDB.AlleZeilen(SQL, Parameter, Spalten, Roh);
     Zeilen.Clear;
     Spalten.Clear;

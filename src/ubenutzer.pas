@@ -30,7 +30,7 @@ function Sitzung: TSitzung;
 procedure SitzungSetzen(const Neu: TSitzung);
 function Anmelden(const Name, Passwort: string; out Meldung: string): Boolean;
 function AngemeldeterMitarbeiter: Int64;
-{ Art ist 'maske' oder 'beleg'. Aktion: sehen, neu, aendern, loeschen, drucken. }
+{ Art ist 'maske' oder 'beleg'. Aktion: sehen, neu, aendern, loeschen, drucken, kopieren. }
 function AktionZulaessig(const Art, Kuerzel, Aktion: string; out Meldung: string): Boolean;
 procedure BenutzerSicherstellen;
 
@@ -38,6 +38,8 @@ implementation
 
 uses
   udatenbank, umaske;
+
+function ArtSchalter(const Art, Kuerzel, Aktion: string): Boolean; forward;
 
 type
   TBlock = array[0..63] of Byte;
@@ -334,7 +336,7 @@ begin
     Parameter.Values['rolle'] := Rolle;
     Parameter.Values['kuerzel'] := Kuerzel;
     PlanlosDB.ErsteZeile(
-      'SELECT t.sehen, t.neu, t.aendern, t.loeschen, t.drucken FROM recht t ' +
+      'SELECT t.sehen, t.neu, t.aendern, t.loeschen, t.drucken, t.kopieren FROM recht t ' +
       'JOIN rolle r ON r.id = t.rolle_id JOIN modulart m ON m.id = t.modulart_id ' +
       'WHERE r.bezeichnung = :rolle AND m.kuerzel = :kuerzel',
       Parameter, Zeile);
@@ -349,7 +351,9 @@ begin
     else if Aktion = 'loeschen' then
       Result := Wahr(Zeile.Values['loeschen'])
     else if Aktion = 'drucken' then
-      Result := Wahr(Zeile.Values['drucken']);
+      Result := Wahr(Zeile.Values['drucken'])
+    else if Aktion = 'kopieren' then
+      Result := Wahr(Zeile.Values['kopieren']);
   finally
     Zeile.Free;
     Parameter.Free;
@@ -377,7 +381,63 @@ begin
     Meldung := 'Die Rolle ' + GSitzung.Rolle + ' darf das hier nicht.';
     Exit(False);
   end;
+  if not ArtSchalter(Art, Kuerzel, Aktion) then
+  begin
+    Meldung := 'Diese Funktion ist für diese Art ausgeschaltet.';
+    Exit(False);
+  end;
   Result := True;
+end;
+
+function ArtSchalter(const Art, Kuerzel, Aktion: string): Boolean;
+var
+  Parameter, Zeile: TStringList;
+  Spalte, Tabelle: string;
+begin
+  Result := True;
+  if (Aktion <> 'neu') and (Aktion <> 'kopieren') and
+     (Aktion <> 'aendern') and (Aktion <> 'loeschen') then
+    Exit;
+  if Art = 'beleg' then
+  begin
+    Tabelle := 'modulart';
+    if Aktion = 'neu' then
+      Spalte := 'datensatz_neu'
+    else if Aktion = 'kopieren' then
+      Spalte := 'datensatz_kopieren'
+    else if Aktion = 'aendern' then
+      Spalte := 'datensatz_aendern'
+    else
+      Spalte := 'datensatz_loeschen';
+  end
+  else if Art = 'maske' then
+  begin
+    Tabelle := 'maske';
+    if Aktion = 'neu' then
+      Spalte := 'neu_an'
+    else if Aktion = 'kopieren' then
+      Spalte := 'kopieren_an'
+    else if Aktion = 'aendern' then
+      Spalte := 'aendern_an'
+    else
+      Spalte := 'loeschen_an';
+  end
+  else
+    Exit(False);
+  if not DatenbankBereit then
+    Exit(False);
+  Parameter := TStringList.Create;
+  Zeile := TStringList.Create;
+  try
+    Parameter.Values['kuerzel'] := Kuerzel;
+    PlanlosDB.ErsteZeile(
+      'SELECT ' + Spalte + ' AS schalter FROM ' + Tabelle + ' WHERE kuerzel = :kuerzel',
+      Parameter, Zeile);
+    Result := Zeile.Values['schalter'] = '1';
+  finally
+    Zeile.Free;
+    Parameter.Free;
+  end;
 end;
 
 procedure BenutzerSicherstellen;

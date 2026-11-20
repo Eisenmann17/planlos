@@ -65,6 +65,7 @@ function AdresseSpeichern(const Kuerzel: string; Id: Int64; Werte: TStrings;
   out Fehler: string): Int64;
 procedure AdresseLesen(Id: Int64; Ziel: TStrings);
 function AdresseLoeschen(const Kuerzel: string; Id: Int64): Boolean;
+function AdresseKopieren(const Kuerzel: string; Id: Int64; out Fehler: string): Int64;
 function TrefferZahl(const Kuerzel, Suchtext: string): Integer;
 procedure TrefferLesen(const Kuerzel, Suchtext: string; Spalten, Zeilen: TStrings);
 function KategorieName(Id: Integer): string;
@@ -297,7 +298,7 @@ begin
     Parameter.Values['rolle'] := Rolle;
     Parameter.Values['kuerzel'] := Kuerzel;
     PlanlosDB.ErsteZeile(
-      'SELECT mr.sehen, mr.neu, mr.aendern, mr.loeschen FROM maskenrecht mr ' +
+      'SELECT mr.sehen, mr.neu, mr.aendern, mr.loeschen, mr.kopieren FROM maskenrecht mr ' +
       'JOIN rolle r ON r.id = mr.rolle_id JOIN maske m ON m.id = mr.maske_id ' +
       'WHERE r.bezeichnung = :rolle AND m.kuerzel = :kuerzel',
       Parameter, Zeile);
@@ -310,7 +311,9 @@ begin
     else if Aktion = 'aendern' then
       Result := Wahr(Zeile.Values['aendern'])
     else if Aktion = 'loeschen' then
-      Result := Wahr(Zeile.Values['loeschen']);
+      Result := Wahr(Zeile.Values['loeschen'])
+    else if Aktion = 'kopieren' then
+      Result := Wahr(Zeile.Values['kopieren']);
   finally
     Zeile.Free;
     Parameter.Free;
@@ -457,6 +460,27 @@ begin
       'FROM adresse WHERE id = :id', Parameter, Ziel);
   finally
     Parameter.Free;
+  end;
+end;
+
+function AdresseKopieren(const Kuerzel: string; Id: Int64; out Fehler: string): Int64;
+var
+  Werte: TStringList;
+begin
+  Fehler := '';
+  Result := 0;
+  Werte := TStringList.Create;
+  try
+    AdresseLesen(Id, Werte);
+    if Werte.Count = 0 then
+    begin
+      Fehler := 'Der Datensatz wurde nicht gefunden.';
+      Exit;
+    end;
+    Werte.Values['kategorie'] := Werte.Values['kategorie_id'];
+    Result := AdresseSpeichern(Kuerzel, 0, Werte, Fehler);
+  finally
+    Werte.Free;
   end;
 end;
 
