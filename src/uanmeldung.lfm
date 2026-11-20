@@ -1,11 +1,11 @@
 object AnmeldeFenster: TAnmeldeFenster
   Left = 230
-  Height = 154
+  Height = 146
   Top = 121
   Width = 333
   BorderStyle = bsDialog
   Caption = 'Planlos'
-  ClientHeight = 154
+  ClientHeight = 146
   ClientWidth = 333
   Color = clBtnFace
   Font.Color = clWindowText
@@ -67,7 +67,9 @@ object AnmeldeFenster: TAnmeldeFenster
     Left = 24
     Height = 13
     Top = 96
-    Width = 24
+    Width = 110
+    Alignment = taCenter
+    AutoSize = False
     Caption = 'ESC'
     Font.Color = clTeal
     Font.Height = -11
@@ -89,7 +91,9 @@ object AnmeldeFenster: TAnmeldeFenster
     Left = 232
     Height = 13
     Top = 96
-    Width = 42
+    Width = 75
+    Alignment = taCenter
+    AutoSize = False
     Caption = 'Return'
     Font.Color = clTeal
     Font.Height = -11
