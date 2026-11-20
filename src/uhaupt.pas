@@ -58,6 +58,7 @@ type
     ButtonSortieren: TButton;
     LabelF8: TLabel;
     ButtonLoeschen: TButton;
+    PanelEnde: TPanel;
     LabelF10: TLabel;
     ButtonEnde: TButton;
     LabelKontakte: TLabel;
@@ -123,6 +124,7 @@ type
     procedure KopierenKlick(Sender: TObject);
     procedure SortierenKlick(Sender: TObject);
     procedure LoeschenKlick(Sender: TObject);
+    procedure FunktionVerteilen(Sender: TObject);
     procedure KontaktOeffnen(Sender: TObject);
     procedure KopfFarbe(Sender: TObject; ACol, ARow: Integer; AState: TGridDrawState);
     procedure ZelleGewaehlt(Sender: TObject; aCol, aRow: Integer; var CanSelect: Boolean);
@@ -626,6 +628,36 @@ begin
   if (Zeile < 1) or (Zeile > Length(ZeilenIds)) then
     Exit;
   Result := ZeilenIds[Zeile - 1];
+end;
+
+procedure THauptfenster.FunktionVerteilen(Sender: TObject);
+var
+  Knoepfe: array[0..3] of TButton;
+  Schilder: array[0..3] of TLabel;
+  i, Slot, Links: Integer;
+begin
+  if (PanelFunktion = nil) or (ButtonKopieren = nil) then
+    Exit;
+  Knoepfe[0] := ButtonKopieren;
+  Knoepfe[1] := ButtonAendern;
+  Knoepfe[2] := ButtonSortieren;
+  Knoepfe[3] := ButtonLoeschen;
+  Schilder[0] := LabelF5;
+  Schilder[1] := LabelF6;
+  Schilder[2] := LabelF7;
+  Schilder[3] := LabelF8;
+  if PanelFunktion.ClientWidth < 8 then
+    Exit;
+  Slot := PanelFunktion.ClientWidth div 4;
+  for i := 0 to 3 do
+  begin
+    Links := i * Slot + (Slot - Knoepfe[i].Width) div 2;
+    if Links < i * Slot then
+      Links := i * Slot;
+    Knoepfe[i].Left := Links;
+    Schilder[i].Left := Links;
+    Schilder[i].Width := Knoepfe[i].Width;
+  end;
 end;
 
 procedure THauptfenster.KnoepfeStellen;
