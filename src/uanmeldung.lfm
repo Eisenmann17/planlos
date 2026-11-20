@@ -1,11 +1,11 @@
 object AnmeldeFenster: TAnmeldeFenster
   Left = 230
-  Height = 171
+  Height = 154
   Top = 121
   Width = 333
   BorderStyle = bsDialog
   Caption = 'Planlos'
-  ClientHeight = 171
+  ClientHeight = 154
   ClientWidth = 333
   Color = clBtnFace
   Font.Color = clWindowText
@@ -63,15 +63,38 @@ object AnmeldeFenster: TAnmeldeFenster
     PasswordChar = '*'
     TabOrder = 1
   end
+  object LabelEsc: TLabel
+    Left = 24
+    Height = 13
+    Top = 96
+    Width = 24
+    Caption = 'ESC'
+    Font.Color = clTeal
+    Font.Height = -11
+    Font.Name = 'MS Sans Serif'
+    ParentFont = False
+  end
   object ButtonAbbrechen: TButton
     Left = 24
     Height = 26
     Top = 112
     Width = 110
     Anchors = [akLeft, akBottom]
+    Cancel = True
     Caption = 'Abbrechen'
     OnClick = AbbruchKlick
     TabOrder = 2
+  end
+  object LabelReturn: TLabel
+    Left = 232
+    Height = 13
+    Top = 96
+    Width = 42
+    Caption = 'Return'
+    Font.Color = clTeal
+    Font.Height = -11
+    Font.Name = 'MS Sans Serif'
+    ParentFont = False
   end
   object ButtonOk: TButton
     Left = 232

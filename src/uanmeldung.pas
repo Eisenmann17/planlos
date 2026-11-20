@@ -20,7 +20,9 @@ type
     LabelPasswort: TLabel;
     EditAnwender: TEdit;
     EditPasswort: TEdit;
+    LabelEsc: TLabel;
     ButtonAbbrechen: TButton;
+    LabelReturn: TLabel;
     ButtonOk: TButton;
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure AbbruchKlick(Sender: TObject);
