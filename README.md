@@ -95,6 +95,30 @@ ist, liegt die Datei im persönlichen Ordner des Benutzers. Darin stehen
 fünf Belegarten, vier Adressmasken, die drei Rollen und den Mitarbeiter
 Admin. Weitere Adressen legen Sie selbst an.
 
+## Fahrplan
+
+Erledigt:
+
+- [x] Anmeldung
+- [x] Hauptfenster mit Belegfiltern und Knöpfen
+- [x] Adressen: Kunde, Lieferant, Mitarbeiter, Kontakt
+- [x] Standard-Listenfenster
+- [x] Rollen
+- [x] Windows-Paket
+
+Offen:
+
+- [ ] Stammdaten: Artikel und Artikelgruppe. Eine gemeinsame Liste für Einheit, Kategorie, Gruppierung und Stücklistengruppe. Dazu Projekte und Textbausteine.
+- [ ] Belege: das Belegfenster nach der alten Maske, Artikel aussuchen, Projekt und Gruppe, Berechnung
+- [ ] Einstellungen: Belegart (einstellungmodulart), Benutzerrechte, Formatierung
+- [ ] Drucken: Belege als PDF
+
+Später:
+
+- [ ] E-Rechnung (XRechnung und ZUGFeRD)
+- [ ] PostgreSQL für Firmen
+- [ ] Austausch zwischen Planlos-Installationen
+
 ## Ausprobieren unter Windows
 
 Dafür brauchen Sie kein Git und kein Lazarus.
