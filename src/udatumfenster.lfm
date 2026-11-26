@@ -1,0 +1,140 @@
+object DatumFenster: TDatumFenster
+  Left = 280
+  Height = 300
+  Top = 140
+  Width = 312
+  BorderStyle = bsDialog
+  Caption = 'Datum'
+  ClientHeight = 300
+  ClientWidth = 312
+  Color = clBtnFace
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  KeyPreview = True
+  Position = poScreenCenter
+  OnKeyDown = FormKeyDown
+  OnShow = FormZeigen
+  object ComboMonat: TComboBox
+    Left = 12
+    Height = 21
+    Top = 12
+    Width = 168
+    ItemHeight = 13
+    Items.Strings = (
+      'Januar'
+      'Februar'
+      'März'
+      'April'
+      'Mai'
+      'Juni'
+      'Juli'
+      'August'
+      'September'
+      'Oktober'
+      'November'
+      'Dezember'
+    )
+    Style = csDropDownList
+    TabOrder = 0
+    OnChange = MonatGeaendert
+  end
+  object ComboJahr: TComboBox
+    Left = 188
+    Height = 21
+    Top = 12
+    Width = 112
+    ItemHeight = 13
+    Style = csDropDownList
+    TabOrder = 1
+    OnChange = JahrGeaendert
+  end
+  object Kalender: TCalendar
+    Left = 56
+    Height = 180
+    Top = 44
+    Width = 200
+    TabOrder = 2
+    OnChange = KalenderGeaendert
+    OnDblClick = TagNrDoppel
+  end
+  object PanelKnopf: TPanel
+    Left = 0
+    Height = 48
+    Top = 252
+    Width = 312
+    Align = alBottom
+    BevelOuter = bvNone
+    Caption = ''
+    ClientHeight = 48
+    ClientWidth = 312
+    TabOrder = 3
+    object LabelEsc: TLabel
+      Left = 12
+      Height = 14
+      Top = 4
+      Width = 88
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'ESC'
+      Font.Color = clTeal
+      Font.Height = -11
+      Font.Name = 'MS Sans Serif'
+      ParentFont = False
+    end
+    object ButtonAbbrechen: TButton
+      Left = 12
+      Height = 22
+      Top = 20
+      Width = 88
+      Cancel = True
+      Caption = 'abbrechen'
+      OnClick = AbbrechenKlick
+      TabOrder = 0
+    end
+    object LabelF6: TLabel
+      Left = 112
+      Height = 14
+      Top = 4
+      Width = 88
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'F6'
+      Font.Color = clTeal
+      Font.Height = -11
+      Font.Name = 'MS Sans Serif'
+      ParentFont = False
+    end
+    object ButtonHeute: TButton
+      Left = 112
+      Height = 22
+      Top = 20
+      Width = 88
+      Caption = 'heute'
+      OnClick = HeuteKlick
+      TabOrder = 1
+    end
+    object LabelReturn: TLabel
+      Left = 212
+      Height = 14
+      Top = 4
+      Width = 88
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'Return'
+      Font.Color = clTeal
+      Font.Height = -11
+      Font.Name = 'MS Sans Serif'
+      ParentFont = False
+    end
+    object ButtonUebernehmen: TButton
+      Left = 212
+      Height = 22
+      Top = 20
+      Width = 88
+      Caption = 'übernehmen'
+      OnClick = UebernehmenKlick
+      TabOrder = 2
+    end
+  end
+end

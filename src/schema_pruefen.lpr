@@ -13,7 +13,7 @@ uses
   {$ENDIF}
   Classes, SysUtils,
   udatenbank, umaske, ubeleg, ubenutzer, uartikel, unachschlage, uprojekt,
-  utextbaustein, udruck, umodulart, urechner;
+  utextbaustein, udruck, umodulart, urechner, udatum;
 
 var
   DB: TPlanlosDatenbank;
@@ -36,6 +36,7 @@ var
   Baustein: TTextbaustein;
   Vorlage: TDruckvorlage;
   SeitenZahl, iPos: Integer;
+  DatumJahr, DatumMonat, DatumTag: Word;
   Inhalt: RawByteString;
 
   procedure Fehlschlag(const Text: string);
@@ -144,6 +145,28 @@ begin
         Fehlschlag('12,5 wird falsch geschrieben: ' + RechnerText(12.5));
       if RechnerText(-3) <> '-3' then
         Fehlschlag('Minus 3 wird falsch geschrieben.');
+      if not DatumLesen('2026-11-26', DatumJahr, DatumMonat, DatumTag) or
+         (DatumJahr <> 2026) or (DatumMonat <> 11) or (DatumTag <> 26) then
+        Fehlschlag('Das ISO-Datum wird falsch gelesen.');
+      if not DatumLesen('26.11.2026', DatumJahr, DatumMonat, DatumTag) or
+         (DatumIso(DatumJahr, DatumMonat, DatumTag) <> '2026-11-26') then
+        Fehlschlag('Das deutsche Datum wird falsch gelesen.');
+      if not DatumLesen('1.2.2024', DatumJahr, DatumMonat, DatumTag) or
+         (DatumIso(DatumJahr, DatumMonat, DatumTag) <> '2024-02-01') then
+        Fehlschlag('Das kurze deutsche Datum wird falsch gelesen.');
+      if not DatumLesen('29.02.2024', DatumJahr, DatumMonat, DatumTag) then
+        Fehlschlag('Der 29. Februar 2024 ist ein gültiger Tag.');
+      if DatumLesen('29.02.2025', DatumJahr, DatumMonat, DatumTag) then
+        Fehlschlag('Der 29. Februar 2025 ist kein gültiger Tag.');
+      if DatumLesen('31.04.2026', DatumJahr, DatumMonat, DatumTag) then
+        Fehlschlag('Der 31. April ist kein gültiger Tag.');
+      if DatumLesen('', DatumJahr, DatumMonat, DatumTag) then
+        Fehlschlag('Ein leeres Datum hätte scheitern müssen.');
+      if not DatumLesen('2026-11-05T08:00:00', DatumJahr, DatumMonat, DatumTag) or
+         (DatumIso(DatumJahr, DatumMonat, DatumTag) <> '2026-11-05') then
+        Fehlschlag('Ein Datum mit Uhrzeit wird falsch gelesen.');
+      if DatumIso(2026, 11, 5) <> '2026-11-05' then
+        Fehlschlag('Das Datum wird falsch geschrieben.');
       if not DruckvorlageFuer('angebot', Vorlage) or (Vorlage.RandLinksMm <> 25) or
          (Vorlage.AnschriftObenMm <> 45) or (Vorlage.TextObenMm <> 105) then
         Fehlschlag('Die Standard-Druckvorlage fehlt oder hat nicht die DIN-Maße.');
