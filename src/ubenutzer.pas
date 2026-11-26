@@ -396,7 +396,8 @@ var
 begin
   Result := True;
   if (Aktion <> 'neu') and (Aktion <> 'kopieren') and
-     (Aktion <> 'aendern') and (Aktion <> 'loeschen') then
+     (Aktion <> 'aendern') and (Aktion <> 'loeschen') and
+     not ((Art = 'beleg') and (Aktion = 'drucken')) then
     Exit;
   if Art = 'beleg' then
   begin
@@ -407,8 +408,10 @@ begin
       Spalte := 'datensatz_kopieren'
     else if Aktion = 'aendern' then
       Spalte := 'datensatz_aendern'
+    else if Aktion = 'loeschen' then
+      Spalte := 'datensatz_loeschen'
     else
-      Spalte := 'datensatz_loeschen';
+      Spalte := 'datensatz_ausgabe';
   end
   else if Art = 'maske' then
   begin

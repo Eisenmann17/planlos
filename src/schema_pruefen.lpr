@@ -13,7 +13,7 @@ uses
   {$ENDIF}
   Classes, SysUtils,
   udatenbank, umaske, ubeleg, ubenutzer, uartikel, unachschlage, uprojekt,
-  utextbaustein, udruck;
+  utextbaustein, udruck, umodulart;
 
 var
   DB: TPlanlosDatenbank;
@@ -121,8 +121,8 @@ begin
         Fehlschlag('Die Installationskennung hat sich geändert.');
       if DB.Ganzzahl('SELECT COUNT(*) FROM modulart') <> 5 then
         Fehlschlag('Das Schema hat Belegarten verdoppelt.');
-      if DB.Ganzzahl('SELECT version FROM schema_info WHERE id = 1') <> 10 then
-        Fehlschlag('Das Schema soll auf Version 10 stehen.');
+      if DB.Ganzzahl('SELECT version FROM schema_info WHERE id = 1') <> 11 then
+        Fehlschlag('Das Schema soll auf Version 11 stehen.');
       if not DruckvorlageFuer('angebot', Vorlage) or (Vorlage.RandLinksMm <> 25) or
          (Vorlage.AnschriftObenMm <> 45) or (Vorlage.TextObenMm <> 105) then
         Fehlschlag('Die Standard-Druckvorlage fehlt oder hat nicht die DIN-Maße.');
@@ -309,6 +309,15 @@ begin
         Fehlschlag(FolgeFehler);
       if BelegNummer(AngebotId) <> 'ANG-1' then
         Fehlschlag('Angebotsnummer ist ' + BelegNummer(AngebotId));
+      if BelegartEinstellungLoeschen(1, FolgeFehler) then
+        Fehlschlag('Eine benutzte Belegart wurde gelöscht.')
+      else if Pos('Belege', FolgeFehler) = 0 then
+        Fehlschlag('Die Meldung beim Löschen der Belegart ist unklar: ' + FolgeFehler);
+      KopieId := BelegartEinstellungKopieren(1, FolgeFehler);
+      if KopieId = 0 then
+        Fehlschlag(FolgeFehler);
+      if not BelegartEinstellungLoeschen(KopieId, FolgeFehler) then
+        Fehlschlag(FolgeFehler);
       RechnungId := FolgebelegErzeugen(AngebotId, 'rechnung', FolgeFehler);
       if RechnungId = 0 then
         Fehlschlag(FolgeFehler);

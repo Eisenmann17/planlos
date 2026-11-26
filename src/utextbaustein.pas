@@ -242,7 +242,7 @@ begin
     else
       Parameter.Values['leer'] := '0';
     PlanlosDB.AlleZeilen(
-      'SELECT id, bezeichnung FROM modulart WHERE aktiv = 1 AND ' +
+      'SELECT id, bezeichnung, kuerzel FROM modulart WHERE ' +
       '(:leer = ''1'' OR bezeichnung LIKE :muster OR kuerzel LIKE :muster) ' +
       'ORDER BY sortierung, id', Parameter, Spalten, Zeilen);
   finally
@@ -251,6 +251,7 @@ begin
   Spalten.Clear;
   Spalten.Add('id');
   Spalten.Add('Modulart');
+  Spalten.Add('Kürzel');
 end;
 
 procedure BenutzerLesen(const Suchtext: string; Spalten, Zeilen: TStrings);

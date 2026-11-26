@@ -49,6 +49,10 @@ type
     ZeigeKopftext: Boolean;
     ZeigeFusstext: Boolean;
     MwstSatz: Integer;
+    Suchen: Boolean;
+    Speichern: Boolean;
+    Ausgabe: Boolean;
+    ArtikelUeberschrift: string;
   end;
 
   TBelegPosition = record
@@ -567,6 +571,10 @@ begin
   Art.ZeigeKopftext := True;
   Art.ZeigeFusstext := True;
   Art.MwstSatz := 19;
+  Art.Suchen := True;
+  Art.Speichern := True;
+  Art.Ausgabe := True;
+  Art.ArtikelUeberschrift := '';
   if not Bereit then
     Exit;
   Parameter := TStringList.Create;
@@ -580,7 +588,8 @@ begin
       'intern_en, fenster_kopf_an, fenster_intern_an, fenster_summe_an, fenster_fuss_an, ' +
       'intern_projekt, intern_adresse, intern_bezeichnung, intern_gruppierung, intern_notiz, ' +
       'kopf_adressfeld, kopf_nr, kopf_datum, kopf_bearbeiter, kopf_zeichen, kopf_zeichen_text, ' +
-      'kopftext_an, fusstext_an, mwst_satz ' +
+      'kopftext_an, fusstext_an, mwst_satz, datensatz_suchen, datensatz_speichern, ' +
+      'datensatz_ausgabe, artikel_ueberschrift ' +
       'FROM modulart WHERE kuerzel = :kuerzel', Parameter, Zeile);
     if Zeile.Values['id'] = '' then
       Exit;
@@ -619,6 +628,10 @@ begin
     Art.ZeigeKopftext := Wahr(Zeile.Values['kopftext_an']);
     Art.ZeigeFusstext := Wahr(Zeile.Values['fusstext_an']);
     Art.MwstSatz := StrToIntDef(Zeile.Values['mwst_satz'], 19);
+    Art.Suchen := Wahr(Zeile.Values['datensatz_suchen']);
+    Art.Speichern := Wahr(Zeile.Values['datensatz_speichern']);
+    Art.Ausgabe := Wahr(Zeile.Values['datensatz_ausgabe']);
+    Art.ArtikelUeberschrift := Zeile.Values['artikel_ueberschrift'];
     Result := Art.Id > 0;
   finally
     Zeile.Free;

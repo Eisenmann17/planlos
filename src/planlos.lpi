@@ -30,7 +30,7 @@
         <PackageName Value="LCL"/>
       </Item1>
     </RequiredPackages>
-    <Units Count="24">
+    <Units Count="26">
       <Unit0>
         <Filename Value="planlos.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -150,6 +150,16 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="udruck"/>
       </Unit23>
+      <Unit24>
+        <Filename Value="umodulart.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="umodulart"/>
+      </Unit24>
+      <Unit25>
+        <Filename Value="umodulartfenster.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="umodulartfenster"/>
+      </Unit25>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

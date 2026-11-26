@@ -108,6 +108,7 @@ type
     FKopf: TBelegKopf;
     FZeilen: TPosListe;
     FZeile: Integer;
+    FUeberschrift: TLabel;
     FKopfOffen: Boolean;
     FInternOffen: Boolean;
     FSummeOffen: Boolean;
@@ -262,6 +263,13 @@ begin
   PanelLeiste.Parent := FRand;
   PanelLeiste.Align := alBottom;
   PanelLeiste.OnResize := @LeisteOrdnen;
+  FUeberschrift := TLabel.Create(Self);
+  FUeberschrift.Parent := PanelMitte;
+  FUeberschrift.Align := alTop;
+  FUeberschrift.Height := 18;
+  FUeberschrift.Layout := tlCenter;
+  FUeberschrift.BorderSpacing.Left := 8;
+  FUeberschrift.Font.Color := clNavy;
   PanelUnten.Parent := FRand;
   PanelUnten.Align := alClient;
   FZeile := -1;
@@ -403,6 +411,11 @@ begin
     FRand.Height := Unten + PanelLeiste.Height;
   FeldSichten;
   PanelMitte.Visible := FArt.Positionen;
+  if FUeberschrift <> nil then
+  begin
+    FUeberschrift.Caption := FArt.ArtikelUeberschrift;
+    FUeberschrift.Visible := (FArt.ArtikelUeberschrift <> '') and FArt.Positionen;
+  end;
 end;
 
 procedure TBelegfenster.FeldSichten;
@@ -670,7 +683,7 @@ begin
   ButtonKopieren.Enabled := Aendern and Darf('kopieren') and (Gewaehlt >= 0);
   ButtonAendern.Enabled := Aendern and (Gewaehlt >= 0);
   ButtonLoeschen.Enabled := ZeileLoeschen and (Gewaehlt >= 0);
-  ButtonSuchen.Enabled := Aendern;
+  ButtonSuchen.Enabled := Aendern and FArt.Suchen;
   MemoKopf.ReadOnly := not Aendern;
   MemoFuss.ReadOnly := not Aendern;
   MemoNotiz.ReadOnly := not Aendern;
@@ -683,10 +696,10 @@ begin
   else
     GridPos.Options := GridPos.Options - [goEditing];
   if FKopf.Id = 0 then
-    ButtonSpeichern.Enabled := Darf('neu')
+    ButtonSpeichern.Enabled := Darf('neu') and FArt.Speichern
   else
-    ButtonSpeichern.Enabled := Darf('aendern');
-  ButtonAusgabe.Enabled := Darf('drucken');
+    ButtonSpeichern.Enabled := Darf('aendern') and FArt.Speichern;
+  ButtonAusgabe.Enabled := Darf('drucken') and FArt.Ausgabe;
 end;
 
 procedure TBelegfenster.FolgeKnopfe;
