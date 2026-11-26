@@ -68,69 +68,83 @@ object Belegfenster: TBelegfenster
       TabOrder = 1
     end
     object LabelNrTitel: TLabel
-      Left = 500
-      Height = 13
-      Top = 22
-      Width = 20
+      Left = 488
+      Height = 21
+      Top = 20
+      Width = 100
+      Alignment = taRightJustify
       Anchors = [akTop, akRight]
+      AutoSize = False
       Caption = 'Nr.'
+      Layout = tlCenter
     end
     object LabelNr: TLabel
-      Left = 620
-      Height = 13
-      Top = 22
-      Width = 150
+      Left = 596
+      Height = 21
+      Top = 20
+      Width = 156
       Anchors = [akTop, akRight]
+      AutoSize = False
       Caption = 'neu'
+      Layout = tlCenter
     end
     object LabelDatum: TLabel
-      Left = 500
-      Height = 13
-      Top = 46
-      Width = 50
+      Left = 488
+      Height = 21
+      Top = 44
+      Width = 100
+      Alignment = taRightJustify
       Anchors = [akTop, akRight]
+      AutoSize = False
       Caption = 'Datum >'
+      Layout = tlCenter
       OnClick = DatumHeute
     end
     object EditDatum: TEdit
-      Left = 620
+      Left = 596
       Height = 21
-      Top = 42
-      Width = 150
+      Top = 44
+      Width = 156
       Anchors = [akTop, akRight]
       TabOrder = 2
     end
     object LabelBearbeiter: TLabel
-      Left = 500
-      Height = 13
-      Top = 70
-      Width = 70
+      Left = 488
+      Height = 21
+      Top = 68
+      Width = 100
+      Alignment = taRightJustify
       Anchors = [akTop, akRight]
+      AutoSize = False
       Caption = 'Bearbeiter >'
+      Layout = tlCenter
       OnClick = BearbeiterSuchen
     end
     object EditBearbeiter: TEdit
-      Left = 620
+      Left = 596
       Height = 21
-      Top = 66
-      Width = 150
+      Top = 68
+      Width = 156
       Anchors = [akTop, akRight]
       ReadOnly = True
       TabOrder = 3
     end
     object LabelZeichen: TLabel
-      Left = 500
-      Height = 13
-      Top = 94
-      Width = 80
+      Left = 488
+      Height = 21
+      Top = 92
+      Width = 100
+      Alignment = taRightJustify
       Anchors = [akTop, akRight]
+      AutoSize = False
       Caption = 'Ihr Zeichen:'
+      Layout = tlCenter
     end
     object EditZeichen: TEdit
-      Left = 620
+      Left = 596
       Height = 21
-      Top = 90
-      Width = 150
+      Top = 92
+      Width = 156
       Anchors = [akTop, akRight]
       TabOrder = 4
     end
