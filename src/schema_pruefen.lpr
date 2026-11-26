@@ -12,7 +12,7 @@ uses
   cwstring,
   {$ENDIF}
   Classes, SysUtils,
-  udatenbank, umaske, ubeleg, ubenutzer, uartikel;
+  udatenbank, umaske, ubeleg, ubenutzer, uartikel, unachschlage;
 
 var
   DB: TPlanlosDatenbank;
@@ -115,16 +115,16 @@ begin
         Fehlschlag('Die Installationskennung hat sich geändert.');
       if DB.Ganzzahl('SELECT COUNT(*) FROM modulart') <> 5 then
         Fehlschlag('Das Schema hat Belegarten verdoppelt.');
-      if DB.Ganzzahl('SELECT version FROM schema_info WHERE id = 1') <> 6 then
-        Fehlschlag('Das Schema soll auf Version 6 stehen.');
+      if DB.Ganzzahl('SELECT version FROM schema_info WHERE id = 1') <> 7 then
+        Fehlschlag('Das Schema soll auf Version 7 stehen.');
       if DB.Ganzzahl(
         'SELECT datensatz_kopieren FROM modulart WHERE kuerzel = ''angebot''') <> 1 then
         Fehlschlag('DatensatzKopieren soll für Angebote an sein.');
       if DB.Ganzzahl(
         'SELECT kopieren_an FROM maske WHERE kuerzel = ''kunde''') <> 1 then
         Fehlschlag('KopierenAn soll für Kunden an sein.');
-      if DB.Ganzzahl('SELECT COUNT(*) FROM maske') <> 8 then
-        Fehlschlag('Es sollen 8 Masken angelegt sein.');
+      if DB.Ganzzahl('SELECT COUNT(*) FROM maske') <> 11 then
+        Fehlschlag('Es sollen 11 Masken angelegt sein.');
       if DB.Ganzzahl('SELECT COUNT(*) FROM maskenfeld') < 80 then
         Fehlschlag('Die Maskenfelder fehlen.');
       if DB.Skalar(
@@ -331,6 +331,30 @@ begin
         Fehlschlag('19 Prozent auf 11,50 Euro sind nicht 13,69.');
       if DB.Ganzzahl('SELECT COUNT(*) FROM einheit') <> 4 then
         Fehlschlag('Die vier alten Einheiten fehlen.');
+      if DB.Ganzzahl(
+        'SELECT COUNT(*) FROM nachschlage WHERE art = ''einheit'' AND bezeichnung = ''Stück''') <> 1 then
+        Fehlschlag('Die Einheit Stück wurde nicht in die gemeinsame Liste übernommen.');
+      if not NachschlageLoeschen(DB.Ganzzahl(
+        'SELECT id FROM nachschlage WHERE art = ''kategorie'' AND bezeichnung = ''Kunde'''),
+        FolgeFehler) then
+      begin
+        if Pos('fest', FolgeFehler) = 0 then
+          Fehlschlag('Kunde soll fest sein: ' + FolgeFehler);
+      end
+      else
+        Fehlschlag('Die feste Kategorie Kunde wurde gelöscht.');
+      KopieId := NachschlageSpeichern('einheit', 0, 'Testrolle', FolgeFehler);
+      if KopieId = 0 then
+        Fehlschlag(FolgeFehler);
+      DB.Ausfuehren(
+        'INSERT INTO artikel (bezeichnung, einheit_ek) VALUES (''Probe'', ''Testrolle'')', nil);
+      if NachschlageLoeschen(KopieId, FolgeFehler) then
+        Fehlschlag('Eine benutzte Einheit wurde gelöscht.')
+      else if Pos('verwendet', FolgeFehler) = 0 then
+        Fehlschlag('Die Meldung beim Löschen ist unklar: ' + FolgeFehler);
+      DB.Ausfuehren('DELETE FROM artikel WHERE bezeichnung = ''Probe''', nil);
+      if not NachschlageLoeschen(KopieId, FolgeFehler) then
+        Fehlschlag(FolgeFehler);
       if not AktionZulaessig('maske', 'artikel', 'loeschen', Meldung) then
         Fehlschlag('Admin darf Artikel löschen: ' + Meldung);
       DB.Ausfuehren(
@@ -413,7 +437,7 @@ begin
       DB.SchemaSicherstellen;
       if TrefferZahl('mitarbeiter', 'Meier') <> 1 then
         Fehlschlag('Der Mitarbeiter wurde vom erneuten Schema verändert.');
-      if DB.Ganzzahl('SELECT COUNT(*) FROM maske') <> 8 then
+      if DB.Ganzzahl('SELECT COUNT(*) FROM maske') <> 11 then
         Fehlschlag('Die Masken wurden verdoppelt.');
       if DB.Ganzzahl('SELECT COUNT(*) FROM benutzer') <> 1 then
         Fehlschlag('Der Anwender wurde beim erneuten Schema verdoppelt.');

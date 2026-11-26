@@ -81,7 +81,8 @@ function ListenWahl(const Kuerzel: string; Bearbeiten: Boolean; out Id: Int64): 
 implementation
 
 uses
-  ubenutzer, uartikel, uartikelfenster, uartikelgruppe;
+  ubenutzer, uartikel, uartikelfenster, uartikelgruppe, unachschlage,
+  unachschlagefenster;
 
 procedure AdressSucheZeigen(const Kuerzel: string);
 var
@@ -617,9 +618,62 @@ begin
     (Aktionsname = 'kopieren') or (Aktionsname = 'loeschen');
   if not Result then
     Exit;
-  if (FKuerzel = 'einheit') or (FKuerzel = 'berechnungsart') then
+  if FKuerzel = 'berechnungsart' then
   begin
     ShowMessage('Diese Liste wird nur zum Aussuchen benutzt.');
+    Exit;
+  end;
+  if NachschlageArt(FKuerzel) then
+  begin
+    if not AktionZulaessig('maske', FKuerzel, Aktionsname, Meldung) then
+    begin
+      ShowMessage(Meldung);
+      Exit;
+    end;
+    if Aktionsname = 'neu' then
+      Id := NachschlageBearbeiten(FKuerzel, 0)
+    else if Aktionsname = 'aendern' then
+    begin
+      Id := GewaehlteId;
+      if Id = 0 then
+      begin
+        ShowMessage('Bitte zuerst eine Zeile auswählen.');
+        Exit;
+      end;
+      if NachschlageBearbeiten(FKuerzel, Id) = 0 then
+        Exit;
+    end
+    else if Aktionsname = 'kopieren' then
+    begin
+      Id := GewaehlteId;
+      if Id = 0 then
+      begin
+        ShowMessage('Bitte zuerst eine Zeile auswählen.');
+        Exit;
+      end;
+      Id := NachschlageKopieren(Id, Fehler);
+      if Id = 0 then
+      begin
+        ShowMessage(Fehler);
+        Exit;
+      end;
+    end
+    else
+    begin
+      Id := GewaehlteId;
+      if Id = 0 then
+        Exit;
+      if MessageDlg('Datensatz Nr. ' + IntToStr(Id) + ' löschen?',
+        mtConfirmation, [mbYes, mbNo], 0) <> mrYes then
+        Exit;
+      if not NachschlageLoeschen(Id, Fehler) then
+        ShowMessage(Fehler)
+      else
+        ListeLaden;
+      Exit;
+    end;
+    if Id > 0 then
+      UebernehmenNeueId(Id);
     Exit;
   end;
   if not AktionZulaessig('maske', FKuerzel, Aktionsname, Meldung) then

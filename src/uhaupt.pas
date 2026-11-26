@@ -68,6 +68,10 @@ type
     ButtonKontakt: TButton;
     ButtonArtikel: TButton;
     ButtonArtikelgruppe: TButton;
+    ButtonEinheit: TButton;
+    ButtonKategorie: TButton;
+    ButtonGruppierung: TButton;
+    ButtonStueckliste: TButton;
     LabelEinstellung: TLabel;
     MemoHilfe: TMemo;
     PanelTasten: TPanel;
@@ -87,6 +91,10 @@ type
     MenuStammdaten: TMenuItem;
     MenuArtikel: TMenuItem;
     MenuArtikelgruppe: TMenuItem;
+    MenuEinheit: TMenuItem;
+    MenuKategorie: TMenuItem;
+    MenuGruppierung: TMenuItem;
+    MenuStueckliste: TMenuItem;
     MenuBelege: TMenuItem;
     MenuAngebot: TMenuItem;
     MenuAuftrag: TMenuItem;
@@ -111,6 +119,10 @@ type
     procedure MenueMitarbeiter(Sender: TObject);
     procedure MenueArtikel(Sender: TObject);
     procedure MenueArtikelgruppe(Sender: TObject);
+    procedure MenueEinheit(Sender: TObject);
+    procedure MenueKategorie(Sender: TObject);
+    procedure MenueGruppierung(Sender: TObject);
+    procedure MenueStueckliste(Sender: TObject);
     procedure MenueAngebot(Sender: TObject);
     procedure MenueAuftrag(Sender: TObject);
     procedure MenueBestellung(Sender: TObject);
@@ -980,6 +992,26 @@ end;
 procedure THauptfenster.MenueArtikelgruppe(Sender: TObject);
 begin
   AdressSucheZeigen('artikelgruppe');
+end;
+
+procedure THauptfenster.MenueEinheit(Sender: TObject);
+begin
+  AdressSucheZeigen('einheit');
+end;
+
+procedure THauptfenster.MenueKategorie(Sender: TObject);
+begin
+  AdressSucheZeigen('kategorie');
+end;
+
+procedure THauptfenster.MenueGruppierung(Sender: TObject);
+begin
+  AdressSucheZeigen('gruppierung');
+end;
+
+procedure THauptfenster.MenueStueckliste(Sender: TObject);
+begin
+  AdressSucheZeigen('stuecklistengruppe');
 end;
 
 procedure THauptfenster.MenueAngebot(Sender: TObject);

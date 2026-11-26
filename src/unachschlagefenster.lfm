@@ -1,0 +1,98 @@
+object NachschlageFenster: TNachschlageFenster
+  Left = 320
+  Height = 120
+  Top = 140
+  Width = 280
+  Caption = 'Nachschlagewert'
+  ClientHeight = 120
+  ClientWidth = 280
+  Color = clBtnFace
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  KeyPreview = True
+  Position = poScreenCenter
+  OnKeyDown = FormKeyDown
+  OnShow = FormZeigen
+  object LabelNr: TLabel
+    Left = 200
+    Height = 13
+    Top = 8
+    Width = 64
+    Alignment = taRightJustify
+    AutoSize = False
+    Caption = ''
+  end
+  object LabelName: TLabel
+    Left = 8
+    Height = 16
+    Top = 28
+    Width = 110
+    Caption = 'Name:'
+  end
+  object EditName: TEdit
+    Left = 120
+    Height = 21
+    Top = 24
+    Width = 148
+    TabOrder = 0
+  end
+  object PanelKnopf: TPanel
+    Left = 0
+    Height = 40
+    Top = 80
+    Width = 280
+    Align = alBottom
+    BevelOuter = bvNone
+    Caption = ''
+    TabOrder = 1
+    object LabelEsc: TLabel
+      Left = 8
+      Height = 14
+      Top = 0
+      Width = 92
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'ESC'
+      Font.Color = clTeal
+      Font.Height = -11
+      Font.Name = 'MS Sans Serif'
+      ParentFont = False
+    end
+    object ButtonAbbrechen: TButton
+      Left = 8
+      Height = 22
+      Top = 16
+      Width = 92
+      Cancel = True
+      Caption = 'abbrechen'
+      TabOrder = 0
+      OnClick = AbbrechenKlick
+    end
+    object LabelF10: TLabel
+      Left = 180
+      Height = 14
+      Top = 0
+      Width = 92
+      Alignment = taCenter
+      Anchors = [akTop, akRight]
+      AutoSize = False
+      Caption = 'F10'
+      Font.Color = clTeal
+      Font.Height = -11
+      Font.Name = 'MS Sans Serif'
+      ParentFont = False
+    end
+    object ButtonSpeichern: TButton
+      Left = 180
+      Height = 22
+      Top = 16
+      Width = 92
+      Anchors = [akTop, akRight]
+      Caption = 'speichern'
+      Default = True
+      TabOrder = 1
+      OnClick = SpeichernKlick
+    end
+  end
+end

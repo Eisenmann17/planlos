@@ -535,6 +535,42 @@ object Hauptfenster: THauptfenster
         TabOrder = 5
         OnClick = MenueArtikelgruppe
       end
+      object ButtonEinheit: TButton
+        Left = 139
+        Height = 25
+        Top = 261
+        Width = 140
+        Caption = 'Einheit'
+        TabOrder = 6
+        OnClick = MenueEinheit
+      end
+      object ButtonKategorie: TButton
+        Left = 139
+        Height = 25
+        Top = 293
+        Width = 140
+        Caption = 'Kategorie'
+        TabOrder = 7
+        OnClick = MenueKategorie
+      end
+      object ButtonGruppierung: TButton
+        Left = 139
+        Height = 25
+        Top = 325
+        Width = 140
+        Caption = 'Gruppierung'
+        TabOrder = 8
+        OnClick = MenueGruppierung
+      end
+      object ButtonStueckliste: TButton
+        Left = 139
+        Height = 25
+        Top = 357
+        Width = 160
+        Caption = 'Stücklistengruppe'
+        TabOrder = 9
+        OnClick = MenueStueckliste
+      end
     end
     object TabEinstellungen: TTabSheet
       Caption = 'Einstellungen'
@@ -640,6 +676,22 @@ object Hauptfenster: THauptfenster
       object MenuArtikelgruppe: TMenuItem
         Caption = 'Artikel&gruppe'
         OnClick = MenueArtikelgruppe
+      end
+      object MenuEinheit: TMenuItem
+        Caption = '&Einheit'
+        OnClick = MenueEinheit
+      end
+      object MenuKategorie: TMenuItem
+        Caption = '&Kategorie'
+        OnClick = MenueKategorie
+      end
+      object MenuGruppierung: TMenuItem
+        Caption = '&Gruppierung'
+        OnClick = MenueGruppierung
+      end
+      object MenuStueckliste: TMenuItem
+        Caption = '&Stücklistengruppe'
+        OnClick = MenueStueckliste
       end
     end
     object MenuBelege: TMenuItem

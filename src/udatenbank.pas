@@ -35,6 +35,7 @@ type
     procedure MaskenAnlegen;
     procedure BelegSchema;
     procedure ArtikelSchema;
+    procedure NachschlageSchema;
   public
     constructor Create;
     destructor Destroy; override;
@@ -791,6 +792,7 @@ begin
   MaskenAnlegen;
   BelegSchema;
   ArtikelSchema;
+  NachschlageSchema;
   { PlanlosDB zeigt während des Anlegens auf diese Datei, auch wenn der
     Aufrufer die Variable erst danach setzt. }
   if PlanlosDB = nil then
@@ -799,10 +801,10 @@ begin
 
   if Ganzzahl('SELECT COUNT(*) FROM schema_info') = 0 then
     Direkt(
-      'INSERT INTO schema_info (id, version, angelegt) VALUES (1, 6, ' +
+      'INSERT INTO schema_info (id, version, angelegt) VALUES (1, 7, ' +
       QuotedStr(FormatDateTime('yyyy-mm-dd"T"hh:nn:ss', Now)) + ')')
-  else if Ganzzahl('SELECT version FROM schema_info WHERE id = 1') < 6 then
-    Direkt('UPDATE schema_info SET version = 6 WHERE id = 1');
+  else if Ganzzahl('SELECT version FROM schema_info WHERE id = 1') < 7 then
+    Direkt('UPDATE schema_info SET version = 7 WHERE id = 1');
 end;
 
 procedure TPlanlosDatenbank.ArtikelSchema;
@@ -945,6 +947,129 @@ begin
       'SELECT ' + IntToStr(MaskeId) + ', ''suche'', 1, 8, ''Löschen'', ''loeschen'', 1 ' +
       'WHERE NOT EXISTS (SELECT 1 FROM tastenbelegung WHERE maske_id = ' +
       IntToStr(MaskeId) + ' AND kontext = ''suche'' AND ebene = 1 AND taste = 8)');
+  end;
+end;
+
+procedure TPlanlosDatenbank.NachschlageSchema;
+var
+  RolleId, MaskeId, Sehen, Neu, Aendern, Loeschen: Integer;
+
+  procedure Maske(Id, Links, Oben, Breite, Hoehe, Sortierung: Integer;
+    const Kuerzel, Bezeichnung, Tabelle: string);
+  begin
+    Direkt(
+      'INSERT INTO maske (id, kuerzel, bezeichnung, tabelle, kategorie_id, ' +
+      'fenster_links, fenster_oben, fenster_breite, fenster_hoehe, sortierung) SELECT ' +
+      IntToStr(Id) + ', ' + QuotedStr(Kuerzel) + ', ' + QuotedStr(Bezeichnung) + ', ' +
+      QuotedStr(Tabelle) + ', NULL, ' + IntToStr(Links) + ', ' + IntToStr(Oben) + ', ' +
+      IntToStr(Breite) + ', ' + IntToStr(Hoehe) + ', ' + IntToStr(Sortierung) +
+      ' WHERE NOT EXISTS (SELECT 1 FROM maske WHERE id = ' + IntToStr(Id) + ')');
+  end;
+
+  procedure Taste(MaskeId, TasteNr: Integer; const Beschriftung, Aktion: string);
+  begin
+    Direkt(
+      'INSERT INTO tastenbelegung (maske_id, kontext, ebene, taste, beschriftung, ' +
+      'aktion, erlaubt) SELECT ' + IntToStr(MaskeId) + ', ''suche'', 1, ' +
+      IntToStr(TasteNr) + ', ' + QuotedStr(Beschriftung) + ', ' + QuotedStr(Aktion) +
+      ', 1 WHERE NOT EXISTS (SELECT 1 FROM tastenbelegung WHERE maske_id = ' +
+      IntToStr(MaskeId) + ' AND kontext = ''suche'' AND ebene = 1 AND taste = ' +
+      IntToStr(TasteNr) + ')');
+  end;
+
+begin
+  Direkt(
+    'CREATE TABLE IF NOT EXISTS nachschlage (' +
+    'id INTEGER PRIMARY KEY, ' +
+    'art TEXT NOT NULL, ' +
+    'bezeichnung TEXT NOT NULL, ' +
+    'nur_lesen INTEGER NOT NULL DEFAULT 0, ' +
+    'UNIQUE (art, bezeichnung))');
+  Direkt(
+    'INSERT INTO nachschlage (art, bezeichnung, nur_lesen) ' +
+    'SELECT ''einheit'', bezeichnung, 0 FROM einheit e ' +
+    'WHERE NOT EXISTS (SELECT 1 FROM nachschlage n WHERE n.art = ''einheit'' ' +
+    'AND n.bezeichnung = e.bezeichnung)');
+  Direkt('INSERT INTO nachschlage (art, bezeichnung, nur_lesen) SELECT ''kategorie'', ''Kunde'', 1 ' +
+    'WHERE NOT EXISTS (SELECT 1 FROM nachschlage WHERE art = ''kategorie'' AND bezeichnung = ''Kunde'')');
+  Direkt('INSERT INTO nachschlage (art, bezeichnung, nur_lesen) SELECT ''kategorie'', ''Lieferant'', 1 ' +
+    'WHERE NOT EXISTS (SELECT 1 FROM nachschlage WHERE art = ''kategorie'' AND bezeichnung = ''Lieferant'')');
+  Direkt('INSERT INTO nachschlage (art, bezeichnung, nur_lesen) SELECT ''kategorie'', ''Mitarbeiter'', 1 ' +
+    'WHERE NOT EXISTS (SELECT 1 FROM nachschlage WHERE art = ''kategorie'' AND bezeichnung = ''Mitarbeiter'')');
+  Direkt('INSERT INTO nachschlage (art, bezeichnung, nur_lesen) SELECT ''kategorie'', ''Kontakt'', 1 ' +
+    'WHERE NOT EXISTS (SELECT 1 FROM nachschlage WHERE art = ''kategorie'' AND bezeichnung = ''Kontakt'')');
+  Direkt('INSERT INTO nachschlage (art, bezeichnung, nur_lesen) SELECT ''kategorie'', ''Privat'', 0 ' +
+    'WHERE NOT EXISTS (SELECT 1 FROM nachschlage WHERE art = ''kategorie'' AND bezeichnung = ''Privat'')');
+
+  Maske(9, 26, 9, 560, 420, 90, 'kategorie', 'Kategorie', 'nachschlage');
+  Maske(10, 26, 9, 560, 420, 100, 'gruppierung', 'Gruppierung', 'nachschlage');
+  Maske(11, 26, 9, 560, 420, 110, 'stuecklistengruppe', 'Stücklistengruppe', 'nachschlage');
+  Direkt(
+    'UPDATE maske SET fenster_breite = 560, fenster_hoehe = 420, tabelle = ''nachschlage'' ' +
+    'WHERE id = 7 AND kuerzel = ''einheit''');
+
+  if ParameterLesen('nachschlage_rechte_v7', '') = '' then
+  begin
+    for RolleId := 1 to 3 do
+    begin
+      case RolleId of
+        1: begin
+             Sehen := 1; Neu := 1; Aendern := 1; Loeschen := 1;
+           end;
+        2: begin
+             Sehen := 1; Neu := 1; Aendern := 1; Loeschen := 0;
+           end;
+      else
+        begin
+          Sehen := 1; Neu := 1; Aendern := 0; Loeschen := 0;
+        end;
+      end;
+      Direkt(
+        'UPDATE maskenrecht SET sehen = ' + IntToStr(Sehen) + ', neu = ' + IntToStr(Neu) +
+        ', aendern = ' + IntToStr(Aendern) + ', loeschen = ' + IntToStr(Loeschen) +
+        ', kopieren = ' + IntToStr(Neu) + ' WHERE maske_id = 7 AND rolle_id = ' +
+        IntToStr(RolleId));
+    end;
+    ParameterSetzen('nachschlage_rechte_v7', '1');
+  end;
+
+  for RolleId := 1 to 3 do
+    for MaskeId := 9 to 11 do
+    begin
+      case RolleId of
+        1: begin
+             Sehen := 1; Neu := 1; Aendern := 1; Loeschen := 1;
+           end;
+        2: begin
+             Sehen := 1; Neu := 1; Aendern := 1; Loeschen := 0;
+           end;
+      else
+        begin
+          Sehen := 1; Neu := 1; Aendern := 0; Loeschen := 0;
+        end;
+      end;
+      Direkt(
+        'INSERT INTO maskenrecht (rolle_id, maske_id, sehen, neu, aendern, loeschen, kopieren) ' +
+        'SELECT ' + IntToStr(RolleId) + ', ' + IntToStr(MaskeId) + ', ' +
+        IntToStr(Sehen) + ', ' + IntToStr(Neu) + ', ' + IntToStr(Aendern) + ', ' +
+        IntToStr(Loeschen) + ', ' + IntToStr(Neu) +
+        ' WHERE NOT EXISTS (SELECT 1 FROM maskenrecht WHERE rolle_id = ' +
+        IntToStr(RolleId) + ' AND maske_id = ' + IntToStr(MaskeId) + ')');
+    end;
+
+  for MaskeId := 7 to 7 do
+  begin
+    Taste(MaskeId, 2, 'Neu', 'neu');
+    Taste(MaskeId, 5, 'Kopieren', 'kopieren');
+    Taste(MaskeId, 6, 'Ändern', 'aendern');
+    Taste(MaskeId, 8, 'Löschen', 'loeschen');
+  end;
+  for MaskeId := 9 to 11 do
+  begin
+    Taste(MaskeId, 2, 'Neu', 'neu');
+    Taste(MaskeId, 5, 'Kopieren', 'kopieren');
+    Taste(MaskeId, 6, 'Ändern', 'aendern');
+    Taste(MaskeId, 8, 'Löschen', 'loeschen');
   end;
 end;
 

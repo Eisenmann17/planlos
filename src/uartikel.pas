@@ -95,7 +95,7 @@ function StammBezeichnung(const Kuerzel: string; Id: Int64): string;
 implementation
 
 uses
-  udatenbank;
+  udatenbank, unachschlage;
 
 function DatenbankBereit: Boolean;
 begin
@@ -105,7 +105,7 @@ end;
 function Stammliste(const Kuerzel: string): Boolean;
 begin
   Result := (Kuerzel = 'artikel') or (Kuerzel = 'artikelgruppe') or
-    (Kuerzel = 'einheit') or (Kuerzel = 'berechnungsart');
+    (Kuerzel = 'berechnungsart') or NachschlageArt(Kuerzel);
 end;
 
 function VerkaufspreisCent(EkCent: Int64; AufschlagBp: Integer): Int64;
@@ -644,6 +644,11 @@ var
 begin
   Spalten.Clear;
   Zeilen.Clear;
+  if NachschlageArt(Kuerzel) then
+  begin
+    NachschlageLesen(Kuerzel, Suchtext, Spalten, Zeilen);
+    Exit;
+  end;
   if not DatenbankBereit then
     Exit;
   Muster := '%' + Trim(StringReplace(StringReplace(Suchtext, '%', '',
@@ -675,14 +680,6 @@ begin
       Spalten.Add('Aufschlag');
       SQL :=
         'SELECT id, bezeichnung, kostenart, aufschlag_bp FROM artikelgruppe ' +
-        'WHERE :leer = ''1'' OR bezeichnung LIKE :muster ORDER BY bezeichnung, id';
-    end
-    else if Kuerzel = 'einheit' then
-    begin
-      Spalten.Add('id');
-      Spalten.Add('Einheit');
-      SQL :=
-        'SELECT id, bezeichnung FROM einheit ' +
         'WHERE :leer = ''1'' OR bezeichnung LIKE :muster ORDER BY bezeichnung, id';
     end
     else
@@ -745,10 +742,13 @@ begin
   Result := '';
   if not DatenbankBereit then
     Exit;
+  if NachschlageArt(Kuerzel) then
+  begin
+    Result := NachschlageName(Id);
+    Exit;
+  end;
   if Kuerzel = 'artikelgruppe' then
     SQL := 'SELECT bezeichnung FROM artikelgruppe WHERE id = :id'
-  else if Kuerzel = 'einheit' then
-    SQL := 'SELECT bezeichnung FROM einheit WHERE id = :id'
   else if Kuerzel = 'berechnungsart' then
     SQL := 'SELECT bezeichnung FROM berechnungsart WHERE id = :id'
   else if Kuerzel = 'lieferant' then
