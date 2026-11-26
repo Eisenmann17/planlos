@@ -1,0 +1,178 @@
+object DrucklayoutFenster: TDrucklayoutFenster
+  Left = 180
+  Height = 640
+  Top = 80
+  Width = 820
+  BorderStyle = bsDialog
+  Caption = 'Drucklayout'
+  ClientHeight = 640
+  ClientWidth = 820
+  Color = clBtnFace
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  KeyPreview = True
+  Position = poScreenCenter
+  OnKeyDown = FormKeyDown
+  OnShow = FormZeigen
+  object ListBereich: TListBox
+    Left = 12
+    Height = 132
+    Top = 12
+    Width = 250
+    ItemHeight = 0
+    TabOrder = 0
+    OnClick = BereichGewaehlt
+  end
+  object ListEintrag: TListBox
+    Left = 12
+    Height = 220
+    Top = 152
+    Width = 250
+    ItemHeight = 0
+    TabOrder = 1
+    OnClick = EintragGewaehlt
+  end
+  object CheckSichtbar: TCheckBox
+    Left = 12
+    Height = 19
+    Top = 384
+    Width = 120
+    Caption = 'sichtbar'
+    TabOrder = 2
+    OnClick = EigenschaftGeaendert
+  end
+  object LabelBeschriftung: TLabel
+    Left = 12
+    Height = 13
+    Top = 412
+    Width = 70
+    Caption = 'Beschriftung'
+  end
+  object EditBeschriftung: TEdit
+    Left = 96
+    Height = 21
+    Top = 408
+    Width = 166
+    TabOrder = 3
+    OnChange = EigenschaftGeaendert
+  end
+  object LabelBreite: TLabel
+    Left = 12
+    Height = 13
+    Top = 440
+    Width = 40
+    Caption = 'Breite'
+  end
+  object EditBreite: TEdit
+    Left = 96
+    Height = 21
+    Top = 436
+    Width = 48
+    TabOrder = 4
+    OnChange = EigenschaftGeaendert
+  end
+  object LabelOrt: TLabel
+    Left = 12
+    Height = 32
+    Top = 468
+    Width = 250
+    AutoSize = False
+    Caption = ''
+    WordWrap = True
+  end
+  object PaintSeite: TPaintBox
+    Left = 280
+    Height = 500
+    Top = 12
+    Width = 524
+    OnMouseDown = SeiteMaus
+    OnMouseMove = SeiteZiehen
+    OnMouseUp = SeiteLos
+    OnPaint = SeiteMalen
+  end
+  object PanelKnopf: TPanel
+    Left = 0
+    Height = 48
+    Top = 592
+    Width = 820
+    Align = alBottom
+    BevelOuter = bvNone
+    Caption = ''
+    ClientHeight = 48
+    ClientWidth = 820
+    TabOrder = 5
+    object LabelEsc: TLabel
+      Left = 12
+      Height = 14
+      Top = 4
+      Width = 92
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'ESC'
+      Font.Color = clTeal
+      Font.Height = -11
+      Font.Name = 'MS Sans Serif'
+      ParentFont = False
+    end
+    object ButtonAbbrechen: TButton
+      Left = 12
+      Height = 22
+      Top = 20
+      Width = 92
+      Cancel = True
+      Caption = 'abbrechen'
+      OnClick = AbbrechenKlick
+      TabOrder = 0
+    end
+    object ButtonVorschau: TButton
+      Left = 120
+      Height = 22
+      Top = 20
+      Width = 100
+      Caption = 'Vorschau'
+      OnClick = VorschauKlick
+      TabOrder = 1
+    end
+    object ButtonExport: TButton
+      Left = 228
+      Height = 22
+      Top = 20
+      Width = 100
+      Caption = 'exportieren'
+      OnClick = ExportKlick
+      TabOrder = 2
+    end
+    object ButtonImport: TButton
+      Left = 336
+      Height = 22
+      Top = 20
+      Width = 100
+      Caption = 'einlesen'
+      OnClick = ImportKlick
+      TabOrder = 3
+    end
+    object LabelF10: TLabel
+      Left = 716
+      Height = 14
+      Top = 4
+      Width = 92
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'F10'
+      Font.Color = clTeal
+      Font.Height = -11
+      Font.Name = 'MS Sans Serif'
+      ParentFont = False
+    end
+    object ButtonSpeichern: TButton
+      Left = 716
+      Height = 22
+      Top = 20
+      Width = 92
+      Caption = 'speichern'
+      OnClick = SpeichernKlick
+      TabOrder = 4
+    end
+  end
+end

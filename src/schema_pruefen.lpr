@@ -124,8 +124,8 @@ begin
         Fehlschlag('Die Installationskennung hat sich geändert.');
       if DB.Ganzzahl('SELECT COUNT(*) FROM modulart') <> 5 then
         Fehlschlag('Das Schema hat Belegarten verdoppelt.');
-      if DB.Ganzzahl('SELECT version FROM schema_info WHERE id = 1') <> 11 then
-        Fehlschlag('Das Schema soll auf Version 11 stehen.');
+      if DB.Ganzzahl('SELECT version FROM schema_info WHERE id = 1') <> 12 then
+        Fehlschlag('Das Schema soll auf Version 12 stehen.');
       if not RechnerAuswerten('1,5 + 2,5', Rabatt, FolgeFehler) or
          (Abs(Rabatt - 4) > 0.0001) then
         Fehlschlag('1,5 + 2,5 ist nicht 4.');
@@ -194,6 +194,18 @@ begin
       if not DruckvorlageFuer('angebot', Vorlage) or (Vorlage.RandLinksMm <> 25) or
          (Vorlage.AnschriftObenMm <> 45) or (Vorlage.TextObenMm <> 105) then
         Fehlschlag('Die Standard-Druckvorlage fehlt oder hat nicht die DIN-Maße.');
+      if not LayoutAusJson(Vorlage.LayoutText, DruckLayout, FolgeFehler) then
+        Fehlschlag('Das gespeicherte Layout ist ungültig: ' + FolgeFehler);
+      if (DruckLayout.Version <> 1) or (Length(DruckLayout.Spalten) <> 7) then
+        Fehlschlag('Das gespeicherte Layout ist nicht die Standardvorlage.');
+      if not VorlageAnlegen('probe', 'Probe', Vorlage.LayoutText, KopieId,
+        FolgeFehler) then
+        Fehlschlag(FolgeFehler);
+      if not VorlageKopieren(1, 'probekopie', 'Kopie der Standardvorlage',
+        Vorlage.LayoutText, ZweitesId, FolgeFehler) then
+        Fehlschlag(FolgeFehler);
+      if (KopieId = 0) or (ZweitesId = 0) or (KopieId = ZweitesId) then
+        Fehlschlag('Import und Kopie der Vorlage haben keine eigene Nummer.');
       if DB.Ganzzahl(
         'SELECT druckvorlage_id FROM modulart WHERE kuerzel = ''rechnung''') <> 1 then
         Fehlschlag('Jede Belegart soll die Standardvorlage nutzen.');

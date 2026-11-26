@@ -183,12 +183,12 @@ begin
   ]);
   SetLength(Result.Spalten, 7);
   Result.Spalten[0] := Spalte('pos', 'Pos', 'links', 'position.pos', 12);
-  Result.Spalten[1] := Spalte('beschreibung', 'Beschreibung', 'links', 'position.text', 68);
-  Result.Spalten[2] := Spalte('menge', 'Menge', 'rechts', 'position.menge', 16);
-  Result.Spalten[3] := Spalte('einheit', 'Einh.', 'links', 'position.einheit', 14);
-  Result.Spalten[4] := Spalte('einzel', 'Einzel', 'rechts', 'position.einzel', 20);
+  Result.Spalten[1] := Spalte('beschreibung', 'Beschreibung', 'links', 'position.text', 58);
+  Result.Spalten[2] := Spalte('menge', 'Menge', 'rechts', 'position.menge', 22);
+  Result.Spalten[3] := Spalte('einheit', 'Einh.', 'links', 'position.einheit', 18);
+  Result.Spalten[4] := Spalte('einzel', 'Einzel', 'rechts', 'position.einzel', 22);
   Result.Spalten[5] := Spalte('mwst', 'MwSt', 'rechts', 'position.mwst', 16);
-  Result.Spalten[6] := Spalte('gesamt', 'Gesamt', 'rechts', 'position.gesamt', 19);
+  Result.Spalten[6] := Spalte('gesamt', 'Gesamt', 'rechts', 'position.gesamt', 17);
 end;
 
 function Dabei(const Wert: string; const Liste: array of string): Boolean;
