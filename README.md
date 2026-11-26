@@ -86,7 +86,8 @@ Vorhanden:
 
 Noch nicht vorhanden:
 
-- kein Artikelstamm, kein Druck, kein PDF, keine E-Rechnung
+- kein Druck, kein PDF, keine E-Rechnung. Die gemeinsame Liste für
+  Einheit und die übrigen Stammdaten folgen noch
 - PostgreSQL ist vorgesehen, aber noch nicht angeschlossen
 
 Die Datenbankdatei heißt `planlos.sqlite`. Sie entsteht beim ersten Start
@@ -108,7 +109,8 @@ Erledigt:
 
 Offen:
 
-- [ ] Stammdaten: Artikel und Artikelgruppe. Eine gemeinsame Liste für Einheit, Kategorie, Gruppierung und Stücklistengruppe. Dazu Projekte und Textbausteine.
+- [x] Stammdaten: Artikel und Artikelgruppe
+- [ ] Eine gemeinsame Liste für Einheit, Kategorie, Gruppierung und Stücklistengruppe. Dazu Projekte und Textbausteine.
 - [ ] Belege: das Belegfenster nach der alten Maske, Artikel aussuchen, Projekt und Gruppe, Berechnung
 - [ ] Einstellungen: Belegart (einstellungmodulart), Benutzerrechte, Formatierung
 - [ ] Drucken: Belege als PDF

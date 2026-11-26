@@ -517,6 +517,24 @@ object Hauptfenster: THauptfenster
         TabOrder = 3
         OnClick = KontaktOeffnen
       end
+      object ButtonArtikel: TButton
+        Left = 139
+        Height = 25
+        Top = 189
+        Width = 120
+        Caption = 'Artikel'
+        TabOrder = 4
+        OnClick = MenueArtikel
+      end
+      object ButtonArtikelgruppe: TButton
+        Left = 139
+        Height = 25
+        Top = 221
+        Width = 140
+        Caption = 'Artikelgruppe'
+        TabOrder = 5
+        OnClick = MenueArtikelgruppe
+      end
     end
     object TabEinstellungen: TTabSheet
       Caption = 'Einstellungen'
@@ -611,6 +629,17 @@ object Hauptfenster: THauptfenster
       object MenuMitarbeiter: TMenuItem
         Caption = '&Mitarbeiter'
         OnClick = MenueMitarbeiter
+      end
+    end
+    object MenuStammdaten: TMenuItem
+      Caption = '&Stammdaten'
+      object MenuArtikel: TMenuItem
+        Caption = '&Artikel'
+        OnClick = MenueArtikel
+      end
+      object MenuArtikelgruppe: TMenuItem
+        Caption = 'Artikel&gruppe'
+        OnClick = MenueArtikelgruppe
       end
     end
     object MenuBelege: TMenuItem

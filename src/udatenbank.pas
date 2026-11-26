@@ -34,6 +34,7 @@ type
     procedure TransaktionSchliessen;
     procedure MaskenAnlegen;
     procedure BelegSchema;
+    procedure ArtikelSchema;
   public
     constructor Create;
     destructor Destroy; override;
@@ -789,6 +790,7 @@ begin
 
   MaskenAnlegen;
   BelegSchema;
+  ArtikelSchema;
   { PlanlosDB zeigt während des Anlegens auf diese Datei, auch wenn der
     Aufrufer die Variable erst danach setzt. }
   if PlanlosDB = nil then
@@ -797,10 +799,153 @@ begin
 
   if Ganzzahl('SELECT COUNT(*) FROM schema_info') = 0 then
     Direkt(
-      'INSERT INTO schema_info (id, version, angelegt) VALUES (1, 5, ' +
+      'INSERT INTO schema_info (id, version, angelegt) VALUES (1, 6, ' +
       QuotedStr(FormatDateTime('yyyy-mm-dd"T"hh:nn:ss', Now)) + ')')
-  else if Ganzzahl('SELECT version FROM schema_info WHERE id = 1') < 5 then
-    Direkt('UPDATE schema_info SET version = 5 WHERE id = 1');
+  else if Ganzzahl('SELECT version FROM schema_info WHERE id = 1') < 6 then
+    Direkt('UPDATE schema_info SET version = 6 WHERE id = 1');
+end;
+
+procedure TPlanlosDatenbank.ArtikelSchema;
+var
+  RolleId, MaskeId, Sehen, Neu, Aendern, Loeschen: Integer;
+begin
+  Direkt(
+    'CREATE TABLE IF NOT EXISTS einheit (' +
+    'id INTEGER PRIMARY KEY, ' +
+    'bezeichnung TEXT NOT NULL UNIQUE)');
+  Direkt(
+    'CREATE TABLE IF NOT EXISTS berechnungsart (' +
+    'id INTEGER PRIMARY KEY, ' +
+    'bezeichnung TEXT NOT NULL UNIQUE)');
+  Direkt(
+    'CREATE TABLE IF NOT EXISTS artikelgruppe (' +
+    'id INTEGER PRIMARY KEY, ' +
+    'bezeichnung TEXT NOT NULL UNIQUE, ' +
+    'berechnungsart TEXT, ' +
+    'aufschlag_bp INTEGER NOT NULL DEFAULT 0, ' +
+    'kostenart TEXT NOT NULL DEFAULT ''M'', ' +
+    'sichtbar_gewicht INTEGER NOT NULL DEFAULT 0, ' +
+    'sichtbar_zahl1 INTEGER NOT NULL DEFAULT 0, ' +
+    'sichtbar_zahl2 INTEGER NOT NULL DEFAULT 0, ' +
+    'sichtbar_zahl3 INTEGER NOT NULL DEFAULT 0, ' +
+    'sichtbar_postext INTEGER NOT NULL DEFAULT 0, ' +
+    'sichtbar_name1 INTEGER NOT NULL DEFAULT 0, ' +
+    'sichtbar_name2 INTEGER NOT NULL DEFAULT 0, ' +
+    'sichtbar_name3 INTEGER NOT NULL DEFAULT 0, ' +
+    'sichtbar_lieferant INTEGER NOT NULL DEFAULT 0, ' +
+    'sichtbar_bestand INTEGER NOT NULL DEFAULT 0, ' +
+    'sichtbar_min_bestand INTEGER NOT NULL DEFAULT 0, ' +
+    'sichtbar_lieferant_nr INTEGER NOT NULL DEFAULT 0, ' +
+    'einheit_menge_wie_ek INTEGER NOT NULL DEFAULT 1, ' +
+    'vorgabe_artikel TEXT, ' +
+    'vorgabe_ek_cent INTEGER NOT NULL DEFAULT 0, ' +
+    'vorgabe_aufschlag_bp INTEGER NOT NULL DEFAULT 0, ' +
+    'vorgabe_einheit_menge TEXT, ' +
+    'vorgabe_einheit_ek TEXT, ' +
+    'vorgabe_lieferant TEXT)');
+  Direkt(
+    'CREATE TABLE IF NOT EXISTS artikel (' +
+    'id INTEGER PRIMARY KEY, ' +
+    'gruppe_id INTEGER REFERENCES artikelgruppe(id), ' +
+    'bezeichnung TEXT, ' +
+    'ek_cent INTEGER NOT NULL DEFAULT 0, ' +
+    'einheit_ek TEXT, ' +
+    'aufschlag_bp INTEGER NOT NULL DEFAULT 0, ' +
+    'mwst_satz INTEGER NOT NULL DEFAULT 19, ' +
+    'gewicht_milli INTEGER NOT NULL DEFAULT 0, ' +
+    'zahl1_milli INTEGER NOT NULL DEFAULT 0, ' +
+    'zahl2_milli INTEGER NOT NULL DEFAULT 0, ' +
+    'zahl3_milli INTEGER NOT NULL DEFAULT 0, ' +
+    'name1 TEXT, name2 TEXT, name3 TEXT, ' +
+    'lieferant TEXT, lieferant_nr TEXT, pos_text TEXT, ' +
+    'einheit_menge TEXT, berechnungsart TEXT, kostenart TEXT, ' +
+    'bestand_milli INTEGER NOT NULL DEFAULT 0, ' +
+    'min_bestand_milli INTEGER NOT NULL DEFAULT 0)');
+
+  Direkt('INSERT INTO einheit (id, bezeichnung) SELECT 1, ''Meter'' ' +
+    'WHERE NOT EXISTS (SELECT 1 FROM einheit WHERE id = 1)');
+  Direkt('INSERT INTO einheit (id, bezeichnung) SELECT 2, ''Stunden'' ' +
+    'WHERE NOT EXISTS (SELECT 1 FROM einheit WHERE id = 2)');
+  Direkt('INSERT INTO einheit (id, bezeichnung) SELECT 3, ''Stück'' ' +
+    'WHERE NOT EXISTS (SELECT 1 FROM einheit WHERE id = 3)');
+  Direkt('INSERT INTO einheit (id, bezeichnung) SELECT 4, ''Sortiment'' ' +
+    'WHERE NOT EXISTS (SELECT 1 FROM einheit WHERE id = 4)');
+  Direkt('INSERT INTO berechnungsart (id, bezeichnung) SELECT 1, ''Menge*EK_Preis'' ' +
+    'WHERE NOT EXISTS (SELECT 1 FROM berechnungsart WHERE id = 1)');
+
+  Direkt(
+    'INSERT INTO maske (id, kuerzel, bezeichnung, tabelle, kategorie_id, ' +
+    'fenster_links, fenster_oben, fenster_breite, fenster_hoehe, sortierung) SELECT ' +
+    '5, ''artikel'', ''Artikel'', ''artikel'', NULL, 45, 13, 700, 480, 50 ' +
+    'WHERE NOT EXISTS (SELECT 1 FROM maske WHERE id = 5)');
+  Direkt(
+    'INSERT INTO maske (id, kuerzel, bezeichnung, tabelle, kategorie_id, ' +
+    'fenster_links, fenster_oben, fenster_breite, fenster_hoehe, sortierung) SELECT ' +
+    '6, ''artikelgruppe'', ''Artikelgruppe'', ''artikelgruppe'', NULL, 33, 15, 560, 500, 60 ' +
+    'WHERE NOT EXISTS (SELECT 1 FROM maske WHERE id = 6)');
+  Direkt(
+    'INSERT INTO maske (id, kuerzel, bezeichnung, tabelle, kategorie_id, ' +
+    'fenster_links, fenster_oben, fenster_breite, fenster_hoehe, sortierung) SELECT ' +
+    '7, ''einheit'', ''Einheit'', ''einheit'', NULL, 80, 40, 420, 360, 70 ' +
+    'WHERE NOT EXISTS (SELECT 1 FROM maske WHERE id = 7)');
+  Direkt(
+    'INSERT INTO maske (id, kuerzel, bezeichnung, tabelle, kategorie_id, ' +
+    'fenster_links, fenster_oben, fenster_breite, fenster_hoehe, sortierung) SELECT ' +
+    '8, ''berechnungsart'', ''Berechnungsart'', ''berechnungsart'', NULL, 80, 40, 420, 360, 80 ' +
+    'WHERE NOT EXISTS (SELECT 1 FROM maske WHERE id = 8)');
+
+  for RolleId := 1 to 3 do
+    for MaskeId := 5 to 8 do
+    begin
+      if MaskeId >= 7 then
+      begin
+        Sehen := 1; Neu := 0; Aendern := 0; Loeschen := 0;
+      end
+      else
+        case RolleId of
+          1: begin
+               Sehen := 1; Neu := 1; Aendern := 1; Loeschen := 1;
+             end;
+          2: begin
+               Sehen := 1; Neu := 1; Aendern := 1; Loeschen := 0;
+             end;
+        else
+          begin
+            Sehen := 1; Neu := 1; Aendern := 0; Loeschen := 0;
+          end;
+        end;
+      Direkt(
+        'INSERT INTO maskenrecht (rolle_id, maske_id, sehen, neu, aendern, loeschen, kopieren) ' +
+        'SELECT ' + IntToStr(RolleId) + ', ' + IntToStr(MaskeId) + ', ' +
+        IntToStr(Sehen) + ', ' + IntToStr(Neu) + ', ' + IntToStr(Aendern) + ', ' +
+        IntToStr(Loeschen) + ', ' + IntToStr(Neu) +
+        ' WHERE NOT EXISTS (SELECT 1 FROM maskenrecht WHERE rolle_id = ' +
+        IntToStr(RolleId) + ' AND maske_id = ' + IntToStr(MaskeId) + ')');
+    end;
+
+  for MaskeId := 5 to 6 do
+  begin
+    Direkt(
+      'INSERT INTO tastenbelegung (maske_id, kontext, ebene, taste, beschriftung, aktion, erlaubt) ' +
+      'SELECT ' + IntToStr(MaskeId) + ', ''suche'', 1, 2, ''Neu'', ''neu'', 1 ' +
+      'WHERE NOT EXISTS (SELECT 1 FROM tastenbelegung WHERE maske_id = ' +
+      IntToStr(MaskeId) + ' AND kontext = ''suche'' AND ebene = 1 AND taste = 2)');
+    Direkt(
+      'INSERT INTO tastenbelegung (maske_id, kontext, ebene, taste, beschriftung, aktion, erlaubt) ' +
+      'SELECT ' + IntToStr(MaskeId) + ', ''suche'', 1, 5, ''Kopieren'', ''kopieren'', 1 ' +
+      'WHERE NOT EXISTS (SELECT 1 FROM tastenbelegung WHERE maske_id = ' +
+      IntToStr(MaskeId) + ' AND kontext = ''suche'' AND ebene = 1 AND taste = 5)');
+    Direkt(
+      'INSERT INTO tastenbelegung (maske_id, kontext, ebene, taste, beschriftung, aktion, erlaubt) ' +
+      'SELECT ' + IntToStr(MaskeId) + ', ''suche'', 1, 6, ''Ändern'', ''aendern'', 1 ' +
+      'WHERE NOT EXISTS (SELECT 1 FROM tastenbelegung WHERE maske_id = ' +
+      IntToStr(MaskeId) + ' AND kontext = ''suche'' AND ebene = 1 AND taste = 6)');
+    Direkt(
+      'INSERT INTO tastenbelegung (maske_id, kontext, ebene, taste, beschriftung, aktion, erlaubt) ' +
+      'SELECT ' + IntToStr(MaskeId) + ', ''suche'', 1, 8, ''Löschen'', ''loeschen'', 1 ' +
+      'WHERE NOT EXISTS (SELECT 1 FROM tastenbelegung WHERE maske_id = ' +
+      IntToStr(MaskeId) + ' AND kontext = ''suche'' AND ebene = 1 AND taste = 8)');
+  end;
 end;
 
 procedure TPlanlosDatenbank.MaskenAnlegen;

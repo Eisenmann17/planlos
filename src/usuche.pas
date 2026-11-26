@@ -61,6 +61,7 @@ type
     procedure TasteGedrueckt(Sender: TObject; Ebene, Taste: Integer);
     procedure TastenAusDaten;
     procedure AktionAusfuehren(const Aktionsname: string);
+    function StammAktion(const Aktionsname: string): Boolean;
     procedure ListeLaden;
   public
     constructor Create(TheOwner: TComponent); override;
@@ -75,11 +76,12 @@ type
 
 procedure AdressSucheZeigen(const Kuerzel: string);
 function AdressSucheWaehlen(const Kuerzel: string): Int64;
+function ListenWahl(const Kuerzel: string; Bearbeiten: Boolean; out Id: Int64): Boolean;
 
 implementation
 
 uses
-  ubenutzer;
+  ubenutzer, uartikel, uartikelfenster, uartikelgruppe;
 
 procedure AdressSucheZeigen(const Kuerzel: string);
 var
@@ -119,6 +121,35 @@ begin
       Exit;
     if Fenster.ShowModal = mrOk then
       Result := Fenster.GewaehlteId;
+  finally
+    Fenster.Free;
+  end;
+end;
+
+function ListenWahl(const Kuerzel: string; Bearbeiten: Boolean; out Id: Int64): Boolean;
+var
+  Fenster: TSuchfenster;
+  Meldung: string;
+begin
+  Result := False;
+  Id := 0;
+  if not AktionZulaessig('maske', Kuerzel, 'sehen', Meldung) then
+  begin
+    ShowMessage(Meldung);
+    Exit;
+  end;
+  Fenster := TSuchfenster.Create(Application);
+  try
+    Fenster.FModal := True;
+    if not Fenster.Oeffne(Kuerzel) then
+      Exit;
+    if not Bearbeiten then
+      Fenster.SetzeFunktionen(False, False, False, False);
+    if Fenster.ShowModal = mrOk then
+    begin
+      Id := Fenster.GewaehlteId;
+      Result := Id > 0;
+    end;
   finally
     Fenster.Free;
   end;
@@ -303,7 +334,10 @@ begin
   Zeilen := TStringList.Create;
   TeileZeile := TStringList.Create;
   try
-    TrefferLesen(FKuerzel, FFilter.Text, Spalten, Zeilen);
+    if Stammliste(FKuerzel) then
+      StammLesen(FKuerzel, FFilter.Text, Spalten, Zeilen)
+    else
+      TrefferLesen(FKuerzel, FFilter.Text, Spalten, Zeilen);
     if Spalten.Count < 1 then
       Spalten.Add('id');
     FListe.ColCount := Spalten.Count;
@@ -574,6 +608,86 @@ begin
     AktionZulaessig('maske', FKuerzel, 'loeschen', Meldung);
 end;
 
+function TSuchfenster.StammAktion(const Aktionsname: string): Boolean;
+var
+  Id: Int64;
+  Meldung, Fehler: string;
+begin
+  Result := (Aktionsname = 'neu') or (Aktionsname = 'aendern') or
+    (Aktionsname = 'kopieren') or (Aktionsname = 'loeschen');
+  if not Result then
+    Exit;
+  if (FKuerzel = 'einheit') or (FKuerzel = 'berechnungsart') then
+  begin
+    ShowMessage('Diese Liste wird nur zum Aussuchen benutzt.');
+    Exit;
+  end;
+  if not AktionZulaessig('maske', FKuerzel, Aktionsname, Meldung) then
+  begin
+    ShowMessage(Meldung);
+    Exit;
+  end;
+  if Aktionsname = 'neu' then
+  begin
+    if FKuerzel = 'artikel' then
+      Id := ArtikelBearbeiten(0)
+    else
+      Id := GruppeBearbeiten(0);
+    if Id > 0 then
+      UebernehmenNeueId(Id);
+  end
+  else if Aktionsname = 'aendern' then
+  begin
+    Id := GewaehlteId;
+    if Id = 0 then
+      ShowMessage('Bitte zuerst eine Zeile auswählen.')
+    else if FKuerzel = 'artikel' then
+    begin
+      if ArtikelBearbeiten(Id) > 0 then
+        UebernehmenNeueId(Id);
+    end
+    else if GruppeBearbeiten(Id) > 0 then
+      UebernehmenNeueId(Id);
+  end
+  else if Aktionsname = 'kopieren' then
+  begin
+    Id := GewaehlteId;
+    if Id = 0 then
+    begin
+      ShowMessage('Bitte zuerst eine Zeile auswählen.');
+      Exit;
+    end;
+    if FKuerzel = 'artikel' then
+      Id := ArtikelKopieren(Id, Fehler)
+    else
+      Id := GruppeKopieren(Id, Fehler);
+    if Id = 0 then
+      ShowMessage(Fehler)
+    else
+      UebernehmenNeueId(Id);
+  end
+  else
+  begin
+    Id := GewaehlteId;
+    if Id = 0 then
+      Exit;
+    if MessageDlg('Datensatz Nr. ' + IntToStr(Id) + ' löschen?',
+      mtConfirmation, [mbYes, mbNo], 0) <> mrYes then
+      Exit;
+    if FKuerzel = 'artikel' then
+    begin
+      if ArtikelLoeschen(Id, Fehler) then
+        ListeLaden
+      else
+        ShowMessage(Fehler);
+    end
+    else if GruppeLoeschen(Id, Fehler) then
+      ListeLaden
+    else
+      ShowMessage(Fehler);
+  end;
+end;
+
 procedure TSuchfenster.AktionAusfuehren(const Aktionsname: string);
 var
   Id: Int64;
@@ -584,6 +698,8 @@ begin
     ShowMessage('Diese Funktion ist in diesem Fenster ausgeschaltet.');
     Exit;
   end;
+  if Stammliste(FKuerzel) and StammAktion(Aktionsname) then
+    Exit;
   if Aktionsname = 'hilfe' then
     ShowMessage(
       'Suche in der Maske ' + FBezeichnung + '.' + LineEnding +

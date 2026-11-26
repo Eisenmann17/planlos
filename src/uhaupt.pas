@@ -66,6 +66,8 @@ type
     ButtonLieferant: TButton;
     ButtonMitarbeiter: TButton;
     ButtonKontakt: TButton;
+    ButtonArtikel: TButton;
+    ButtonArtikelgruppe: TButton;
     LabelEinstellung: TLabel;
     MemoHilfe: TMemo;
     PanelTasten: TPanel;
@@ -82,6 +84,9 @@ type
     MenuLieferanten: TMenuItem;
     MenuKontakte: TMenuItem;
     MenuMitarbeiter: TMenuItem;
+    MenuStammdaten: TMenuItem;
+    MenuArtikel: TMenuItem;
+    MenuArtikelgruppe: TMenuItem;
     MenuBelege: TMenuItem;
     MenuAngebot: TMenuItem;
     MenuAuftrag: TMenuItem;
@@ -104,6 +109,8 @@ type
     procedure MenueLieferant(Sender: TObject);
     procedure MenueKontakt(Sender: TObject);
     procedure MenueMitarbeiter(Sender: TObject);
+    procedure MenueArtikel(Sender: TObject);
+    procedure MenueArtikelgruppe(Sender: TObject);
     procedure MenueAngebot(Sender: TObject);
     procedure MenueAuftrag(Sender: TObject);
     procedure MenueBestellung(Sender: TObject);
@@ -963,6 +970,16 @@ end;
 procedure THauptfenster.MenueMitarbeiter(Sender: TObject);
 begin
   AdressSucheZeigen('mitarbeiter');
+end;
+
+procedure THauptfenster.MenueArtikel(Sender: TObject);
+begin
+  AdressSucheZeigen('artikel');
+end;
+
+procedure THauptfenster.MenueArtikelgruppe(Sender: TObject);
+begin
+  AdressSucheZeigen('artikelgruppe');
 end;
 
 procedure THauptfenster.MenueAngebot(Sender: TObject);
