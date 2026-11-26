@@ -13,7 +13,7 @@ uses
   {$ENDIF}
   Classes, SysUtils,
   udatenbank, umaske, ubeleg, ubenutzer, uartikel, unachschlage, uprojekt,
-  utextbaustein, udruck, umodulart, urechner, udatum;
+  utextbaustein, udruck, umodulart, urechner, udatum, udrucklayout;
 
 var
   DB: TPlanlosDatenbank;
@@ -35,6 +35,8 @@ var
   ProjektStamm: TProjekt;
   Baustein: TTextbaustein;
   Vorlage: TDruckvorlage;
+  DruckLayout, DruckLayout2: TDruckLayout;
+  LayoutHinweis: string;
   SeitenZahl, iPos: Integer;
   DatumJahr, DatumMonat, DatumTag: Word;
   Inhalt: RawByteString;
@@ -167,6 +169,28 @@ begin
         Fehlschlag('Ein Datum mit Uhrzeit wird falsch gelesen.');
       if DatumIso(2026, 11, 5) <> '2026-11-05' then
         Fehlschlag('Das Datum wird falsch geschrieben.');
+      DruckLayout := LayoutStandard;
+      if not LayoutPruefen(DruckLayout, FolgeFehler) then
+        Fehlschlag(FolgeFehler);
+      if not LayoutAusJson(LayoutAlsJson(DruckLayout), DruckLayout2, FolgeFehler) then
+        Fehlschlag(FolgeFehler);
+      if (DruckLayout2.Version <> 1) or (DruckLayout2.RandLinks <> 25) or
+         (DruckLayout2.AnschriftOben <> 45) or (DruckLayout2.TextOben <> 105) or
+         (Length(DruckLayout2.Spalten) <> 7) or
+         (Length(DruckLayout2.Bereiche) <> 8) then
+        Fehlschlag('Die Standardvorlage kommt nicht vollständig zurück.');
+      LayoutMitFallback('{"version":9}', DruckLayout2, LayoutHinweis);
+      if (DruckLayout2.Version <> 1) or (Pos('Layoutversion', LayoutHinweis) = 0) then
+        Fehlschlag('Eine unbekannte Layoutversion soll die Standardvorlage lassen.');
+      LayoutMitFallback('', DruckLayout2, LayoutHinweis);
+      if (DruckLayout2.RandLinks <> 25) or (LayoutHinweis <> '') then
+        Fehlschlag('Ein leeres Layout soll die Standardvorlage sein.');
+      if not LayoutSpeichern(GetTempDir + 'planlos-layout.json', DruckLayout,
+        FolgeFehler) then
+        Fehlschlag(FolgeFehler);
+      if not LayoutLaden(GetTempDir + 'planlos-layout.json', DruckLayout2,
+        FolgeFehler) then
+        Fehlschlag(FolgeFehler);
       if not DruckvorlageFuer('angebot', Vorlage) or (Vorlage.RandLinksMm <> 25) or
          (Vorlage.AnschriftObenMm <> 45) or (Vorlage.TextObenMm <> 105) then
         Fehlschlag('Die Standard-Druckvorlage fehlt oder hat nicht die DIN-Maße.');
