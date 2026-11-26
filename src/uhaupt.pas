@@ -72,6 +72,8 @@ type
     ButtonKategorie: TButton;
     ButtonGruppierung: TButton;
     ButtonStueckliste: TButton;
+    ButtonProjekt: TButton;
+    ButtonTextbaustein: TButton;
     LabelEinstellung: TLabel;
     MemoHilfe: TMemo;
     PanelTasten: TPanel;
@@ -95,6 +97,8 @@ type
     MenuKategorie: TMenuItem;
     MenuGruppierung: TMenuItem;
     MenuStueckliste: TMenuItem;
+    MenuProjektStamm: TMenuItem;
+    MenuTextbaustein: TMenuItem;
     MenuBelege: TMenuItem;
     MenuAngebot: TMenuItem;
     MenuAuftrag: TMenuItem;
@@ -123,6 +127,8 @@ type
     procedure MenueKategorie(Sender: TObject);
     procedure MenueGruppierung(Sender: TObject);
     procedure MenueStueckliste(Sender: TObject);
+    procedure MenueProjektStamm(Sender: TObject);
+    procedure MenueTextbaustein(Sender: TObject);
     procedure MenueAngebot(Sender: TObject);
     procedure MenueAuftrag(Sender: TObject);
     procedure MenueBestellung(Sender: TObject);
@@ -1037,6 +1043,16 @@ end;
 procedure THauptfenster.MenueProjekt(Sender: TObject);
 begin
   BelegsucheZeigen('projekt');
+end;
+
+procedure THauptfenster.MenueProjektStamm(Sender: TObject);
+begin
+  AdressSucheZeigen('projekt');
+end;
+
+procedure THauptfenster.MenueTextbaustein(Sender: TObject);
+begin
+  AdressSucheZeigen('textbaustein');
 end;
 
 function KontaktPruefen(Protokoll: TStrings): string;

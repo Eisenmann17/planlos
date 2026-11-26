@@ -36,6 +36,7 @@ type
     procedure BelegSchema;
     procedure ArtikelSchema;
     procedure NachschlageSchema;
+    procedure ProjektTextSchema;
   public
     constructor Create;
     destructor Destroy; override;
@@ -793,6 +794,7 @@ begin
   BelegSchema;
   ArtikelSchema;
   NachschlageSchema;
+  ProjektTextSchema;
   { PlanlosDB zeigt während des Anlegens auf diese Datei, auch wenn der
     Aufrufer die Variable erst danach setzt. }
   if PlanlosDB = nil then
@@ -801,10 +803,10 @@ begin
 
   if Ganzzahl('SELECT COUNT(*) FROM schema_info') = 0 then
     Direkt(
-      'INSERT INTO schema_info (id, version, angelegt) VALUES (1, 7, ' +
+      'INSERT INTO schema_info (id, version, angelegt) VALUES (1, 8, ' +
       QuotedStr(FormatDateTime('yyyy-mm-dd"T"hh:nn:ss', Now)) + ')')
-  else if Ganzzahl('SELECT version FROM schema_info WHERE id = 1') < 7 then
-    Direkt('UPDATE schema_info SET version = 7 WHERE id = 1');
+  else if Ganzzahl('SELECT version FROM schema_info WHERE id = 1') < 8 then
+    Direkt('UPDATE schema_info SET version = 8 WHERE id = 1');
 end;
 
 procedure TPlanlosDatenbank.ArtikelSchema;
@@ -1070,6 +1072,107 @@ begin
     Taste(MaskeId, 5, 'Kopieren', 'kopieren');
     Taste(MaskeId, 6, 'Ändern', 'aendern');
     Taste(MaskeId, 8, 'Löschen', 'loeschen');
+  end;
+end;
+
+procedure TPlanlosDatenbank.ProjektTextSchema;
+var
+  RolleId, MaskeId, Sehen, Neu, Aendern, Loeschen: Integer;
+
+  procedure Spalte(const Tabelle, Name, Definition: string);
+  begin
+    if Ganzzahl(
+      'SELECT COUNT(*) FROM pragma_table_info(' + QuotedStr(Tabelle) +
+      ') WHERE name = ' + QuotedStr(Name)) = 0 then
+      Direkt('ALTER TABLE ' + Tabelle + ' ADD COLUMN ' + Name + ' ' + Definition);
+  end;
+
+  procedure Maske(Id, Links, Oben, Breite, Hoehe, Sortierung: Integer;
+    const Kuerzel, Bezeichnung, Tabelle: string);
+  begin
+    Direkt(
+      'INSERT INTO maske (id, kuerzel, bezeichnung, tabelle, kategorie_id, ' +
+      'fenster_links, fenster_oben, fenster_breite, fenster_hoehe, sortierung) SELECT ' +
+      IntToStr(Id) + ', ' + QuotedStr(Kuerzel) + ', ' + QuotedStr(Bezeichnung) + ', ' +
+      QuotedStr(Tabelle) + ', NULL, ' + IntToStr(Links) + ', ' + IntToStr(Oben) + ', ' +
+      IntToStr(Breite) + ', ' + IntToStr(Hoehe) + ', ' + IntToStr(Sortierung) +
+      ' WHERE NOT EXISTS (SELECT 1 FROM maske WHERE id = ' + IntToStr(Id) + ')');
+  end;
+
+  procedure Taste(MaskeId, TasteNr, Erlaubt: Integer; const Beschriftung, Aktion: string);
+  begin
+    Direkt(
+      'INSERT INTO tastenbelegung (maske_id, kontext, ebene, taste, beschriftung, ' +
+      'aktion, erlaubt) SELECT ' + IntToStr(MaskeId) + ', ''suche'', 1, ' +
+      IntToStr(TasteNr) + ', ' + QuotedStr(Beschriftung) + ', ' + QuotedStr(Aktion) +
+      ', ' + IntToStr(Erlaubt) + ' WHERE NOT EXISTS (SELECT 1 FROM tastenbelegung ' +
+      'WHERE maske_id = ' + IntToStr(MaskeId) +
+      ' AND kontext = ''suche'' AND ebene = 1 AND taste = ' + IntToStr(TasteNr) + ')');
+  end;
+
+begin
+  Direkt(
+    'CREATE TABLE IF NOT EXISTS projekt (' +
+    'id INTEGER PRIMARY KEY, ' +
+    'bezeichnung TEXT NOT NULL, ' +
+    'kunde_id INTEGER REFERENCES adresse(id), ' +
+    'gruppierung TEXT, ' +
+    'bearbeiter_id INTEGER REFERENCES adresse(id), ' +
+    'notiz TEXT, ' +
+    'erfasst TEXT, ' +
+    'geaendert TEXT)');
+  Direkt(
+    'CREATE TABLE IF NOT EXISTS textbaustein (' +
+    'id INTEGER PRIMARY KEY, ' +
+    'modulart TEXT NOT NULL DEFAULT ''Standard'', ' +
+    'benutzer TEXT, ' +
+    'textart TEXT NOT NULL, ' +
+    'beschreibung TEXT, ' +
+    'inhalt TEXT NOT NULL)');
+  Spalte('beleg', 'projekt_stamm_id', 'INTEGER');
+  Spalte('beleg', 'kopf_baustein_id', 'INTEGER');
+  Spalte('beleg', 'fuss_baustein_id', 'INTEGER');
+
+  Maske(12, 26, 9, 620, 480, 120, 'projekt', 'Projekt', 'projekt');
+  Maske(13, 52, 18, 700, 480, 130, 'textbaustein', 'Textbaustein', 'textbaustein');
+  Maske(14, 80, 40, 420, 360, 140, 'modulart', 'Modulart', 'modulart');
+  Maske(15, 80, 40, 420, 360, 150, 'benutzer', 'Benutzer', 'benutzer');
+
+  for RolleId := 1 to 3 do
+    for MaskeId := 12 to 15 do
+    begin
+      if MaskeId >= 14 then
+      begin
+        Sehen := 1; Neu := 0; Aendern := 0; Loeschen := 0;
+      end
+      else
+        case RolleId of
+          1: begin
+               Sehen := 1; Neu := 1; Aendern := 1; Loeschen := 1;
+             end;
+          2: begin
+               Sehen := 1; Neu := 1; Aendern := 1; Loeschen := 0;
+             end;
+        else
+          begin
+            Sehen := 1; Neu := 1; Aendern := 0; Loeschen := 0;
+          end;
+        end;
+      Direkt(
+        'INSERT INTO maskenrecht (rolle_id, maske_id, sehen, neu, aendern, loeschen, kopieren) ' +
+        'SELECT ' + IntToStr(RolleId) + ', ' + IntToStr(MaskeId) + ', ' +
+        IntToStr(Sehen) + ', ' + IntToStr(Neu) + ', ' + IntToStr(Aendern) + ', ' +
+        IntToStr(Loeschen) + ', ' + IntToStr(Neu) +
+        ' WHERE NOT EXISTS (SELECT 1 FROM maskenrecht WHERE rolle_id = ' +
+        IntToStr(RolleId) + ' AND maske_id = ' + IntToStr(MaskeId) + ')');
+    end;
+
+  for MaskeId := 12 to 13 do
+  begin
+    Taste(MaskeId, 2, 1, 'Neu', 'neu');
+    Taste(MaskeId, 5, 1, 'Kopieren', 'kopieren');
+    Taste(MaskeId, 6, 1, 'Ändern', 'aendern');
+    Taste(MaskeId, 8, 1, 'Löschen', 'loeschen');
   end;
 end;
 

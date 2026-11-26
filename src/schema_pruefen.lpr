@@ -12,7 +12,8 @@ uses
   cwstring,
   {$ENDIF}
   Classes, SysUtils,
-  udatenbank, umaske, ubeleg, ubenutzer, uartikel, unachschlage;
+  udatenbank, umaske, ubeleg, ubenutzer, uartikel, unachschlage, uprojekt,
+  utextbaustein;
 
 var
   DB: TPlanlosDatenbank;
@@ -31,6 +32,8 @@ var
   Filter: TExplorerFilter;
   Sitz: TSitzung;
   SpaltenX, ZeilenX: TStringList;
+  ProjektStamm: TProjekt;
+  Baustein: TTextbaustein;
 
   procedure Fehlschlag(const Text: string);
   begin
@@ -115,16 +118,16 @@ begin
         Fehlschlag('Die Installationskennung hat sich geändert.');
       if DB.Ganzzahl('SELECT COUNT(*) FROM modulart') <> 5 then
         Fehlschlag('Das Schema hat Belegarten verdoppelt.');
-      if DB.Ganzzahl('SELECT version FROM schema_info WHERE id = 1') <> 7 then
-        Fehlschlag('Das Schema soll auf Version 7 stehen.');
+      if DB.Ganzzahl('SELECT version FROM schema_info WHERE id = 1') <> 8 then
+        Fehlschlag('Das Schema soll auf Version 8 stehen.');
       if DB.Ganzzahl(
         'SELECT datensatz_kopieren FROM modulart WHERE kuerzel = ''angebot''') <> 1 then
         Fehlschlag('DatensatzKopieren soll für Angebote an sein.');
       if DB.Ganzzahl(
         'SELECT kopieren_an FROM maske WHERE kuerzel = ''kunde''') <> 1 then
         Fehlschlag('KopierenAn soll für Kunden an sein.');
-      if DB.Ganzzahl('SELECT COUNT(*) FROM maske') <> 11 then
-        Fehlschlag('Es sollen 11 Masken angelegt sein.');
+      if DB.Ganzzahl('SELECT COUNT(*) FROM maske') <> 15 then
+        Fehlschlag('Es sollen 15 Masken angelegt sein.');
       if DB.Ganzzahl('SELECT COUNT(*) FROM maskenfeld') < 80 then
         Fehlschlag('Die Maskenfelder fehlen.');
       if DB.Skalar(
@@ -355,6 +358,66 @@ begin
       DB.Ausfuehren('DELETE FROM artikel WHERE bezeichnung = ''Probe''', nil);
       if not NachschlageLoeschen(KopieId, FolgeFehler) then
         Fehlschlag(FolgeFehler);
+      ProjektStamm := Default(TProjekt);
+      ProjektStamm.Bezeichnung := 'Probeprojekt';
+      KopieId := ProjektSpeichern(ProjektStamm, FolgeFehler);
+      if KopieId = 0 then
+        Fehlschlag(FolgeFehler);
+      SpaltenX := TStringList.Create;
+      ZeilenX := TStringList.Create;
+      try
+        ProjektLesen('', SpaltenX, ZeilenX);
+        if ZeilenX.Count <> 1 then
+          Fehlschlag('Das Probeprojekt erscheint nicht in der Liste.');
+        ProjektLesen('nichts', SpaltenX, ZeilenX);
+        if ZeilenX.Count <> 0 then
+          Fehlschlag('Der Projektfilter lässt Unpassendes durch.');
+      finally
+        ZeilenX.Free;
+        SpaltenX.Free;
+      end;
+      DB.Ausfuehren(
+        'UPDATE beleg SET projekt_stamm_id = ' + IntToStr(KopieId) +
+        ' WHERE id = ' + IntToStr(AngebotId), nil);
+      if ProjektLoeschen(KopieId, FolgeFehler) then
+        Fehlschlag('Ein benutztes Projekt wurde gelöscht.')
+      else if Pos('Belege', FolgeFehler) = 0 then
+        Fehlschlag('Die Meldung beim Projektlöschen ist unklar: ' + FolgeFehler);
+      DB.Ausfuehren('UPDATE beleg SET projekt_stamm_id = NULL WHERE id = ' +
+        IntToStr(AngebotId), nil);
+      if not ProjektLoeschen(KopieId, FolgeFehler) then
+        Fehlschlag(FolgeFehler);
+      Baustein := Default(TTextbaustein);
+      Baustein.Textart := 'Kopftext';
+      Baustein.Text := 'Guten Tag';
+      Baustein.Beschreibung := 'Gruss';
+      if TextbausteinSpeichern(Baustein, FolgeFehler) = 0 then
+        Fehlschlag(FolgeFehler);
+      SpaltenX := TStringList.Create;
+      ZeilenX := TStringList.Create;
+      try
+        TextbausteinLesen('', 'Kopftext', SpaltenX, ZeilenX);
+        if ZeilenX.Count <> 1 then
+          Fehlschlag('Der Kopftext wird nicht gefunden.');
+        TextbausteinLesen('', 'Fusstext', SpaltenX, ZeilenX);
+        if ZeilenX.Count <> 0 then
+          Fehlschlag('Ein Kopftext erscheint bei den Fußtexten.');
+      finally
+        ZeilenX.Free;
+        SpaltenX.Free;
+      end;
+      DB.Ausfuehren(
+        'UPDATE beleg SET kopf_baustein_id = ' + IntToStr(Baustein.Id) +
+        ' WHERE id = ' + IntToStr(AngebotId), nil);
+      if TextbausteinLoeschen(Baustein.Id, FolgeFehler) then
+        Fehlschlag('Ein benutzter Textbaustein wurde gelöscht.')
+      else if Pos('verwendet', FolgeFehler) = 0 then
+        Fehlschlag('Die Meldung beim Textlöschen ist unklar: ' + FolgeFehler);
+      DB.Ausfuehren(
+        'UPDATE beleg SET kopf_baustein_id = NULL WHERE id = ' +
+        IntToStr(AngebotId), nil);
+      if not TextbausteinLoeschen(Baustein.Id, FolgeFehler) then
+        Fehlschlag(FolgeFehler);
       if not AktionZulaessig('maske', 'artikel', 'loeschen', Meldung) then
         Fehlschlag('Admin darf Artikel löschen: ' + Meldung);
       DB.Ausfuehren(
@@ -437,7 +500,7 @@ begin
       DB.SchemaSicherstellen;
       if TrefferZahl('mitarbeiter', 'Meier') <> 1 then
         Fehlschlag('Der Mitarbeiter wurde vom erneuten Schema verändert.');
-      if DB.Ganzzahl('SELECT COUNT(*) FROM maske') <> 11 then
+      if DB.Ganzzahl('SELECT COUNT(*) FROM maske') <> 15 then
         Fehlschlag('Die Masken wurden verdoppelt.');
       if DB.Ganzzahl('SELECT COUNT(*) FROM benutzer') <> 1 then
         Fehlschlag('Der Anwender wurde beim erneuten Schema verdoppelt.');

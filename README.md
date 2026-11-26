@@ -86,8 +86,8 @@ Vorhanden:
 
 Noch nicht vorhanden:
 
-- kein Druck, kein PDF, keine E-Rechnung. Projekte und Textbausteine
-  folgen noch
+- kein Druck, kein PDF, keine E-Rechnung. Das Belegfenster nach der
+  alten Maske folgt noch
 - PostgreSQL ist vorgesehen, aber noch nicht angeschlossen
 
 Die Datenbankdatei heißt `planlos.sqlite`. Sie entsteht beim ersten Start
@@ -111,7 +111,7 @@ Offen:
 
 - [x] Stammdaten: Artikel und Artikelgruppe
 - [x] Eine gemeinsame Liste für Einheit, Kategorie, Gruppierung und Stücklistengruppe
-- [ ] Projekte und Textbausteine
+- [x] Projekte und Textbausteine
 - [ ] Belege: das Belegfenster nach der alten Maske, Artikel aussuchen, Projekt und Gruppe, Berechnung
 - [ ] Einstellungen: Belegart (einstellungmodulart), Benutzerrechte, Formatierung
 - [ ] Drucken: Belege als PDF
