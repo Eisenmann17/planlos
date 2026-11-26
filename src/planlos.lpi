@@ -30,7 +30,7 @@
         <PackageName Value="LCL"/>
       </Item1>
     </RequiredPackages>
-    <Units Count="23">
+    <Units Count="24">
       <Unit0>
         <Filename Value="planlos.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -145,6 +145,11 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="uartikelwahl"/>
       </Unit22>
+      <Unit23>
+        <Filename Value="udruck.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="udruck"/>
+      </Unit23>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

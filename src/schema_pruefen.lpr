@@ -13,7 +13,7 @@ uses
   {$ENDIF}
   Classes, SysUtils,
   udatenbank, umaske, ubeleg, ubenutzer, uartikel, unachschlage, uprojekt,
-  utextbaustein;
+  utextbaustein, udruck;
 
 var
   DB: TPlanlosDatenbank;
@@ -34,6 +34,9 @@ var
   SpaltenX, ZeilenX: TStringList;
   ProjektStamm: TProjekt;
   Baustein: TTextbaustein;
+  Vorlage: TDruckvorlage;
+  SeitenZahl, iPos: Integer;
+  Inhalt: RawByteString;
 
   procedure Fehlschlag(const Text: string);
   begin
@@ -118,8 +121,60 @@ begin
         Fehlschlag('Die Installationskennung hat sich geändert.');
       if DB.Ganzzahl('SELECT COUNT(*) FROM modulart') <> 5 then
         Fehlschlag('Das Schema hat Belegarten verdoppelt.');
-      if DB.Ganzzahl('SELECT version FROM schema_info WHERE id = 1') <> 9 then
-        Fehlschlag('Das Schema soll auf Version 9 stehen.');
+      if DB.Ganzzahl('SELECT version FROM schema_info WHERE id = 1') <> 10 then
+        Fehlschlag('Das Schema soll auf Version 10 stehen.');
+      if not DruckvorlageFuer('angebot', Vorlage) or (Vorlage.RandLinksMm <> 25) or
+         (Vorlage.AnschriftObenMm <> 45) or (Vorlage.TextObenMm <> 105) then
+        Fehlschlag('Die Standard-Druckvorlage fehlt oder hat nicht die DIN-Maße.');
+      if DB.Ganzzahl(
+        'SELECT druckvorlage_id FROM modulart WHERE kuerzel = ''rechnung''') <> 1 then
+        Fehlschlag('Jede Belegart soll die Standardvorlage nutzen.');
+      Kopf := Default(TBelegKopf);
+      Kopf.Nummer := 'ANG-1';
+      Kopf.Bezeichnung := 'Fenstertest';
+      Kopf.AdresseText := 'Meier GmbH' + LineEnding + 'Hauptstraße 1' + LineEnding +
+        '12345 Musterstadt';
+      Kopf.Erfasst := '2026-11-26';
+      Kopf.Kopftext := 'Guten Tag';
+      Kopf.Fusstext := 'Mit freundlichen Grüßen';
+      Kopf.MwstRechnen := True;
+      SetLength(Positionen, 40);
+      for iPos := 0 to High(Positionen) do
+      begin
+        Positionen[iPos] := Default(TBelegPosition);
+        Positionen[iPos].Text := 'Position ' + IntToStr(iPos + 1);
+        Positionen[iPos].MengeMilli := 1000;
+        Positionen[iPos].EinzelpreisCent := 100;
+        Positionen[iPos].MwstSatz := 19;
+        Positionen[iPos].Einheit := 'Stück';
+      end;
+      if not BelegPdfSchreiben(Kopf, Positionen, Vorlage, 'Angebot', 'Admin',
+        GetTempDir + 'planlos-druck.pdf', SeitenZahl, FolgeFehler) then
+        Fehlschlag(FolgeFehler);
+      if SeitenZahl < 2 then
+        Fehlschlag('Vierzig Positionen sollen auf mehr als eine Seite.');
+      Inhalt := '';
+      with TFileStream.Create(GetTempDir + 'planlos-druck.pdf', fmOpenRead) do
+      try
+        SetLength(Inhalt, Size);
+        if Size > 0 then
+          ReadBuffer(Inhalt[1], Size);
+      finally
+        Free;
+      end;
+      if Copy(Inhalt, 1, 5) <> '%PDF-' then
+        Fehlschlag('Die Datei ist kein PDF.');
+      if Pos('ANG-1', Inhalt) = 0 then
+        Fehlschlag('Die Belegnummer fehlt im PDF.');
+      if Pos('bertrag', Inhalt) = 0 then
+        Fehlschlag('Der Übertrag auf der Folgeseite fehlt.');
+      SetLength(Positionen, 1);
+      if not BelegPdfSchreiben(Kopf, Positionen, Vorlage, 'Angebot', 'Admin',
+        GetTempDir + 'planlos-druck.pdf', SeitenZahl, FolgeFehler) then
+        Fehlschlag(FolgeFehler);
+      if SeitenZahl <> 1 then
+        Fehlschlag('Eine Position soll auf eine Seite passen.');
+      SetLength(Positionen, 0);
       if DB.Ganzzahl(
         'SELECT datensatz_kopieren FROM modulart WHERE kuerzel = ''angebot''') <> 1 then
         Fehlschlag('DatensatzKopieren soll für Angebote an sein.');
