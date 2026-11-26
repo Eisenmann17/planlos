@@ -12,7 +12,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, StdCtrls, ExtCtrls, Dialogs, Grids,
-  Graphics, LCLType, ubeleg;
+  Graphics, LCLType, LCLIntf, ubeleg;
 
 type
   TBelegfenster = class(TForm)
@@ -93,6 +93,7 @@ type
     procedure JetztKlick(Sender: TObject);
     procedure NeuKlick(Sender: TObject);
     procedure AusgabeKlick(Sender: TObject);
+    procedure KopfAusMaske;
     procedure SuchenKlick(Sender: TObject);
     procedure KopierenKlick(Sender: TObject);
     procedure AendernKlick(Sender: TObject);
@@ -152,7 +153,7 @@ implementation
 
 uses
   ubenutzer, uartikel, usuche, utextbaustein, utextbausteinfenster, uprojekt,
-  uartikelwahl;
+  uartikelwahl, udruck;
 
 const
   CPos = 0;
@@ -684,6 +685,7 @@ begin
     ButtonSpeichern.Enabled := Darf('neu')
   else
     ButtonSpeichern.Enabled := Darf('aendern');
+  ButtonAusgabe.Enabled := Darf('drucken');
 end;
 
 procedure TBelegfenster.FolgeKnopfe;
@@ -886,9 +888,47 @@ begin
   SummenZeigen;
 end;
 
-procedure TBelegfenster.AusgabeKlick(Sender: TObject);
+procedure TBelegfenster.KopfAusMaske;
 begin
-  ShowMessage('Drucken folgt später.');
+  FKopf.Modulart := FArt.Kuerzel;
+  FKopf.Bezeichnung := Trim(EditBezeichnung.Text);
+  FKopf.Kopftext := MemoKopf.Text;
+  FKopf.Fusstext := MemoFuss.Text;
+  FKopf.Notiz := MemoNotiz.Text;
+  FKopf.IhrZeichen := Trim(EditZeichen.Text);
+  FKopf.Erfasst := Trim(EditDatum.Text);
+  if FKopf.Gruppierung = '' then
+    FKopf.Gruppierung := Trim(EditGruppe.Text);
+end;
+
+procedure TBelegfenster.AusgabeKlick(Sender: TObject);
+var
+  Vorlage: TDruckvorlage;
+  Datei, Fehler, Meldung: string;
+  Seiten: Integer;
+begin
+  if not AktionZulaessig('beleg', FArt.Kuerzel, 'drucken', Meldung) then
+  begin
+    ShowMessage(Meldung);
+    Exit;
+  end;
+  if not DruckvorlageFuer(FArt.Kuerzel, Vorlage) then
+  begin
+    ShowMessage('Für diese Belegart gibt es keine Druckvorlage.');
+    Exit;
+  end;
+  PosTextSichern;
+  KopfAusMaske;
+  if FKopf.Nummer = '' then
+    Datei := GetTempDir + 'planlos-neu.pdf'
+  else
+    Datei := GetTempDir + 'planlos-' + FKopf.Nummer + '.pdf';
+  if not BelegPdfSchreiben(FKopf, FZeilen, Vorlage, FArt.Bezeichnung,
+    EditBearbeiter.Text, Datei, Seiten, Fehler) then
+    ShowMessage(Fehler)
+  else if not OpenDocument(Datei) then
+    ShowMessage('Die PDF-Datei liegt unter ' + Datei + ' (' + IntToStr(Seiten) +
+      ' Seiten).');
 end;
 
 procedure TBelegfenster.ArtikelHolen;
@@ -1064,15 +1104,7 @@ begin
       Fehler := 'Position ' + IntToStr(i + 1) + ' braucht einen Text.';
       Exit;
     end;
-  FKopf.Modulart := FArt.Kuerzel;
-  FKopf.Bezeichnung := Trim(EditBezeichnung.Text);
-  FKopf.Kopftext := MemoKopf.Text;
-  FKopf.Fusstext := MemoFuss.Text;
-  FKopf.Notiz := MemoNotiz.Text;
-  FKopf.IhrZeichen := Trim(EditZeichen.Text);
-  FKopf.Erfasst := Trim(EditDatum.Text);
-  if FKopf.Gruppierung = '' then
-    FKopf.Gruppierung := Trim(EditGruppe.Text);
+  KopfAusMaske;
   Result := BelegSpeichern(FKopf, FZeilen, Fehler);
   if Result > 0 then
     Caption := FArt.Bezeichnung + ' ' + FKopf.Nummer;

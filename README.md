@@ -86,8 +86,8 @@ Vorhanden:
 
 Noch nicht vorhanden:
 
-- kein Druck, kein PDF, keine E-Rechnung. Die ausführliche
-  Einstellung der Belegart folgt noch
+- keine E-Rechnung. Die ausführliche Einstellung der Belegart folgt
+  noch. Belege lassen sich schon als PDF ausgeben
 - PostgreSQL ist vorgesehen, aber noch nicht angeschlossen
 
 Die Datenbankdatei heißt `planlos.sqlite`. Sie entsteht beim ersten Start
@@ -114,7 +114,7 @@ Offen:
 - [x] Projekte und Textbausteine
 - [x] Belege: das Belegfenster nach der alten Maske, Artikel aussuchen, Projekt und Gruppe, Berechnung
 - [ ] Einstellungen: Belegart (einstellungmodulart), Benutzerrechte, Formatierung
-- [ ] Drucken: Belege als PDF
+- [x] Drucken: Belege als PDF
 
 Später:
 

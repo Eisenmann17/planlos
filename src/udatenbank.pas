@@ -803,10 +803,10 @@ begin
 
   if Ganzzahl('SELECT COUNT(*) FROM schema_info') = 0 then
     Direkt(
-      'INSERT INTO schema_info (id, version, angelegt) VALUES (1, 9, ' +
+      'INSERT INTO schema_info (id, version, angelegt) VALUES (1, 10, ' +
       QuotedStr(FormatDateTime('yyyy-mm-dd"T"hh:nn:ss', Now)) + ')')
-  else if Ganzzahl('SELECT version FROM schema_info WHERE id = 1') < 9 then
-    Direkt('UPDATE schema_info SET version = 9 WHERE id = 1');
+  else if Ganzzahl('SELECT version FROM schema_info WHERE id = 1') < 10 then
+    Direkt('UPDATE schema_info SET version = 10 WHERE id = 1');
 end;
 
 procedure TPlanlosDatenbank.ArtikelSchema;
@@ -1757,6 +1757,28 @@ begin
   Taste(1, 1, 6, 1, 'beleg', 'Auftrag', 'folge:auftragsbestaetigung');
   Taste(1, 1, 7, 1, 'beleg', 'Rechnung', 'folge:rechnung');
   Taste(2, 1, 6, 1, 'beleg', 'Rechnung', 'folge:rechnung');
+
+  Spalte('modulart', 'druckvorlage_id', 'INTEGER');
+  Direkt(
+    'CREATE TABLE IF NOT EXISTS druckvorlage (' +
+    'id INTEGER PRIMARY KEY, ' +
+    'kuerzel TEXT NOT NULL UNIQUE, ' +
+    'bezeichnung TEXT NOT NULL, ' +
+    'absender TEXT NOT NULL, ' +
+    'fusszeile TEXT, ' +
+    'rand_links_mm INTEGER NOT NULL DEFAULT 25, ' +
+    'rand_rechts_mm INTEGER NOT NULL DEFAULT 20, ' +
+    'anschrift_oben_mm INTEGER NOT NULL DEFAULT 45, ' +
+    'text_oben_mm INTEGER NOT NULL DEFAULT 105, ' +
+    'rand_unten_mm INTEGER NOT NULL DEFAULT 20)');
+  Direkt(
+    'INSERT INTO druckvorlage (id, kuerzel, bezeichnung, absender, fusszeile, ' +
+    'rand_links_mm, rand_rechts_mm, anschrift_oben_mm, text_oben_mm, rand_unten_mm) ' +
+    'SELECT 1, ''standard'', ''Standard'', ' +
+    '''Planlos · Musterweg 1 · 12345 Musterstadt'', '''', 25, 20, 45, 105, 20 ' +
+    'WHERE NOT EXISTS (SELECT 1 FROM druckvorlage WHERE id = 1)');
+  Direkt(
+    'UPDATE modulart SET druckvorlage_id = 1 WHERE druckvorlage_id IS NULL');
 end;
 
 function TPlanlosDatenbank.Bericht: string;
