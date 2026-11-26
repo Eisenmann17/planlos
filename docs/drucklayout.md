@@ -1,8 +1,9 @@
 # Drucklayout
 
-Stand: November 2026. Das ist eine Planung, noch kein Editor und kein
-neues PDF. Der heutige Druck aus v0.11.0 bleibt, bis eine spätere
-Stufe ihn auf dieses Layout umstellt.
+Stand: November 2026. Die Schritte 1 bis 5 sind umgesetzt: die Spalte
+`layout`, der Druck daraus, das Fenster im Reiter Druck, die Vorschau
+und Export und Import. Logo und andere Schriften (Schritt 6) fehlen
+noch. Ein ungültiges Layout druckt weiter in der bisherigen Anordnung.
 
 ## Was heute gedruckt wird
 
@@ -466,7 +467,7 @@ Das ist die Ausgabe von `LayoutAlsJson(LayoutStandard)`.
       "id" : "beschreibung",
       "sichtbar" : true,
       "beschriftung" : "Beschreibung",
-      "breite" : 68,
+      "breite" : 58,
       "ausrichtung" : "links",
       "quelle" : "position.text"
     },
@@ -474,7 +475,7 @@ Das ist die Ausgabe von `LayoutAlsJson(LayoutStandard)`.
       "id" : "menge",
       "sichtbar" : true,
       "beschriftung" : "Menge",
-      "breite" : 16,
+      "breite" : 22,
       "ausrichtung" : "rechts",
       "quelle" : "position.menge"
     },
@@ -482,7 +483,7 @@ Das ist die Ausgabe von `LayoutAlsJson(LayoutStandard)`.
       "id" : "einheit",
       "sichtbar" : true,
       "beschriftung" : "Einh.",
-      "breite" : 14,
+      "breite" : 18,
       "ausrichtung" : "links",
       "quelle" : "position.einheit"
     },
@@ -490,7 +491,7 @@ Das ist die Ausgabe von `LayoutAlsJson(LayoutStandard)`.
       "id" : "einzel",
       "sichtbar" : true,
       "beschriftung" : "Einzel",
-      "breite" : 20,
+      "breite" : 22,
       "ausrichtung" : "rechts",
       "quelle" : "position.einzel"
     },
@@ -506,7 +507,7 @@ Das ist die Ausgabe von `LayoutAlsJson(LayoutStandard)`.
       "id" : "gesamt",
       "sichtbar" : true,
       "beschriftung" : "Gesamt",
-      "breite" : 19,
+      "breite" : 17,
       "ausrichtung" : "rechts",
       "quelle" : "position.gesamt"
     }

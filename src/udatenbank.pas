@@ -77,7 +77,7 @@ var
 implementation
 
 uses
-  DB, SQLite3Conn, sqlite3dyn, ubenutzer;
+  DB, SQLite3Conn, sqlite3dyn, ubenutzer, udrucklayout;
 
 type
   TConn = TSQLite3Connection;
@@ -803,10 +803,10 @@ begin
 
   if Ganzzahl('SELECT COUNT(*) FROM schema_info') = 0 then
     Direkt(
-      'INSERT INTO schema_info (id, version, angelegt) VALUES (1, 11, ' +
+      'INSERT INTO schema_info (id, version, angelegt) VALUES (1, 12, ' +
       QuotedStr(FormatDateTime('yyyy-mm-dd"T"hh:nn:ss', Now)) + ')')
-  else if Ganzzahl('SELECT version FROM schema_info WHERE id = 1') < 11 then
-    Direkt('UPDATE schema_info SET version = 11 WHERE id = 1');
+  else if Ganzzahl('SELECT version FROM schema_info WHERE id = 1') < 12 then
+    Direkt('UPDATE schema_info SET version = 12 WHERE id = 1');
 end;
 
 procedure TPlanlosDatenbank.ArtikelSchema;
@@ -1567,6 +1567,8 @@ begin
 end;
 
 procedure TPlanlosDatenbank.BelegSchema;
+var
+  Werte: TStringList;
 
   procedure Spalte(const Tabelle, Name, Definition: string);
   begin
@@ -1802,6 +1804,19 @@ begin
     'WHERE NOT EXISTS (SELECT 1 FROM druckvorlage WHERE id = 1)');
   Direkt(
     'UPDATE modulart SET druckvorlage_id = 1 WHERE druckvorlage_id IS NULL');
+  Spalte('druckvorlage', 'layout', 'TEXT');
+  if Skalar('SELECT COALESCE(layout, '''') FROM druckvorlage WHERE id = 1') = '' then
+  begin
+    Werte := TStringList.Create;
+    try
+      Werte.Values['layout'] := LayoutAlsJson(LayoutStandard);
+      Ausfuehren(
+        'UPDATE druckvorlage SET layout = :layout WHERE id = 1 AND ' +
+        '(layout IS NULL OR layout = '''')', Werte);
+    finally
+      Werte.Free;
+    end;
+  end;
 end;
 
 function TPlanlosDatenbank.Bericht: string;

@@ -961,9 +961,15 @@ begin
   if not BelegPdfSchreiben(FKopf, FZeilen, Vorlage, FArt.Bezeichnung,
     EditBearbeiter.Text, Datei, Seiten, Fehler) then
     ShowMessage(Fehler)
-  else if not OpenDocument(Datei) then
-    ShowMessage('Die PDF-Datei liegt unter ' + Datei + ' (' + IntToStr(Seiten) +
-      ' Seiten).');
+  else
+  begin
+    if Layouthinweis <> '' then
+      ShowMessage('Das Drucklayout ist ungültig. Es gilt die bisherige Anordnung.' +
+        LineEnding + Layouthinweis);
+    if not OpenDocument(Datei) then
+      ShowMessage('Die PDF-Datei liegt unter ' + Datei + ' (' + IntToStr(Seiten) +
+        ' Seiten).');
+  end;
 end;
 
 procedure TBelegfenster.ArtikelHolen;

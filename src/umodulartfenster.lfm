@@ -502,6 +502,15 @@ object ModulartFenster: TModulartFenster
         Style = csDropDownList
         TabOrder = 0
       end
+      object ButtonLayout: TButton
+        Left = 436
+        Height = 22
+        Top = 16
+        Width = 92
+        Caption = 'Layout'
+        OnClick = LayoutKlick
+        TabOrder = 1
+      end
     end
   end
   object PanelKnopf: TPanel

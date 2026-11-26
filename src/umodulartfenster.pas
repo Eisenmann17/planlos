@@ -82,6 +82,7 @@ type
     LabelArtikelHinweis: TLabel;
     LabelVorlage: TLabel;
     ComboVorlage: TComboBox;
+    ButtonLayout: TButton;
     PanelKnopf: TPanel;
     LabelEsc: TLabel;
     ButtonAbbrechen: TButton;
@@ -91,12 +92,14 @@ type
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure AbbrechenKlick(Sender: TObject);
     procedure SpeichernKlick(Sender: TObject);
+    procedure LayoutKlick(Sender: TObject);
   private
     FId: Int64;
     FVorlagen: array of Int64;
     procedure FelderAusArt(const Art: TBelegartEinstellung);
     procedure ArtAusFeldern(out Art: TBelegartEinstellung);
     procedure VorlagenLaden;
+    procedure VorlageWaehlen(Id: Int64);
   end;
 
 function BelegartBearbeiten(Id: Int64): Int64;
@@ -106,7 +109,7 @@ implementation
 {$R *.lfm}
 
 uses
-  udatenbank;
+  udatenbank, udrucklayoutfenster;
 
 function BelegartBearbeiten(Id: Int64): Int64;
 var
@@ -158,6 +161,39 @@ begin
   finally
     Zeilen.Free;
     Spalten.Free;
+  end;
+end;
+
+procedure TModulartFenster.VorlageWaehlen(Id: Int64);
+var
+  i: Integer;
+begin
+  ComboVorlage.ItemIndex := 0;
+  for i := 0 to High(FVorlagen) do
+    if FVorlagen[i] = Id then
+    begin
+      ComboVorlage.ItemIndex := i;
+      Exit;
+    end;
+end;
+
+procedure TModulartFenster.LayoutKlick(Sender: TObject);
+var
+  Bisher, Neu: Int64;
+begin
+  if (ComboVorlage.ItemIndex < 0) or
+     (ComboVorlage.ItemIndex > High(FVorlagen)) then
+    Exit;
+  Bisher := FVorlagen[ComboVorlage.ItemIndex];
+  if Bisher = 0 then
+  begin
+    ShowMessage('Bitte zuerst eine Druckvorlage auswählen.');
+    Exit;
+  end;
+  if DrucklayoutBearbeiten(FId, Bisher, Neu) then
+  begin
+    VorlagenLaden;
+    VorlageWaehlen(Neu);
   end;
 end;
 
