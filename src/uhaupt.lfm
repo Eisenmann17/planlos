@@ -599,7 +599,16 @@ object Hauptfenster: THauptfenster
         Height = 65
         Top = 24
         Width = 308
-        Caption = 'Angemeldet wird beim Start. Die Rolle steht in der Datenbank.'#13'Das Passwort liegt nur als gesalzener Hash, nie im Klartext.'#13#13'MwSt ist der Startwert für neue Belege. Druck, Fensterfarben und'#13'die Server-Datenbank folgen später.'
+        Caption = 'Angemeldet wird beim Start. Die Rolle steht in der Datenbank.'#13'Das Passwort liegt nur als gesalzener Hash, nie im Klartext.'#13#13'Die Belegart steuert Fenster, Felder und erlaubte Funktionen.'
+      end
+      object ButtonBelegart: TButton
+        Left = 16
+        Height = 25
+        Top = 110
+        Width = 160
+        Caption = 'Belegart'
+        OnClick = MenueBelegart
+        TabOrder = 0
       end
     end
     object TabHilfe: TTabSheet
@@ -741,6 +750,13 @@ object Hauptfenster: THauptfenster
       object MenuProjekt: TMenuItem
         Caption = '&Projekt'
         OnClick = MenueProjekt
+      end
+    end
+    object MenuEinstellungen: TMenuItem
+      Caption = '&Einstellungen'
+      object MenuBelegart: TMenuItem
+        Caption = '&Belegart'
+        OnClick = MenueBelegart
       end
     end
     object MenuHilfe: TMenuItem

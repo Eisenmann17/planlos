@@ -65,6 +65,7 @@ type
     function StammAktion(const Aktionsname: string): Boolean;
     procedure ListeLaden;
   public
+    NachSchluss: TNotifyEvent;
     constructor Create(TheOwner: TComponent); override;
     function Oeffne(const Kuerzel: string): Boolean;
     function EnthaeltText(const GesuchterText: string): Boolean;
@@ -76,7 +77,7 @@ type
     procedure SetzeEinschraenkung(const Wert: string);
   end;
 
-procedure AdressSucheZeigen(const Kuerzel: string);
+procedure AdressSucheZeigen(const Kuerzel: string; NachSchluss: TNotifyEvent = nil);
 function AdressSucheWaehlen(const Kuerzel: string): Int64;
 function ListenWahl(const Kuerzel: string; Bearbeiten: Boolean; out Id: Int64): Boolean;
 function ListenWahlMit(const Kuerzel, Einschraenkung: string; Bearbeiten: Boolean;
@@ -87,9 +88,9 @@ implementation
 uses
   ubenutzer, uartikel, uartikelfenster, uartikelgruppe, unachschlage,
   unachschlagefenster, uprojekt, uprojektfenster, utextbaustein,
-  utextbausteinfenster;
+  utextbausteinfenster, umodulart, umodulartfenster;
 
-procedure AdressSucheZeigen(const Kuerzel: string);
+procedure AdressSucheZeigen(const Kuerzel: string; NachSchluss: TNotifyEvent);
 var
   Fenster: TSuchfenster;
   Meldung: string;
@@ -100,6 +101,7 @@ begin
     Exit;
   end;
   Fenster := TSuchfenster.Create(Application);
+  Fenster.NachSchluss := NachSchluss;
   if not Fenster.Oeffne(Kuerzel) then
   begin
     Fenster.Free;
@@ -286,7 +288,11 @@ begin
     CloseAction := caHide;
   end
   else
+  begin
+    if Assigned(NachSchluss) then
+      NachSchluss(Self);
     CloseAction := caFree;
+  end;
 end;
 
 function TSuchfenster.Oeffne(const Kuerzel: string): Boolean;
@@ -643,10 +649,61 @@ begin
     (Aktionsname = 'kopieren') or (Aktionsname = 'loeschen');
   if not Result then
     Exit;
-  if (FKuerzel = 'berechnungsart') or (FKuerzel = 'modulart') or
-     (FKuerzel = 'benutzer') then
+  if (FKuerzel = 'berechnungsart') or (FKuerzel = 'benutzer') then
   begin
     ShowMessage('Diese Liste wird nur zum Aussuchen benutzt.');
+    Exit;
+  end;
+  if FKuerzel = 'modulart' then
+  begin
+    if not AktionZulaessig('maske', FKuerzel, Aktionsname, Meldung) then
+    begin
+      ShowMessage(Meldung);
+      Exit;
+    end;
+    if Aktionsname = 'neu' then
+      Id := BelegartBearbeiten(0)
+    else if Aktionsname = 'aendern' then
+    begin
+      Id := GewaehlteId;
+      if Id = 0 then
+      begin
+        ShowMessage('Bitte zuerst eine Zeile auswählen.');
+        Exit;
+      end;
+      Id := BelegartBearbeiten(Id);
+    end
+    else if Aktionsname = 'kopieren' then
+    begin
+      Id := GewaehlteId;
+      if Id = 0 then
+      begin
+        ShowMessage('Bitte zuerst eine Zeile auswählen.');
+        Exit;
+      end;
+      Id := BelegartEinstellungKopieren(Id, Fehler);
+      if Id = 0 then
+      begin
+        ShowMessage(Fehler);
+        Exit;
+      end;
+    end
+    else
+    begin
+      Id := GewaehlteId;
+      if Id = 0 then
+        Exit;
+      if MessageDlg('Belegart Nr. ' + IntToStr(Id) + ' löschen?',
+        mtConfirmation, [mbYes, mbNo], 0) <> mrYes then
+        Exit;
+      if BelegartEinstellungLoeschen(Id, Fehler) then
+        ListeLaden
+      else
+        ShowMessage(Fehler);
+      Exit;
+    end;
+    if Id > 0 then
+      UebernehmenNeueId(Id);
     Exit;
   end;
   if (FKuerzel = 'projekt') or (FKuerzel = 'textbaustein') then

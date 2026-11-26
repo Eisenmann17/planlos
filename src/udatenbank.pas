@@ -803,10 +803,10 @@ begin
 
   if Ganzzahl('SELECT COUNT(*) FROM schema_info') = 0 then
     Direkt(
-      'INSERT INTO schema_info (id, version, angelegt) VALUES (1, 10, ' +
+      'INSERT INTO schema_info (id, version, angelegt) VALUES (1, 11, ' +
       QuotedStr(FormatDateTime('yyyy-mm-dd"T"hh:nn:ss', Now)) + ')')
-  else if Ganzzahl('SELECT version FROM schema_info WHERE id = 1') < 10 then
-    Direkt('UPDATE schema_info SET version = 10 WHERE id = 1');
+  else if Ganzzahl('SELECT version FROM schema_info WHERE id = 1') < 11 then
+    Direkt('UPDATE schema_info SET version = 11 WHERE id = 1');
 end;
 
 procedure TPlanlosDatenbank.ArtikelSchema;
@@ -1173,6 +1173,25 @@ begin
     Taste(MaskeId, 5, 1, 'Kopieren', 'kopieren');
     Taste(MaskeId, 6, 1, 'Ändern', 'aendern');
     Taste(MaskeId, 8, 1, 'Löschen', 'loeschen');
+  end;
+  if ParameterLesen('belegart_maske_v11', '') = '' then
+  begin
+    Direkt(
+      'UPDATE maskenrecht SET neu = 1, aendern = 1, loeschen = 1, kopieren = 1 ' +
+      'WHERE maske_id = 14 AND rolle_id = 1');
+    Direkt(
+      'UPDATE maskenrecht SET neu = 1, aendern = 1, loeschen = 0, kopieren = 1 ' +
+      'WHERE maske_id = 14 AND rolle_id = 2');
+    Direkt(
+      'UPDATE maskenrecht SET neu = 1, aendern = 0, loeschen = 0, kopieren = 1 ' +
+      'WHERE maske_id = 14 AND rolle_id = 3');
+    Taste(14, 2, 1, 'Neu', 'neu');
+    Taste(14, 5, 1, 'Kopieren', 'kopieren');
+    Taste(14, 6, 1, 'Ändern', 'aendern');
+    Taste(14, 8, 1, 'Löschen', 'loeschen');
+    Direkt(
+      'UPDATE maske SET fenster_breite = 720, fenster_hoehe = 480 WHERE id = 14');
+    ParameterSetzen('belegart_maske_v11', '1');
   end;
 end;
 
@@ -1758,6 +1777,10 @@ begin
   Taste(1, 1, 7, 1, 'beleg', 'Rechnung', 'folge:rechnung');
   Taste(2, 1, 6, 1, 'beleg', 'Rechnung', 'folge:rechnung');
 
+  Spalte('modulart', 'datensatz_suchen', 'INTEGER NOT NULL DEFAULT 1');
+  Spalte('modulart', 'datensatz_speichern', 'INTEGER NOT NULL DEFAULT 1');
+  Spalte('modulart', 'datensatz_ausgabe', 'INTEGER NOT NULL DEFAULT 1');
+  Spalte('modulart', 'artikel_ueberschrift', 'TEXT');
   Spalte('modulart', 'druckvorlage_id', 'INTEGER');
   Direkt(
     'CREATE TABLE IF NOT EXISTS druckvorlage (' +
