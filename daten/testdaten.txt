@@ -1,0 +1,158 @@
+# Testdaten für Planlos. Neue Sätze einfach unten anfügen.
+# Ein Abschnitt [art] gilt, bis der nächste kommt.
+# --- trennt Sätze derselben Art.
+# Zeilen sind schluessel=wert. Zahlen mit Komma: 12,50.
+# Menge wird in Tausendstel gespeichert (2 = 2,000), Preis in Cent.
+# Fehlt eine Zahl, setzt das Programm 0. Kein NULL in Zahlenfeldern.
+# Reihenfolge: erst Gruppen und Adressen, dann Artikel, dann Belege.
+
+[gruppierung]
+bezeichnung=Fensterbau
+---
+bezeichnung=Innenausbau
+
+[einheit]
+bezeichnung=Pauschale
+
+[stuecklistengruppe]
+bezeichnung=Beschlag
+
+[kunde]
+firma=Meier GmbH
+nachname=Meier
+vorname=Eva
+strasse=Hauptstraße 1
+plz=12345
+ort=Musterstadt
+telefon=030 123456
+email=eva.meier@example.test
+rabatt_prozent=0
+---
+firma=Bauamt Nord
+nachname=Krüger
+vorname=Otto
+strasse=Rathausplatz 2
+plz=10115
+ort=Berlin
+rabatt_prozent=0
+
+[lieferant]
+firma=Holz Schmidt
+nachname=Schmidt
+vorname=Karl
+strasse=Sägeweg 4
+plz=14467
+ort=Potsdam
+rabatt_prozent=0
+
+[kontakt]
+firma=Meier GmbH
+nachname=Kurz
+vorname=Anna
+telefon=030 123457
+rabatt_prozent=0
+
+[mitarbeiter]
+nachname=Berger
+vorname=Klaus
+telefon=030 555010
+rabatt_prozent=0
+
+[artikelgruppe]
+bezeichnung=Holz
+berechnungsart=Menge*EK_Preis
+aufschlag_bp=2000
+kostenart=M
+einheit_wie_ek=1
+---
+bezeichnung=Leistung
+berechnungsart=Menge*EK_Preis
+aufschlag_bp=0
+kostenart=D
+einheit_wie_ek=1
+
+[artikel]
+gruppe=Holz
+bezeichnung=Eiche gehobelt
+ek_cent=1250
+einheit_ek=Meter
+einheit_menge=Meter
+aufschlag_bp=2000
+mwst_satz=19
+---
+gruppe=Holz
+bezeichnung=Beschlagset
+ek_cent=890
+einheit_ek=Stück
+einheit_menge=Stück
+aufschlag_bp=2500
+mwst_satz=19
+---
+gruppe=Leistung
+bezeichnung=Montage
+ek_cent=4500
+einheit_ek=Stunden
+einheit_menge=Stunden
+aufschlag_bp=0
+mwst_satz=19
+
+[projekt]
+bezeichnung=Umbau Musterstadt
+kunde=Meier GmbH
+gruppierung=Fensterbau
+notiz=Fenster im Erdgeschoss und ein Innenausbau.
+
+[textbaustein]
+textart=Kopftext
+beschreibung=Begrüßung
+inhalt=Guten Tag,
+---
+textart=Fusstext
+beschreibung=Grußformel
+inhalt=Mit freundlichen Grüßen
+
+[beleg]
+art=angebot
+empfaenger=Meier GmbH
+bezeichnung=Fenster Erdgeschoss
+gruppierung=Fensterbau
+projekt=Umbau Musterstadt
+kopf=Begrüßung
+fuss=Grußformel
+position=Eiche gehobelt|12|Meter|18,75|19
+position=Beschlagset|4|Stück|14,50|19
+position=Montage|6|Stunden|65,00|19
+---
+art=auftragsbestaetigung
+empfaenger=Meier GmbH
+bezeichnung=Fenster Erdgeschoss
+gruppierung=Fensterbau
+projekt=Umbau Musterstadt
+kopf=Begrüßung
+fuss=Grußformel
+position=Eiche gehobelt|12|Meter|18,75|19
+position=Montage|6|Stunden|65,00|19
+---
+art=bestellung
+empfaenger=Holz Schmidt
+bezeichnung=Holz für Musterstadt
+gruppierung=Fensterbau
+position=Eiche gehobelt|12|Meter|12,50|19
+position=Beschlagset|4|Stück|8,90|19
+---
+art=rechnung
+empfaenger=Meier GmbH
+bezeichnung=Fenster Erdgeschoss
+gruppierung=Fensterbau
+projekt=Umbau Musterstadt
+kopf=Begrüßung
+fuss=Grußformel
+position=Eiche gehobelt|12|Meter|18,75|19
+position=Beschlagset|4|Stück|14,50|19
+position=Montage|6|Stunden|65,00|19
+---
+art=projekt
+bezeichnung=Bauleitung Musterstadt
+gruppierung=Fensterbau
+projekt=Umbau Musterstadt
+position=Montage|2|Stunden|65,00|19

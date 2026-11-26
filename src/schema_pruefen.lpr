@@ -13,7 +13,7 @@ uses
   {$ENDIF}
   Classes, SysUtils,
   udatenbank, umaske, ubeleg, ubenutzer, uartikel, unachschlage, uprojekt,
-  utextbaustein, udruck, umodulart, urechner, udatum, udrucklayout;
+  utextbaustein, udruck, umodulart, urechner, udatum, udrucklayout, utestdaten;
 
 var
   DB: TPlanlosDatenbank;
@@ -694,6 +694,44 @@ begin
         Fehlschlag('Die Masken wurden verdoppelt.');
       if DB.Ganzzahl('SELECT COUNT(*) FROM benutzer') <> 1 then
         Fehlschlag('Der Anwender wurde beim erneuten Schema verdoppelt.');
+      if not TestdatenEinfuegen(Meldung) then
+        Fehlschlag(Meldung);
+      if not TestdatenMaskenPruefen(Meldung) then
+        Fehlschlag(Meldung);
+      if TestdatenEinfuegen(Meldung) then
+        Fehlschlag('Die Testdaten wurden ein zweites Mal eingespielt.');
+      if DB.Ganzzahl(
+        'SELECT COUNT(*) FROM adresse a JOIN adresskategorie k ON k.id = a.kategorie_id ' +
+        'WHERE a.firma = ''Meier GmbH'' AND k.bezeichnung = ''Kunde''') <> 1 then
+        Fehlschlag('Der Beispielkunde wurde doppelt angelegt.');
+      if DB.Ganzzahl(
+        'SELECT gewicht_milli FROM artikel WHERE bezeichnung = ''Eiche gehobelt''') <> 0 then
+        Fehlschlag('Ein leeres Zahlenfeld des Artikels ist nicht 0.');
+      if DB.Ganzzahl(
+        'SELECT zahl1_milli FROM artikel WHERE bezeichnung = ''Montage''') <> 0 then
+        Fehlschlag('Zahl1 der Montage ist nicht 0.');
+      AngebotId := DB.Ganzzahl(
+        'SELECT b.id FROM beleg b JOIN modulart m ON m.id = b.modulart_id ' +
+        'WHERE m.kuerzel = ''angebot'' AND b.bezeichnung = ''Fenster Erdgeschoss''');
+      if not BelegLaden(AngebotId, Kopf, Positionen) then
+        Fehlschlag('Der Beispielbeleg lässt sich nicht laden.');
+      if not DruckvorlageFuer('angebot', Vorlage) then
+        Fehlschlag('Die Druckvorlage für den Beispielbeleg fehlt.');
+      if not BelegPdfSchreiben(Kopf, Positionen, Vorlage, 'Angebot', 'Klaus Berger',
+        GetTempDir + 'planlos-testdaten.pdf', SeitenZahl, FolgeFehler) then
+        Fehlschlag(FolgeFehler);
+      Inhalt := '';
+      with TFileStream.Create(GetTempDir + 'planlos-testdaten.pdf', fmOpenRead) do
+      try
+        SetLength(Inhalt, Size);
+        if Size > 0 then
+          ReadBuffer(Inhalt[1], Size);
+      finally
+        Free;
+      end;
+      if (Copy(Inhalt, 1, 5) <> '%PDF-') or (Pos('Meier', Inhalt) = 0) or
+         (Pos('Eiche', Inhalt) = 0) then
+        Fehlschlag('Der Beispielbeleg lässt sich nicht drucken.');
     end
     else
     begin
