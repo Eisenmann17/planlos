@@ -12,7 +12,7 @@ uses
   cwstring,
   {$ENDIF}
   Classes, SysUtils,
-  udatenbank, umaske, ubeleg, ubenutzer;
+  udatenbank, umaske, ubeleg, ubenutzer, uartikel;
 
 var
   DB: TPlanlosDatenbank;
@@ -115,16 +115,16 @@ begin
         Fehlschlag('Die Installationskennung hat sich geändert.');
       if DB.Ganzzahl('SELECT COUNT(*) FROM modulart') <> 5 then
         Fehlschlag('Das Schema hat Belegarten verdoppelt.');
-      if DB.Ganzzahl('SELECT version FROM schema_info WHERE id = 1') <> 5 then
-        Fehlschlag('Das Schema soll auf Version 5 stehen.');
+      if DB.Ganzzahl('SELECT version FROM schema_info WHERE id = 1') <> 6 then
+        Fehlschlag('Das Schema soll auf Version 6 stehen.');
       if DB.Ganzzahl(
         'SELECT datensatz_kopieren FROM modulart WHERE kuerzel = ''angebot''') <> 1 then
         Fehlschlag('DatensatzKopieren soll für Angebote an sein.');
       if DB.Ganzzahl(
         'SELECT kopieren_an FROM maske WHERE kuerzel = ''kunde''') <> 1 then
         Fehlschlag('KopierenAn soll für Kunden an sein.');
-      if DB.Ganzzahl('SELECT COUNT(*) FROM maske') <> 4 then
-        Fehlschlag('Es sollen 4 Kontaktmasken angelegt sein.');
+      if DB.Ganzzahl('SELECT COUNT(*) FROM maske') <> 8 then
+        Fehlschlag('Es sollen 8 Masken angelegt sein.');
       if DB.Ganzzahl('SELECT COUNT(*) FROM maskenfeld') < 80 then
         Fehlschlag('Die Maskenfelder fehlen.');
       if DB.Skalar(
@@ -325,6 +325,14 @@ begin
         Fehlschlag('Admin darf drucken: ' + Meldung);
       if not AktionZulaessig('beleg', 'angebot', 'kopieren', Meldung) then
         Fehlschlag('Admin darf Angebote kopieren: ' + Meldung);
+      if VerkaufspreisCent(1000, 1500) <> 1150 then
+        Fehlschlag('15 Prozent auf 10 Euro sind nicht 11,50.');
+      if BruttoCent(1150, 19) <> 1369 then
+        Fehlschlag('19 Prozent auf 11,50 Euro sind nicht 13,69.');
+      if DB.Ganzzahl('SELECT COUNT(*) FROM einheit') <> 4 then
+        Fehlschlag('Die vier alten Einheiten fehlen.');
+      if not AktionZulaessig('maske', 'artikel', 'loeschen', Meldung) then
+        Fehlschlag('Admin darf Artikel löschen: ' + Meldung);
       DB.Ausfuehren(
         'UPDATE modulart SET datensatz_kopieren = 0 WHERE kuerzel = ''angebot''', nil);
       if AktionZulaessig('beleg', 'angebot', 'kopieren', Meldung) then
@@ -405,7 +413,7 @@ begin
       DB.SchemaSicherstellen;
       if TrefferZahl('mitarbeiter', 'Meier') <> 1 then
         Fehlschlag('Der Mitarbeiter wurde vom erneuten Schema verändert.');
-      if DB.Ganzzahl('SELECT COUNT(*) FROM maske') <> 4 then
+      if DB.Ganzzahl('SELECT COUNT(*) FROM maske') <> 8 then
         Fehlschlag('Die Masken wurden verdoppelt.');
       if DB.Ganzzahl('SELECT COUNT(*) FROM benutzer') <> 1 then
         Fehlschlag('Der Anwender wurde beim erneuten Schema verdoppelt.');
