@@ -20,7 +20,7 @@ uses
   {$ENDIF}
   Interfaces, // zieht das LCL-Widgetset (Fenster) herein
   Forms, SysUtils,
-  uhaupt, uanmeldung, ubenutzer;
+  uhaupt, uanmeldung, ubenutzer, urechnerfenster;
 
 var
   Meldung: string;

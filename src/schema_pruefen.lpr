@@ -13,7 +13,7 @@ uses
   {$ENDIF}
   Classes, SysUtils,
   udatenbank, umaske, ubeleg, ubenutzer, uartikel, unachschlage, uprojekt,
-  utextbaustein, udruck, umodulart;
+  utextbaustein, udruck, umodulart, urechner;
 
 var
   DB: TPlanlosDatenbank;
@@ -123,6 +123,27 @@ begin
         Fehlschlag('Das Schema hat Belegarten verdoppelt.');
       if DB.Ganzzahl('SELECT version FROM schema_info WHERE id = 1') <> 11 then
         Fehlschlag('Das Schema soll auf Version 11 stehen.');
+      if not RechnerAuswerten('1,5 + 2,5', Rabatt, FolgeFehler) or
+         (Abs(Rabatt - 4) > 0.0001) then
+        Fehlschlag('1,5 + 2,5 ist nicht 4.');
+      if not RechnerAuswerten('10*3', Rabatt, FolgeFehler) or (Abs(Rabatt - 30) > 0.0001) then
+        Fehlschlag('10 mal 3 ist nicht 30.');
+      if not RechnerAuswerten('100/4', Rabatt, FolgeFehler) or (Abs(Rabatt - 25) > 0.0001) then
+        Fehlschlag('100 geteilt durch 4 ist nicht 25.');
+      if not RechnerAuswerten('200+10%', Rabatt, FolgeFehler) or
+         (Abs(Rabatt - 220) > 0.0001) then
+        Fehlschlag('200 plus 10 Prozent sind nicht 220.');
+      if not RechnerAuswerten('200-10%', Rabatt, FolgeFehler) or
+         (Abs(Rabatt - 180) > 0.0001) then
+        Fehlschlag('200 minus 10 Prozent sind nicht 180.');
+      if not RechnerAuswerten('50*10%', Rabatt, FolgeFehler) or (Abs(Rabatt - 5) > 0.0001) then
+        Fehlschlag('50 mal 10 Prozent sind nicht 5.');
+      if RechnerAuswerten('1/0', Rabatt, FolgeFehler) then
+        Fehlschlag('Teilen durch null hätte scheitern müssen.');
+      if RechnerText(12.5) <> '12,5' then
+        Fehlschlag('12,5 wird falsch geschrieben: ' + RechnerText(12.5));
+      if RechnerText(-3) <> '-3' then
+        Fehlschlag('Minus 3 wird falsch geschrieben.');
       if not DruckvorlageFuer('angebot', Vorlage) or (Vorlage.RandLinksMm <> 25) or
          (Vorlage.AnschriftObenMm <> 45) or (Vorlage.TextObenMm <> 105) then
         Fehlschlag('Die Standard-Druckvorlage fehlt oder hat nicht die DIN-Maße.');
