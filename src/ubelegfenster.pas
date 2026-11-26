@@ -124,7 +124,7 @@ type
     procedure KlappenLesen;
     procedure Klappe(const Bereich: string);
     procedure Anordnen;
-    procedure LeisteOrdnen;
+    procedure LeisteOrdnen(Sender: TObject);
     procedure FolgeKnopfe;
     procedure FolgeKlick(Sender: TObject);
     procedure FelderFuellen;
@@ -261,6 +261,7 @@ begin
   FRand.Height := PanelUnten.Height + PanelLeiste.Height;
   PanelLeiste.Parent := FRand;
   PanelLeiste.Align := alBottom;
+  PanelLeiste.OnResize := @LeisteOrdnen;
   PanelUnten.Parent := FRand;
   PanelUnten.Align := alClient;
   FZeile := -1;
@@ -722,11 +723,11 @@ begin
   Folge(TButton(Sender).Hint);
 end;
 
-procedure TBelegfenster.LeisteOrdnen;
+procedure TBelegfenster.LeisteOrdnen(Sender: TObject);
 var
   Knopfe: array[0..16] of TButton;
   Schilder: array[0..16] of TLabel;
-  Anzahl, i, Links: Integer;
+  Anzahl, i, Rest, Slot, Breite, Links: Integer;
 
   procedure Dazu(Knopf: TButton; Schild: TLabel);
   begin
@@ -738,6 +739,15 @@ var
   end;
 
 begin
+  if (PanelLeiste = nil) or (ButtonSpeichern = nil) then
+    Exit;
+  ButtonSpeichern.Anchors := [akTop];
+  LabelF10.Anchors := [akTop];
+  ButtonSpeichern.Width := 92;
+  ButtonSpeichern.Left := PanelLeiste.ClientWidth - ButtonSpeichern.Width - 4;
+  ButtonSpeichern.Top := 16;
+  LabelF10.Left := ButtonSpeichern.Left;
+  LabelF10.Width := ButtonSpeichern.Width;
   Anzahl := 0;
   Dazu(ButtonAbbrechen, LabelEsc);
   Dazu(ButtonNeu, LabelF2);
@@ -748,21 +758,33 @@ begin
   Dazu(ButtonLoeschen, LabelF8);
   for i := 0 to High(FFolge) do
     Dazu(FFolge[i], nil);
-  Links := 4;
+  if Anzahl = 0 then
+    Exit;
+  Rest := ButtonSpeichern.Left - 4;
+  if Rest < Anzahl * 36 then
+    Rest := Anzahl * 36;
+  Slot := Rest div Anzahl;
+  Breite := 70;
+  if Slot - 4 < Breite then
+    Breite := Slot - 4;
+  if Breite < 36 then
+    Breite := 36;
   for i := 0 to Anzahl - 1 do
   begin
+    Links := i * Slot + (Slot - Breite) div 2;
+    if Links < 0 then
+      Links := 0;
+    Knopfe[i].Anchors := [akTop];
+    Knopfe[i].Width := Breite;
     Knopfe[i].Left := Links;
     Knopfe[i].Top := 16;
     if Schilder[i] <> nil then
     begin
+      Schilder[i].Anchors := [akTop];
       Schilder[i].Left := Links;
-      Schilder[i].Width := Knopfe[i].Width;
+      Schilder[i].Width := Breite;
     end;
-    Links := Links + Knopfe[i].Width + 4;
   end;
-  ButtonSpeichern.Left := PanelLeiste.ClientWidth - ButtonSpeichern.Width - 4;
-  LabelF10.Left := ButtonSpeichern.Left;
-  LabelF10.Width := ButtonSpeichern.Width;
 end;
 
 procedure TBelegfenster.FormZeigen(Sender: TObject);
@@ -780,13 +802,13 @@ begin
   SummenZeigen;
   FolgeKnopfe;
   Knoepfe;
-  LeisteOrdnen;
+  LeisteOrdnen(nil);
 end;
 
 procedure TBelegfenster.FormGeaendert(Sender: TObject);
 begin
   if FRand <> nil then
-    LeisteOrdnen;
+    LeisteOrdnen(nil);
 end;
 
 procedure TBelegfenster.ZeileAnlegen;
