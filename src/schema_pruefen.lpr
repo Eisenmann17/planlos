@@ -118,8 +118,8 @@ begin
         Fehlschlag('Die Installationskennung hat sich geändert.');
       if DB.Ganzzahl('SELECT COUNT(*) FROM modulart') <> 5 then
         Fehlschlag('Das Schema hat Belegarten verdoppelt.');
-      if DB.Ganzzahl('SELECT version FROM schema_info WHERE id = 1') <> 8 then
-        Fehlschlag('Das Schema soll auf Version 8 stehen.');
+      if DB.Ganzzahl('SELECT version FROM schema_info WHERE id = 1') <> 9 then
+        Fehlschlag('Das Schema soll auf Version 9 stehen.');
       if DB.Ganzzahl(
         'SELECT datensatz_kopieren FROM modulart WHERE kuerzel = ''angebot''') <> 1 then
         Fehlschlag('DatensatzKopieren soll für Angebote an sein.');
@@ -300,6 +300,52 @@ begin
         Fehlschlag('Eine Bestellung sucht den Lieferanten.');
       if not BelegartLaden('projekt', Art) or Art.Summe or Art.Mwst or Art.Positionen then
         Fehlschlag('Ein Projekt hat keine Positionen und keine MwSt.');
+      if not Art.Intern then
+        Fehlschlag('Ein Projekt zeigt den internen Bereich.');
+      if not BelegartLaden('angebot', Art) or (Art.Breite <> 793) or
+         (Art.ZeichenText <> 'Ihr Zeichen:') or not Art.ZeigeKopftext then
+        Fehlschlag('Die Angebotsmaske hat nicht die alten Maße oder Felder.');
+      if BereichHoehe('summe', False) <> 23 then
+        Fehlschlag('Zugeklappte Summen dürfen nicht die Fußhöhe bekommen.');
+      if BereichHoehe('fuss', False) <> 17 then
+        Fehlschlag('Der zugeklappte Fuß ist 17 hoch.');
+      if BereichHoehe('summe', True) <> 94 then
+        Fehlschlag('Offene Summen sind 94 hoch.');
+      if VkCent(1000, 1500, 0) <> 1150 then
+        Fehlschlag('15 Prozent auf 10 Euro sind nicht 11,50.');
+      if VkCent(1000, 1500, 1000) <> 1035 then
+        Fehlschlag('10 Prozent Rabatt auf 11,50 Euro sind nicht 10,35.');
+      SetLength(Positionen, 1);
+      Positionen[0] := Default(TBelegPosition);
+      Positionen[0].MengeMilli := 1000;
+      Positionen[0].EkCent := 1000;
+      Positionen[0].EinzelpreisCent := 1150;
+      if InternRechnen(Positionen).GewinnCent <> 150 then
+        Fehlschlag('Der Gewinn aus 10 Euro EK und 11,50 VK ist nicht 1,50.');
+      KlappMerken('Admin', 1, 'summe', False);
+      if KlappOffen('Admin', 1, 'summe', True) then
+        Fehlschlag('Der zugeklappte Bereich wurde nicht gemerkt.');
+      if not BelegLaden(AngebotId, Kopf, Positionen) then
+        Fehlschlag('Das Angebot lässt sich für den Preis nicht lesen.');
+      Positionen[0].EkCent := 2500;
+      Positionen[0].AufschlagBp := 1000;
+      Positionen[0].RabattBp := 500;
+      Kopf.IhrZeichen := 'AZ-9';
+      if BelegSpeichern(Kopf, Positionen, FolgeFehler) = 0 then
+        Fehlschlag(FolgeFehler);
+      if not BelegLaden(AngebotId, Kopf, Positionen) then
+        Fehlschlag('Das Angebot lässt sich nach dem Preis nicht lesen.');
+      if (Positionen[0].EkCent <> 2500) or (Positionen[0].AufschlagBp <> 1000) or
+         (Positionen[0].RabattBp <> 500) or (Kopf.IhrZeichen <> 'AZ-9') then
+        Fehlschlag('EK, Aufschlag, Rabatt oder Ihr Zeichen bleiben nicht stehen.');
+      if SummeRechnen(Positionen, Kopf.MwstRechnen).BruttoCent <> 2082 then
+        Fehlschlag('Der gespeicherte EK darf die VK-Summe nicht ändern.');
+      Positionen[0].EkCent := 0;
+      Positionen[0].AufschlagBp := 0;
+      Positionen[0].RabattBp := 0;
+      Kopf.IhrZeichen := '';
+      if BelegSpeichern(Kopf, Positionen, FolgeFehler) = 0 then
+        Fehlschlag(FolgeFehler);
       if BelegAnzahl('angebot', 'Meier') <> 0 then
         Fehlschlag('Die Belegsuche findet einen falschen Namen.');
       if BelegAnzahl('angebot', 'ANG-1') <> 1 then

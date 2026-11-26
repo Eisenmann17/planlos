@@ -803,10 +803,10 @@ begin
 
   if Ganzzahl('SELECT COUNT(*) FROM schema_info') = 0 then
     Direkt(
-      'INSERT INTO schema_info (id, version, angelegt) VALUES (1, 8, ' +
+      'INSERT INTO schema_info (id, version, angelegt) VALUES (1, 9, ' +
       QuotedStr(FormatDateTime('yyyy-mm-dd"T"hh:nn:ss', Now)) + ')')
-  else if Ganzzahl('SELECT version FROM schema_info WHERE id = 1') < 8 then
-    Direkt('UPDATE schema_info SET version = 8 WHERE id = 1');
+  else if Ganzzahl('SELECT version FROM schema_info WHERE id = 1') < 9 then
+    Direkt('UPDATE schema_info SET version = 9 WHERE id = 1');
 end;
 
 procedure TPlanlosDatenbank.ArtikelSchema;
@@ -1629,6 +1629,34 @@ begin
   Spalte('beleg', 'bearbeiter_id', 'INTEGER');
   Spalte('beleg', 'gruppierung', 'TEXT');
   Spalte('beleg', 'projekt_id', 'INTEGER');
+  Spalte('beleg', 'adresse_text', 'TEXT');
+  Spalte('beleg', 'ihr_zeichen', 'TEXT');
+  Spalte('modulart', 'intern_en', 'INTEGER NOT NULL DEFAULT 1');
+  Spalte('modulart', 'fenster_kopf_an', 'INTEGER NOT NULL DEFAULT 1');
+  Spalte('modulart', 'fenster_intern_an', 'INTEGER NOT NULL DEFAULT 1');
+  Spalte('modulart', 'fenster_summe_an', 'INTEGER NOT NULL DEFAULT 1');
+  Spalte('modulart', 'fenster_fuss_an', 'INTEGER NOT NULL DEFAULT 1');
+  Spalte('modulart', 'intern_projekt', 'INTEGER NOT NULL DEFAULT 1');
+  Spalte('modulart', 'intern_adresse', 'INTEGER NOT NULL DEFAULT 1');
+  Spalte('modulart', 'intern_bezeichnung', 'INTEGER NOT NULL DEFAULT 1');
+  Spalte('modulart', 'intern_gruppierung', 'INTEGER NOT NULL DEFAULT 1');
+  Spalte('modulart', 'intern_notiz', 'INTEGER NOT NULL DEFAULT 1');
+  Spalte('modulart', 'kopf_adressfeld', 'INTEGER NOT NULL DEFAULT 1');
+  Spalte('modulart', 'kopf_nr', 'INTEGER NOT NULL DEFAULT 1');
+  Spalte('modulart', 'kopf_datum', 'INTEGER NOT NULL DEFAULT 1');
+  Spalte('modulart', 'kopf_bearbeiter', 'INTEGER NOT NULL DEFAULT 1');
+  Spalte('modulart', 'kopf_zeichen', 'INTEGER NOT NULL DEFAULT 1');
+  Spalte('modulart', 'kopf_zeichen_text', 'TEXT NOT NULL DEFAULT ''Ihr Zeichen:''');
+  Spalte('modulart', 'kopftext_an', 'INTEGER NOT NULL DEFAULT 1');
+  Spalte('modulart', 'fusstext_an', 'INTEGER NOT NULL DEFAULT 1');
+  Spalte('modulart', 'mwst_satz', 'INTEGER NOT NULL DEFAULT 19');
+  Direkt(
+    'CREATE TABLE IF NOT EXISTS klappzustand (' +
+    'benutzer TEXT NOT NULL, ' +
+    'modulart_id INTEGER NOT NULL, ' +
+    'bereich TEXT NOT NULL, ' +
+    'offen INTEGER NOT NULL, ' +
+    'PRIMARY KEY (benutzer, modulart_id, bereich))');
   Direkt(
     'CREATE UNIQUE INDEX IF NOT EXISTS idx_beleg_nummer ON beleg(modulart_id, nummer)');
   Direkt(
@@ -1642,6 +1670,12 @@ begin
     'einheit TEXT, ' +
     'einzelpreis_cent INTEGER NOT NULL, ' +
     'mwst_satz INTEGER NOT NULL DEFAULT 0)');
+  Spalte('belegposition', 'gruppe', 'TEXT');
+  Spalte('belegposition', 'artikelname', 'TEXT');
+  Spalte('belegposition', 'ek_cent', 'INTEGER NOT NULL DEFAULT 0');
+  Spalte('belegposition', 'einheit_ek', 'TEXT');
+  Spalte('belegposition', 'aufschlag_bp', 'INTEGER NOT NULL DEFAULT 0');
+  Spalte('belegposition', 'rabatt_bp', 'INTEGER NOT NULL DEFAULT 0');
   Direkt(
     'CREATE INDEX IF NOT EXISTS idx_belegposition_beleg ON belegposition(beleg_id)');
   Direkt(
@@ -1690,6 +1724,20 @@ begin
       'fenster_links = 130, fenster_oben = 80, fenster_breite = 720, fenster_hoehe = 460 ' +
       'WHERE kuerzel = ''projekt''');
     ParameterSetzen('modulart_beleg_v3', '1');
+  end;
+
+  if ParameterLesen('belegfenster_v9', '') = '' then
+  begin
+    Direkt(
+      'UPDATE modulart SET fenster_links = 50, fenster_oben = 50, ' +
+      'fenster_breite = 793, fenster_hoehe = 660, mwst_satz = 19, ' +
+      'kopf_zeichen_text = ''Ihr Zeichen:'' WHERE kuerzel IN ' +
+      '(''angebot'', ''auftragsbestaetigung'', ''bestellung'', ''rechnung'')');
+    Direkt(
+      'UPDATE modulart SET kopftext_an = 0, fusstext_an = 0, kopf_zeichen = 0, ' +
+      'fenster_summe_an = 0, fenster_fuss_an = 0, mwst_satz = 0 ' +
+      'WHERE kuerzel = ''projekt''');
+    ParameterSetzen('belegfenster_v9', '1');
   end;
 
   Folge(1, 2);
