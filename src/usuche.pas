@@ -47,6 +47,7 @@ type
     FAendernAn: Boolean;
     FLoeschenAn: Boolean;
     FVorgabe: Boolean;
+    FEinschraenkung: string;
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure KnopfKlick(Sender: TObject);
     procedure ListeKlick(Sender: TObject);
@@ -72,17 +73,21 @@ type
     procedure UebernehmenNeueId(Id: Int64);
     procedure SetzeFilter(const Suchtext: string);
     procedure SetzeFunktionen(Neu, Kopieren, Aendern, Loeschen: Boolean);
+    procedure SetzeEinschraenkung(const Wert: string);
   end;
 
 procedure AdressSucheZeigen(const Kuerzel: string);
 function AdressSucheWaehlen(const Kuerzel: string): Int64;
 function ListenWahl(const Kuerzel: string; Bearbeiten: Boolean; out Id: Int64): Boolean;
+function ListenWahlMit(const Kuerzel, Einschraenkung: string; Bearbeiten: Boolean;
+  out Id: Int64): Boolean;
 
 implementation
 
 uses
   ubenutzer, uartikel, uartikelfenster, uartikelgruppe, unachschlage,
-  unachschlagefenster;
+  unachschlagefenster, uprojekt, uprojektfenster, utextbaustein,
+  utextbausteinfenster;
 
 procedure AdressSucheZeigen(const Kuerzel: string);
 var
@@ -127,7 +132,8 @@ begin
   end;
 end;
 
-function ListenWahl(const Kuerzel: string; Bearbeiten: Boolean; out Id: Int64): Boolean;
+function ListenWahlMit(const Kuerzel, Einschraenkung: string; Bearbeiten: Boolean;
+  out Id: Int64): Boolean;
 var
   Fenster: TSuchfenster;
   Meldung: string;
@@ -142,6 +148,7 @@ begin
   Fenster := TSuchfenster.Create(Application);
   try
     Fenster.FModal := True;
+    Fenster.FEinschraenkung := Einschraenkung;
     if not Fenster.Oeffne(Kuerzel) then
       Exit;
     if not Bearbeiten then
@@ -154,6 +161,16 @@ begin
   finally
     Fenster.Free;
   end;
+end;
+
+function ListenWahl(const Kuerzel: string; Bearbeiten: Boolean; out Id: Int64): Boolean;
+begin
+  Result := ListenWahlMit(Kuerzel, '', Bearbeiten, Id);
+end;
+
+procedure TSuchfenster.SetzeEinschraenkung(const Wert: string);
+begin
+  FEinschraenkung := Wert;
 end;
 
 constructor TSuchfenster.Create(TheOwner: TComponent);
@@ -335,7 +352,15 @@ begin
   Zeilen := TStringList.Create;
   TeileZeile := TStringList.Create;
   try
-    if Stammliste(FKuerzel) then
+    if FKuerzel = 'projekt' then
+      ProjektLesen(FFilter.Text, Spalten, Zeilen)
+    else if FKuerzel = 'textbaustein' then
+      TextbausteinLesen(FFilter.Text, FEinschraenkung, Spalten, Zeilen)
+    else if FKuerzel = 'modulart' then
+      ModulartLesen(FFilter.Text, Spalten, Zeilen)
+    else if FKuerzel = 'benutzer' then
+      BenutzerLesen(FFilter.Text, Spalten, Zeilen)
+    else if Stammliste(FKuerzel) then
       StammLesen(FKuerzel, FFilter.Text, Spalten, Zeilen)
     else
       TrefferLesen(FKuerzel, FFilter.Text, Spalten, Zeilen);
@@ -618,9 +643,82 @@ begin
     (Aktionsname = 'kopieren') or (Aktionsname = 'loeschen');
   if not Result then
     Exit;
-  if FKuerzel = 'berechnungsart' then
+  if (FKuerzel = 'berechnungsart') or (FKuerzel = 'modulart') or
+     (FKuerzel = 'benutzer') then
   begin
     ShowMessage('Diese Liste wird nur zum Aussuchen benutzt.');
+    Exit;
+  end;
+  if (FKuerzel = 'projekt') or (FKuerzel = 'textbaustein') then
+  begin
+    if not AktionZulaessig('maske', FKuerzel, Aktionsname, Meldung) then
+    begin
+      ShowMessage(Meldung);
+      Exit;
+    end;
+    if Aktionsname = 'neu' then
+    begin
+      if FKuerzel = 'projekt' then
+        Id := ProjektBearbeiten(0)
+      else
+        Id := TextbausteinBearbeiten(0);
+    end
+    else if Aktionsname = 'aendern' then
+    begin
+      Id := GewaehlteId;
+      if Id = 0 then
+      begin
+        ShowMessage('Bitte zuerst eine Zeile auswählen.');
+        Exit;
+      end;
+      if FKuerzel = 'projekt' then
+        Id := ProjektBearbeiten(Id)
+      else
+        Id := TextbausteinBearbeiten(Id);
+      if Id = 0 then
+        Exit;
+    end
+    else if Aktionsname = 'kopieren' then
+    begin
+      Id := GewaehlteId;
+      if Id = 0 then
+      begin
+        ShowMessage('Bitte zuerst eine Zeile auswählen.');
+        Exit;
+      end;
+      if FKuerzel = 'projekt' then
+        Id := ProjektKopieren(Id, Fehler)
+      else
+        Id := TextbausteinKopieren(Id, Fehler);
+      if Id = 0 then
+      begin
+        ShowMessage(Fehler);
+        Exit;
+      end;
+    end
+    else
+    begin
+      Id := GewaehlteId;
+      if Id = 0 then
+        Exit;
+      if MessageDlg('Datensatz Nr. ' + IntToStr(Id) + ' löschen?',
+        mtConfirmation, [mbYes, mbNo], 0) <> mrYes then
+        Exit;
+      if FKuerzel = 'projekt' then
+      begin
+        if ProjektLoeschen(Id, Fehler) then
+          ListeLaden
+        else
+          ShowMessage(Fehler);
+      end
+      else if TextbausteinLoeschen(Id, Fehler) then
+        ListeLaden
+      else
+        ShowMessage(Fehler);
+      Exit;
+    end;
+    if Id > 0 then
+      UebernehmenNeueId(Id);
     Exit;
   end;
   if NachschlageArt(FKuerzel) then

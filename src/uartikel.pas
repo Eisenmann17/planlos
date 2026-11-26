@@ -105,7 +105,9 @@ end;
 function Stammliste(const Kuerzel: string): Boolean;
 begin
   Result := (Kuerzel = 'artikel') or (Kuerzel = 'artikelgruppe') or
-    (Kuerzel = 'berechnungsart') or NachschlageArt(Kuerzel);
+    (Kuerzel = 'berechnungsart') or (Kuerzel = 'projekt') or
+    (Kuerzel = 'textbaustein') or (Kuerzel = 'modulart') or
+    (Kuerzel = 'benutzer') or NachschlageArt(Kuerzel);
 end;
 
 function VerkaufspreisCent(EkCent: Int64; AufschlagBp: Integer): Int64;
