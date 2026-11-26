@@ -59,6 +59,8 @@ jobs:
           New-Item -ItemType Directory -Force -Path $ziel | Out-Null
           Copy-Item bin\planlos.exe "$ziel\planlos.exe" -Force
           Copy-Item sqlite-dll\sqlite3.dll "$ziel\sqlite3.dll" -Force
+          New-Item -ItemType Directory -Force -Path "$ziel\daten" | Out-Null
+          Copy-Item daten\testdaten.txt "$ziel\daten\testdaten.txt" -Force
           $text = [System.IO.File]::ReadAllText((Resolve-Path "dist\LIESMICH.txt"))
           $text = $text -replace "(?<!\r)\n", "`r`n"
           [System.IO.File]::WriteAllText("$ziel\LIESMICH.txt", $text)

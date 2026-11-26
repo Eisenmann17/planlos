@@ -615,6 +615,27 @@ object Hauptfenster: THauptfenster
       Caption = 'Wartung/Hilfe'
       ClientHeight = 598
       ClientWidth = 1298
+      object PanelTestdaten: TPanel
+        Left = 0
+        Height = 40
+        Top = 0
+        Width = 1298
+        Align = alTop
+        BevelOuter = bvNone
+        Caption = ''
+        ClientHeight = 40
+        ClientWidth = 1298
+        TabOrder = 1
+        object ButtonTestdaten: TButton
+          Left = 16
+          Height = 25
+          Top = 8
+          Width = 180
+          Caption = 'Testdaten einspielen'
+          OnClick = MenueTestdaten
+          TabOrder = 0
+        end
+      end
       object MemoHilfe: TMemo
         Left = 8
         Height = 582
@@ -768,6 +789,10 @@ object Hauptfenster: THauptfenster
       object MenuDatenbank: TMenuItem
         Caption = '&Datenbank'
         OnClick = MenueDatenbank
+      end
+      object MenuTestdaten: TMenuItem
+        Caption = '&Testdaten'
+        OnClick = MenueTestdaten
       end
       object MenuUeber: TMenuItem
         Caption = 'Über &Planlos'

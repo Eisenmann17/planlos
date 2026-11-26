@@ -75,6 +75,8 @@ type
     ButtonProjekt: TButton;
     ButtonTextbaustein: TButton;
     ButtonBelegart: TButton;
+    PanelTestdaten: TPanel;
+    ButtonTestdaten: TButton;
     LabelEinstellung: TLabel;
     MemoHilfe: TMemo;
     PanelTasten: TPanel;
@@ -111,6 +113,7 @@ type
     MenuHilfe: TMenuItem;
     MenuHilfeText: TMenuItem;
     MenuDatenbank: TMenuItem;
+    MenuTestdaten: TMenuItem;
     MenuUeber: TMenuItem;
     TimerTakt: TTimer;
     procedure MenueBeenden(Sender: TObject);
@@ -119,6 +122,7 @@ type
     procedure MenueAlleZu(Sender: TObject);
     procedure MenueHilfe(Sender: TObject);
     procedure MenueDatenbank(Sender: TObject);
+    procedure MenueTestdaten(Sender: TObject);
     procedure MenueUeber(Sender: TObject);
     procedure MenueKunde(Sender: TObject);
     procedure MenueLieferant(Sender: TObject);
@@ -203,7 +207,7 @@ implementation
 {$R *.lfm}
 
 uses
-  ubeleg, ubelegfenster, ubenutzer;
+  ubeleg, ubelegfenster, ubenutzer, utestdaten;
 
 function Teile(const Zeile: string; Ziel: TStrings): Boolean;
 var
@@ -968,6 +972,30 @@ procedure THauptfenster.MenueDatenbank(Sender: TObject);
 begin
   PageControl1.ActivePageIndex := 3;
   AnsichtAktualisieren;
+end;
+
+procedure THauptfenster.MenueTestdaten(Sender: TObject);
+var
+  Meldung: string;
+begin
+  if TestdatenVorhanden then
+  begin
+    ShowMessage('Die Testdaten sind schon eingespielt.');
+    Exit;
+  end;
+  if MessageDlg(
+    'Testdaten in diese Datenbank einfügen?' + LineEnding +
+    'Sinnvoll ist das in einer noch leeren Datei. Vorhandene Daten bleiben.',
+    mtConfirmation, [mbYes, mbNo], 0) <> mrYes then
+    Exit;
+  if TestdatenEinfuegen(Meldung) then
+  begin
+    ShowMessage(Meldung);
+    if Bereit then
+      ExplorerLaden;
+  end
+  else
+    ShowMessage(Meldung);
 end;
 
 procedure THauptfenster.MenueUeber(Sender: TObject);
