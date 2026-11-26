@@ -1,0 +1,112 @@
+object ArtikelWahl: TArtikelWahl
+  Left = 180
+  Height = 420
+  Top = 80
+  Width = 640
+  Caption = 'Artikel aussuchen'
+  ClientHeight = 420
+  ClientWidth = 640
+  Color = clBtnFace
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  KeyPreview = True
+  Position = poScreenCenter
+  OnKeyDown = FormKeyDown
+  OnShow = FormZeigen
+  object EditFilter: TEdit
+    Left = 8
+    Height = 23
+    Top = 8
+    Width = 624
+    Anchors = [akTop, akLeft, akRight]
+    TabOrder = 0
+    TextHint = 'Artikel'
+    OnKeyDown = FilterTaste
+  end
+  object GridGruppe: TStringGrid
+    Left = 8
+    Height = 340
+    Top = 36
+    Width = 180
+    Anchors = [akTop, akLeft, akBottom]
+    ColCount = 1
+    FixedCols = 0
+    RowCount = 2
+    Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRowSelect, goColSizing, goThumbTracking]
+    TabOrder = 1
+    OnClick = GruppeKlick
+  end
+  object GridArtikel: TStringGrid
+    Left = 196
+    Height = 340
+    Top = 36
+    Width = 436
+    Anchors = [akTop, akLeft, akRight, akBottom]
+    ColCount = 2
+    FixedCols = 0
+    RowCount = 2
+    Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRowSelect, goColSizing, goThumbTracking]
+    TabOrder = 2
+    OnDblClick = ArtikelDoppel
+  end
+  object PanelKnopf: TPanel
+    Left = 0
+    Height = 40
+    Top = 380
+    Width = 640
+    Align = alBottom
+    BevelOuter = bvNone
+    Caption = ''
+    ClientHeight = 40
+    ClientWidth = 640
+    TabOrder = 3
+    object LabelEsc: TLabel
+      Left = 8
+      Height = 14
+      Top = 0
+      Width = 92
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'ESC'
+      Font.Color = clTeal
+      Font.Height = -11
+      Font.Name = 'MS Sans Serif'
+      ParentFont = False
+    end
+    object ButtonZurueck: TButton
+      Left = 8
+      Height = 22
+      Top = 16
+      Width = 92
+      Cancel = True
+      Caption = 'zurück'
+      OnClick = ZurueckKlick
+      TabOrder = 0
+    end
+    object LabelReturn: TLabel
+      Left = 536
+      Height = 14
+      Top = 0
+      Width = 96
+      Alignment = taCenter
+      Anchors = [akTop, akRight]
+      AutoSize = False
+      Caption = 'Return'
+      Font.Color = clTeal
+      Font.Height = -11
+      Font.Name = 'MS Sans Serif'
+      ParentFont = False
+    end
+    object ButtonUebernehmen: TButton
+      Left = 536
+      Height = 22
+      Top = 16
+      Width = 96
+      Anchors = [akTop, akRight]
+      Caption = 'übernehmen'
+      OnClick = UebernehmenKlick
+      TabOrder = 1
+    end
+  end
+end

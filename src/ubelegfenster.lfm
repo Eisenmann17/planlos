@@ -1,0 +1,602 @@
+object Belegfenster: TBelegfenster
+  Left = 50
+  Height = 660
+  Top = 50
+  Width = 793
+  Caption = 'Beleg'
+  ClientHeight = 660
+  ClientWidth = 785
+  Color = clBtnFace
+  Constraints.MinHeight = 360
+  Constraints.MinWidth = 515
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  KeyPreview = True
+  Position = poDesigned
+  OnCreate = FormErzeugen
+  OnKeyDown = FormKeyDown
+  OnResize = FormGeaendert
+  OnShow = FormZeigen
+  object PanelKopf: TPanel
+    Left = 0
+    Height = 182
+    Top = 0
+    Width = 785
+    Align = alTop
+    BevelOuter = bvNone
+    Caption = ''
+    ClientHeight = 182
+    ClientWidth = 785
+    TabOrder = 0
+    object LabelKopf: TLabel
+      Left = 0
+      Height = 17
+      Top = 0
+      Width = 785
+      Align = alTop
+      AutoSize = False
+      Caption = '▾ Kopf'
+      Font.Color = clNavy
+      Font.Style = [fsBold]
+      ParentFont = False
+      OnDblClick = KopfKlappen
+    end
+    object MemoAdresse: TMemo
+      Left = 8
+      Height = 72
+      Top = 20
+      Width = 340
+      ReadOnly = True
+      ScrollBars = ssVertical
+      TabOrder = 0
+    end
+    object LabelKopftext: TLabel
+      Left = 8
+      Height = 13
+      Top = 96
+      Width = 70
+      Caption = 'Kopftext >'
+      OnClick = KopftextSuchen
+    end
+    object MemoKopf: TMemo
+      Left = 8
+      Height = 64
+      Top = 112
+      Width = 460
+      ScrollBars = ssVertical
+      TabOrder = 1
+    end
+    object LabelNrTitel: TLabel
+      Left = 500
+      Height = 13
+      Top = 22
+      Width = 20
+      Anchors = [akTop, akRight]
+      Caption = 'Nr.'
+    end
+    object LabelNr: TLabel
+      Left = 620
+      Height = 13
+      Top = 22
+      Width = 150
+      Anchors = [akTop, akRight]
+      Caption = 'neu'
+    end
+    object LabelDatum: TLabel
+      Left = 500
+      Height = 13
+      Top = 46
+      Width = 50
+      Anchors = [akTop, akRight]
+      Caption = 'Datum >'
+      OnClick = DatumHeute
+    end
+    object EditDatum: TEdit
+      Left = 620
+      Height = 21
+      Top = 42
+      Width = 150
+      Anchors = [akTop, akRight]
+      TabOrder = 2
+    end
+    object LabelBearbeiter: TLabel
+      Left = 500
+      Height = 13
+      Top = 70
+      Width = 70
+      Anchors = [akTop, akRight]
+      Caption = 'Bearbeiter >'
+      OnClick = BearbeiterSuchen
+    end
+    object EditBearbeiter: TEdit
+      Left = 620
+      Height = 21
+      Top = 66
+      Width = 150
+      Anchors = [akTop, akRight]
+      ReadOnly = True
+      TabOrder = 3
+    end
+    object LabelZeichen: TLabel
+      Left = 500
+      Height = 13
+      Top = 94
+      Width = 80
+      Anchors = [akTop, akRight]
+      Caption = 'Ihr Zeichen:'
+    end
+    object EditZeichen: TEdit
+      Left = 620
+      Height = 21
+      Top = 90
+      Width = 150
+      Anchors = [akTop, akRight]
+      TabOrder = 4
+    end
+  end
+  object PanelIntern: TPanel
+    Left = 0
+    Height = 108
+    Top = 182
+    Width = 785
+    Align = alTop
+    BevelOuter = bvNone
+    Caption = ''
+    ClientHeight = 108
+    ClientWidth = 785
+    TabOrder = 1
+    object LabelIntern: TLabel
+      Left = 0
+      Height = 17
+      Top = 0
+      Width = 785
+      Align = alTop
+      AutoSize = False
+      Caption = '▾ Intern'
+      Font.Color = clNavy
+      Font.Style = [fsBold]
+      ParentFont = False
+      OnDblClick = InternKlappen
+    end
+    object LabelProjekt: TLabel
+      Left = 8
+      Height = 13
+      Top = 22
+      Width = 55
+      Caption = 'Projekt >'
+      OnClick = ProjektSuchen
+    end
+    object EditProjekt: TEdit
+      Left = 100
+      Height = 21
+      Top = 18
+      Width = 250
+      ReadOnly = True
+      TabOrder = 0
+    end
+    object LabelAdresse: TLabel
+      Left = 370
+      Height = 13
+      Top = 22
+      Width = 55
+      Caption = 'Adresse >'
+      OnClick = AdresseSuchen
+    end
+    object EditAdresse: TEdit
+      Left = 460
+      Height = 21
+      Top = 18
+      Width = 310
+      Anchors = [akTop, akLeft, akRight]
+      ReadOnly = True
+      TabOrder = 1
+    end
+    object LabelBezeichnungTitel: TLabel
+      Left = 8
+      Height = 13
+      Top = 46
+      Width = 70
+      Caption = 'Bezeichnung'
+    end
+    object EditBezeichnung: TEdit
+      Left = 100
+      Height = 21
+      Top = 42
+      Width = 250
+      TabOrder = 2
+    end
+    object LabelGruppe: TLabel
+      Left = 370
+      Height = 13
+      Top = 46
+      Width = 75
+      Caption = 'Gruppierung >'
+      OnClick = GruppeSuchen
+    end
+    object EditGruppe: TEdit
+      Left = 460
+      Height = 21
+      Top = 42
+      Width = 310
+      Anchors = [akTop, akLeft, akRight]
+      ReadOnly = True
+      TabOrder = 3
+    end
+    object LabelNotiz: TLabel
+      Left = 8
+      Height = 13
+      Top = 70
+      Width = 30
+      Caption = 'Notiz'
+    end
+    object MemoNotiz: TMemo
+      Left = 100
+      Height = 32
+      Top = 68
+      Width = 670
+      Anchors = [akTop, akLeft, akRight]
+      TabOrder = 4
+    end
+  end
+  object PanelUnten: TPanel
+    Left = 0
+    Height = 183
+    Top = 437
+    Width = 785
+    Align = alBottom
+    BevelOuter = bvNone
+    Caption = ''
+    ClientHeight = 183
+    ClientWidth = 785
+    TabOrder = 2
+    object PanelSumme: TPanel
+      Left = 0
+      Height = 94
+      Top = 0
+      Width = 785
+      Align = alTop
+      BevelOuter = bvNone
+      Caption = ''
+      ClientHeight = 94
+      ClientWidth = 785
+      TabOrder = 0
+      object LabelSumme: TLabel
+        Left = 0
+        Height = 18
+        Top = 0
+        Width = 120
+        AutoSize = False
+        Caption = '▾ Summen'
+        Font.Color = clNavy
+        Font.Style = [fsBold]
+        ParentFont = False
+        OnDblClick = SummeKlappen
+      end
+      object CheckSofort: TCheckBox
+        Left = 140
+        Height = 19
+        Top = 0
+        Width = 130
+        Caption = 'sofort summieren'
+        Checked = True
+        State = cbChecked
+        OnClick = SofortKlick
+        TabOrder = 0
+      end
+      object ButtonJetzt: TButton
+        Left = 280
+        Height = 18
+        Top = 0
+        Width = 120
+        Caption = 'jetzt summieren'
+        OnClick = JetztKlick
+        TabOrder = 1
+      end
+      object LabelExtern: TLabel
+        Left = 8
+        Height = 13
+        Top = 20
+        Width = 40
+        Caption = 'Extern'
+      end
+      object MemoExtern: TMemo
+        Left = 8
+        Height = 52
+        Top = 36
+        Width = 370
+        Color = clBtnFace
+        ReadOnly = True
+        ScrollBars = ssVertical
+        TabOrder = 2
+      end
+      object LabelInternSumme: TLabel
+        Left = 390
+        Height = 13
+        Top = 20
+        Width = 36
+        Caption = 'Intern'
+      end
+      object MemoIntern: TMemo
+        Left = 390
+        Height = 52
+        Top = 36
+        Width = 385
+        Anchors = [akTop, akLeft, akRight]
+        Color = clBtnFace
+        ReadOnly = True
+        ScrollBars = ssVertical
+        TabOrder = 3
+      end
+    end
+    object PanelFuss: TPanel
+      Left = 0
+      Height = 89
+      Top = 94
+      Width = 785
+      Align = alClient
+      BevelOuter = bvNone
+      Caption = ''
+      ClientHeight = 89
+      ClientWidth = 785
+      TabOrder = 1
+      object LabelFuss: TLabel
+        Left = 0
+        Height = 17
+        Top = 0
+        Width = 785
+        Align = alTop
+        AutoSize = False
+        Caption = '▾ Fuß'
+        Font.Color = clNavy
+        Font.Style = [fsBold]
+        ParentFont = False
+        OnDblClick = FussKlappen
+      end
+      object LabelFusstext: TLabel
+        Left = 8
+        Height = 13
+        Top = 18
+        Width = 55
+        Caption = 'Fußtext >'
+        OnClick = FusstextSuchen
+      end
+      object MemoFuss: TMemo
+        Left = 8
+        Height = 48
+        Top = 34
+        Width = 769
+        Anchors = [akTop, akLeft, akRight, akBottom]
+        ScrollBars = ssVertical
+        TabOrder = 0
+      end
+    end
+  end
+  object PanelLeiste: TPanel
+    Left = 0
+    Height = 40
+    Top = 620
+    Width = 785
+    Align = alBottom
+    BevelOuter = bvNone
+    Caption = ''
+    ClientHeight = 40
+    ClientWidth = 785
+    TabOrder = 3
+    object LabelEsc: TLabel
+      Left = 4
+      Height = 14
+      Top = 0
+      Width = 70
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'ESC'
+      Font.Color = clTeal
+      Font.Height = -11
+      Font.Name = 'MS Sans Serif'
+      ParentFont = False
+    end
+    object ButtonAbbrechen: TButton
+      Left = 4
+      Height = 22
+      Top = 16
+      Width = 70
+      Cancel = True
+      Caption = 'abbrechen'
+      OnClick = AbbrechenKlick
+      TabOrder = 0
+    end
+    object LabelF2: TLabel
+      Left = 78
+      Height = 14
+      Top = 0
+      Width = 70
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'F2'
+      Font.Color = clTeal
+      Font.Height = -11
+      Font.Name = 'MS Sans Serif'
+      ParentFont = False
+    end
+    object ButtonNeu: TButton
+      Left = 78
+      Height = 22
+      Top = 16
+      Width = 70
+      Caption = 'neu'
+      OnClick = NeuKlick
+      TabOrder = 1
+    end
+    object LabelF3: TLabel
+      Left = 152
+      Height = 14
+      Top = 0
+      Width = 70
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'F3'
+      Font.Color = clTeal
+      Font.Height = -11
+      Font.Name = 'MS Sans Serif'
+      ParentFont = False
+    end
+    object ButtonAusgabe: TButton
+      Left = 152
+      Height = 22
+      Top = 16
+      Width = 70
+      Caption = 'ausgabe'
+      OnClick = AusgabeKlick
+      TabOrder = 2
+    end
+    object LabelF4: TLabel
+      Left = 226
+      Height = 14
+      Top = 0
+      Width = 70
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'F4'
+      Font.Color = clTeal
+      Font.Height = -11
+      Font.Name = 'MS Sans Serif'
+      ParentFont = False
+    end
+    object ButtonSuchen: TButton
+      Left = 226
+      Height = 22
+      Top = 16
+      Width = 70
+      Caption = 'suchen'
+      OnClick = SuchenKlick
+      TabOrder = 3
+    end
+    object LabelF5: TLabel
+      Left = 300
+      Height = 14
+      Top = 0
+      Width = 70
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'F5'
+      Font.Color = clTeal
+      Font.Height = -11
+      Font.Name = 'MS Sans Serif'
+      ParentFont = False
+    end
+    object ButtonKopieren: TButton
+      Left = 300
+      Height = 22
+      Top = 16
+      Width = 70
+      Caption = 'kopieren'
+      OnClick = KopierenKlick
+      TabOrder = 4
+    end
+    object LabelF6: TLabel
+      Left = 374
+      Height = 14
+      Top = 0
+      Width = 70
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'F6'
+      Font.Color = clTeal
+      Font.Height = -11
+      Font.Name = 'MS Sans Serif'
+      ParentFont = False
+    end
+    object ButtonAendern: TButton
+      Left = 374
+      Height = 22
+      Top = 16
+      Width = 70
+      Caption = 'ändern'
+      OnClick = AendernKlick
+      TabOrder = 5
+    end
+    object LabelF8: TLabel
+      Left = 448
+      Height = 14
+      Top = 0
+      Width = 70
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'F8'
+      Font.Color = clTeal
+      Font.Height = -11
+      Font.Name = 'MS Sans Serif'
+      ParentFont = False
+    end
+    object ButtonLoeschen: TButton
+      Left = 448
+      Height = 22
+      Top = 16
+      Width = 70
+      Caption = 'löschen'
+      OnClick = LoeschenKlick
+      TabOrder = 6
+    end
+    object LabelF10: TLabel
+      Left = 685
+      Height = 14
+      Top = 0
+      Width = 92
+      Alignment = taCenter
+      Anchors = [akTop, akRight]
+      AutoSize = False
+      Caption = 'F10'
+      Font.Color = clTeal
+      Font.Height = -11
+      Font.Name = 'MS Sans Serif'
+      ParentFont = False
+    end
+    object ButtonSpeichern: TButton
+      Left = 685
+      Height = 22
+      Top = 16
+      Width = 92
+      Anchors = [akTop, akRight]
+      Caption = 'speichern'
+      OnClick = SpeichernKlick
+      TabOrder = 7
+    end
+  end
+  object PanelMitte: TPanel
+    Left = 0
+    Height = 255
+    Top = 290
+    Width = 785
+    Align = alClient
+    BevelOuter = bvNone
+    Caption = ''
+    ClientHeight = 255
+    ClientWidth = 785
+    TabOrder = 4
+    object MemoPos: TMemo
+      Left = 0
+      Height = 48
+      Top = 207
+      Width = 785
+      Align = alBottom
+      ScrollBars = ssVertical
+      TabOrder = 1
+      OnExit = PosTextVerlassen
+    end
+    object GridPos: TStringGrid
+      Left = 0
+      Height = 207
+      Top = 0
+      Width = 785
+      Align = alClient
+      ColCount = 10
+      FixedCols = 0
+      RowCount = 2
+      Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goColSizing, goEditing, goThumbTracking]
+      TabOrder = 0
+      OnEditingDone = ZelleFertig
+      OnSelectCell = ZelleWahl
+    end
+  end
+end

@@ -1,7 +1,7 @@
 unit ubelegfenster;
 
-{ Das eine Belegfenster. Kopf, Positionen, Summe und Fuß richten sich
-  nach der Belegart. Beträge werden in Cent gerechnet.
+{ Belegfenster nach der alten Artikelsammlung: Kopf, Intern, Positionen,
+  Fuß und Summen. Beträge in Cent.
   Copyright (C) 2026 Günther Stadtler
   Lizenz: GNU GPL, Version 3. Text in der Datei LICENSE. }
 
@@ -12,38 +12,134 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, StdCtrls, ExtCtrls, Dialogs, Grids,
-  Graphics, LCLType, utastenleiste, umaske, usuche, ubeleg;
+  Graphics, LCLType, ubeleg;
 
 type
   TBelegfenster = class(TForm)
-  private
-    FKopf: TPanel;
-    FEmpfaengerTitel: TLabel;
-    FEmpfaengerName: TLabel;
-    FBezug: TLabel;
-    FBezeichnung: TEdit;
-    FKopftext: TMemo;
-    FListe: TStringGrid;
-    FSumme: TMemo;
-    FFusstext: TMemo;
-    FArt: TBelegart;
-    FKopfDaten: TBelegKopf;
-    FTastenInfo: TBelegTasten;
+    PanelKopf: TPanel;
+    LabelKopf: TLabel;
+    MemoAdresse: TMemo;
+    LabelKopftext: TLabel;
+    MemoKopf: TMemo;
+    LabelNrTitel: TLabel;
+    LabelNr: TLabel;
+    LabelDatum: TLabel;
+    EditDatum: TEdit;
+    LabelBearbeiter: TLabel;
+    EditBearbeiter: TEdit;
+    LabelZeichen: TLabel;
+    EditZeichen: TEdit;
+    PanelIntern: TPanel;
+    LabelIntern: TLabel;
+    LabelProjekt: TLabel;
+    EditProjekt: TEdit;
+    LabelAdresse: TLabel;
+    EditAdresse: TEdit;
+    LabelBezeichnungTitel: TLabel;
+    EditBezeichnung: TEdit;
+    LabelGruppe: TLabel;
+    EditGruppe: TEdit;
+    LabelNotiz: TLabel;
+    MemoNotiz: TMemo;
+    PanelUnten: TPanel;
+    PanelSumme: TPanel;
+    LabelSumme: TLabel;
+    CheckSofort: TCheckBox;
+    ButtonJetzt: TButton;
+    LabelExtern: TLabel;
+    MemoExtern: TMemo;
+    LabelInternSumme: TLabel;
+    MemoIntern: TMemo;
+    PanelFuss: TPanel;
+    LabelFuss: TLabel;
+    LabelFusstext: TLabel;
+    MemoFuss: TMemo;
+    PanelLeiste: TPanel;
+    LabelEsc: TLabel;
+    ButtonAbbrechen: TButton;
+    LabelF2: TLabel;
+    ButtonNeu: TButton;
+    LabelF3: TLabel;
+    ButtonAusgabe: TButton;
+    LabelF4: TLabel;
+    ButtonSuchen: TButton;
+    LabelF5: TLabel;
+    ButtonKopieren: TButton;
+    LabelF6: TLabel;
+    ButtonAendern: TButton;
+    LabelF8: TLabel;
+    ButtonLoeschen: TButton;
+    LabelF10: TLabel;
+    ButtonSpeichern: TButton;
+    PanelMitte: TPanel;
+    MemoPos: TMemo;
+    GridPos: TStringGrid;
+    procedure FormErzeugen(Sender: TObject);
+    procedure FormZeigen(Sender: TObject);
+    procedure FormGeaendert(Sender: TObject);
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
-    procedure TasteGedrueckt(Sender: TObject; Ebene, Taste: Integer);
-    procedure ListeGeaendert(Sender: TObject);
-    procedure TastenAusDaten;
-    procedure Aktion(const Aktionsname: string);
-    procedure BereicheSetzen;
-    procedure EmpfaengerZeigen;
-    procedure PositionHinzufuegen;
-    procedure PositionEntfernen;
-    function PositionenLesen(out Positionen: TPosListe; out Fehler: string): Boolean;
+    procedure KopfKlappen(Sender: TObject);
+    procedure InternKlappen(Sender: TObject);
+    procedure SummeKlappen(Sender: TObject);
+    procedure FussKlappen(Sender: TObject);
+    procedure KopftextSuchen(Sender: TObject);
+    procedure FusstextSuchen(Sender: TObject);
+    procedure DatumHeute(Sender: TObject);
+    procedure BearbeiterSuchen(Sender: TObject);
+    procedure ProjektSuchen(Sender: TObject);
+    procedure AdresseSuchen(Sender: TObject);
+    procedure GruppeSuchen(Sender: TObject);
+    procedure SofortKlick(Sender: TObject);
+    procedure JetztKlick(Sender: TObject);
+    procedure NeuKlick(Sender: TObject);
+    procedure AusgabeKlick(Sender: TObject);
+    procedure SuchenKlick(Sender: TObject);
+    procedure KopierenKlick(Sender: TObject);
+    procedure AendernKlick(Sender: TObject);
+    procedure LoeschenKlick(Sender: TObject);
+    procedure AbbrechenKlick(Sender: TObject);
+    procedure SpeichernKlick(Sender: TObject);
+    procedure ZelleFertig(Sender: TObject);
+    procedure ZelleWahl(Sender: TObject; aCol, aRow: Integer; var CanSelect: Boolean);
+    procedure PosTextVerlassen(Sender: TObject);
+  private
+    FArt: TBelegart;
+    FKopf: TBelegKopf;
+    FZeilen: TPosListe;
+    FZeile: Integer;
+    FKopfOffen: Boolean;
+    FInternOffen: Boolean;
+    FSummeOffen: Boolean;
+    FFussOffen: Boolean;
+    FFuellen: Boolean;
+    FRand: TPanel;
+    FFolge: array of TButton;
+    FFolgeAngelegt: Boolean;
+    function BenutzerName: string;
+    function Darf(const Aktion: string): Boolean;
+    function ZeileNeu: Boolean;
+    function ZeileLoeschen: Boolean;
+    function Gewaehlt: Integer;
+    procedure KlappenLesen;
+    procedure Klappe(const Bereich: string);
+    procedure Anordnen;
+    procedure LeisteOrdnen;
+    procedure FolgeKnopfe;
+    procedure FolgeKlick(Sender: TObject);
+    procedure FelderFuellen;
+    procedure FeldSichten;
+    procedure Gitter;
+    procedure ZeileSchreiben(Index: Integer);
+    procedure ZelleLesen;
+    procedure PosTextSichern;
     procedure SummenZeigen;
+    procedure Knoepfe;
+    procedure Suchen;
+    procedure ArtikelHolen;
+    procedure ZeileAnlegen;
     function SpeichernStill(out Fehler: string): Int64;
     procedure Folge(const ZielKuerzel: string);
   public
-    constructor Create(TheOwner: TComponent); override;
     function OeffneNeu(const Kuerzel: string): Boolean;
     function OeffneId(Id: Int64): Boolean;
   end;
@@ -52,8 +148,23 @@ function BelegBearbeiten(const Kuerzel: string; Id: Int64): Int64;
 
 implementation
 
+{$R *.lfm}
+
 uses
-  ubenutzer;
+  ubenutzer, uartikel, usuche, utextbaustein, utextbausteinfenster, uprojekt,
+  uartikelwahl;
+
+const
+  CPos = 0;
+  CGruppe = 1;
+  CArtikel = 2;
+  CMenge = 3;
+  CEinheit = 4;
+  CEk = 5;
+  CAuf = 6;
+  CRab = 7;
+  CVk = 8;
+  CSatz = 9;
 
 function BelegBearbeiten(const Kuerzel: string; Id: Int64): Int64;
 var
@@ -88,131 +199,90 @@ begin
     else if not Fenster.OeffneId(Id) then
       Exit;
     if Fenster.ShowModal = mrOk then
-      Result := Fenster.FKopfDaten.Id;
+      Result := Fenster.FKopf.Id;
   finally
     Fenster.Free;
   end;
 end;
 
-constructor TBelegfenster.Create(TheOwner: TComponent);
+function Pfeil(Offen: Boolean): string;
 begin
-  inherited CreateNew(TheOwner, 1);
-  Position := poDesigned;
-  KeyPreview := True;
-  OnKeyDown := @FormKeyDown;
-  Caption := 'Planlos';
-
-  FFusstext := TMemo.Create(Self);
-  FFusstext.Parent := Self;
-  FFusstext.Align := alBottom;
-  FFusstext.Height := 52;
-  FFusstext.ScrollBars := ssVertical;
-
-  FSumme := TMemo.Create(Self);
-  FSumme.Parent := Self;
-  FSumme.Align := alBottom;
-  FSumme.Height := 78;
-  FSumme.ReadOnly := True;
-  FSumme.ScrollBars := ssVertical;
-  FSumme.Color := clBtnFace;
-
-  FKopf := TPanel.Create(Self);
-  FKopf.Parent := Self;
-  FKopf.Align := alTop;
-  FKopf.Height := 148;
-  FKopf.BevelOuter := bvNone;
-
-  FEmpfaengerTitel := TLabel.Create(Self);
-  FEmpfaengerTitel.Parent := FKopf;
-  FEmpfaengerTitel.Left := 8;
-  FEmpfaengerTitel.Top := 8;
-
-  FEmpfaengerName := TLabel.Create(Self);
-  FEmpfaengerName.Parent := FKopf;
-  FEmpfaengerName.Left := 120;
-  FEmpfaengerName.Top := 8;
-  FEmpfaengerName.AutoSize := False;
-  FEmpfaengerName.Width := 460;
-
-  FBezug := TLabel.Create(Self);
-  FBezug.Parent := FKopf;
-  FBezug.Left := 600;
-  FBezug.Top := 8;
-  FBezug.AutoSize := False;
-  FBezug.Width := 280;
-
-  FBezeichnung := TEdit.Create(Self);
-  FBezeichnung.Parent := FKopf;
-  FBezeichnung.Left := 8;
-  FBezeichnung.Top := 32;
-  FBezeichnung.Width := 500;
-  FBezeichnung.TextHint := 'Bezeichnung';
-
-  FKopftext := TMemo.Create(Self);
-  FKopftext.Parent := FKopf;
-  FKopftext.Left := 8;
-  FKopftext.Top := 64;
-  FKopftext.Width := 860;
-  FKopftext.Height := 76;
-  FKopftext.ScrollBars := ssVertical;
-
-  FListe := TStringGrid.Create(Self);
-  FListe.Parent := Self;
-  FListe.Align := alClient;
-  FListe.FixedCols := 0;
-  FListe.FixedRows := 1;
-  FListe.ColCount := 6;
-  FListe.RowCount := 2;
-  FListe.Options := [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine,
-    goRowSelect, goColSizing, goEditing, goThumbTracking];
-  FListe.OnEditingDone := @ListeGeaendert;
-  FListe.Cells[0, 0] := 'Pos';
-  FListe.Cells[1, 0] := 'Text';
-  FListe.Cells[2, 0] := 'Menge';
-  FListe.Cells[3, 0] := 'Einheit';
-  FListe.Cells[4, 0] := 'Einzelpreis';
-  FListe.Cells[5, 0] := 'MwSt %';
-  FListe.ColWidths[0] := 40;
-  FListe.ColWidths[1] := 360;
-  FListe.ColWidths[2] := 80;
-  FListe.ColWidths[3] := 80;
-  FListe.ColWidths[4] := 110;
-  FListe.ColWidths[5] := 70;
+  if Offen then
+    Result := '▾ '
+  else
+    Result := '▸ ';
 end;
 
-procedure TBelegfenster.BereicheSetzen;
+function TBelegfenster.BenutzerName: string;
 begin
-  FKopf.Visible := FArt.Kopf;
-  FListe.Visible := FArt.Positionen;
-  FSumme.Visible := FArt.Summe;
-  FFusstext.Visible := FArt.Fuss;
-  FEmpfaengerTitel.Visible := FArt.EmpfaengerMaske <> '';
-  FEmpfaengerName.Visible := FArt.EmpfaengerMaske <> '';
-  if FArt.Mwst then
-    FListe.ColWidths[5] := 70
-  else
-    FListe.ColWidths[5] := 0;
-  if FArt.BeschriftungEmpfaenger <> '' then
-    FEmpfaengerTitel.Caption := FArt.BeschriftungEmpfaenger
-  else
-    FEmpfaengerTitel.Caption := 'Empfänger';
+  Result := Sitzung.Name;
+  if Result = '' then
+    Result := 'Standard';
 end;
 
-procedure TBelegfenster.TastenAusDaten;
+function TBelegfenster.Darf(const Aktion: string): Boolean;
+var
+  Meldung: string;
 begin
-  FTastenInfo := BelegTasten(FArt.Kuerzel, 'beleg');
+  Result := AktionZulaessig('beleg', FArt.Kuerzel, Aktion, Meldung);
 end;
 
-procedure TBelegfenster.EmpfaengerZeigen;
+function TBelegfenster.ZeileNeu: Boolean;
 begin
-  if FKopfDaten.AdresseId = 0 then
-    FEmpfaengerName.Caption := 'noch keiner gewählt'
+  if FKopf.Id = 0 then
+    Result := Darf('neu')
   else
-    FEmpfaengerName.Caption := AdressKurzname(FKopfDaten.AdresseId);
-  if FKopfDaten.BezugNummer <> '' then
-    FBezug.Caption := 'aus ' + FKopfDaten.BezugNummer
+    Result := Darf('aendern');
+end;
+
+function TBelegfenster.ZeileLoeschen: Boolean;
+begin
+  if FKopf.Id = 0 then
+    Result := Darf('neu')
   else
-    FBezug.Caption := '';
+    Result := Darf('loeschen');
+end;
+
+function TBelegfenster.Gewaehlt: Integer;
+begin
+  Result := GridPos.Row - 1;
+  if (Result < 0) or (Result > High(FZeilen)) then
+    Result := -1;
+end;
+
+procedure TBelegfenster.FormErzeugen(Sender: TObject);
+begin
+  FRand := TPanel.Create(Self);
+  FRand.Parent := Self;
+  FRand.Align := alBottom;
+  FRand.BevelOuter := bvNone;
+  FRand.Caption := '';
+  FRand.Height := PanelUnten.Height + PanelLeiste.Height;
+  PanelLeiste.Parent := FRand;
+  PanelLeiste.Align := alBottom;
+  PanelUnten.Parent := FRand;
+  PanelUnten.Align := alClient;
+  FZeile := -1;
+  GridPos.Cells[CPos, 0] := 'Pos';
+  GridPos.Cells[CGruppe, 0] := 'Gruppe';
+  GridPos.Cells[CArtikel, 0] := 'Artikel';
+  GridPos.Cells[CMenge, 0] := 'Menge';
+  GridPos.Cells[CEinheit, 0] := 'Einheit';
+  GridPos.Cells[CEk, 0] := 'EK';
+  GridPos.Cells[CAuf, 0] := 'Aufschlag';
+  GridPos.Cells[CRab, 0] := 'Rabatt';
+  GridPos.Cells[CVk, 0] := 'VK';
+  GridPos.Cells[CSatz, 0] := 'MwSt';
+  GridPos.ColWidths[CPos] := 36;
+  GridPos.ColWidths[CGruppe] := 90;
+  GridPos.ColWidths[CArtikel] := 150;
+  GridPos.ColWidths[CMenge] := 60;
+  GridPos.ColWidths[CEinheit] := 60;
+  GridPos.ColWidths[CEk] := 70;
+  GridPos.ColWidths[CAuf] := 70;
+  GridPos.ColWidths[CRab] := 60;
+  GridPos.ColWidths[CVk] := 70;
+  GridPos.ColWidths[CSatz] := 45;
 end;
 
 function TBelegfenster.OeffneNeu(const Kuerzel: string): Boolean;
@@ -220,211 +290,820 @@ begin
   Result := BelegartLaden(Kuerzel, FArt);
   if not Result then
     Exit;
-  FKopfDaten.Id := 0;
-  FKopfDaten.Modulart := FArt.Kuerzel;
-  FKopfDaten.Nummer := '';
-  FKopfDaten.AdresseId := 0;
-  FKopfDaten.Bezeichnung := '';
-  FKopfDaten.Kopftext := '';
-  FKopfDaten.Fusstext := '';
-  FKopfDaten.Notiz := '';
-  FKopfDaten.BezugId := 0;
-  FKopfDaten.BezugNummer := '';
-  FKopfDaten.MwstRechnen := FArt.Mwst;
-  Caption := 'Planlos - ' + FArt.Bezeichnung + ' neu';
-  Position := poDesigned;
-  Left := FArt.Links;
-  Top := FArt.Oben;
-  Width := FArt.Breite;
-  Height := FArt.Hoehe;
-  BereicheSetzen;
-  TastenAusDaten;
-  EmpfaengerZeigen;
-  SummenZeigen;
+  FKopf := Default(TBelegKopf);
+  FKopf.Modulart := Kuerzel;
+  FKopf.MwstRechnen := FArt.Mwst;
+  FKopf.BearbeiterId := AngemeldeterMitarbeiter;
+  FKopf.Erfasst := FormatDateTime('yyyy-mm-dd', Now);
+  SetLength(FZeilen, 0);
 end;
 
 function TBelegfenster.OeffneId(Id: Int64): Boolean;
-var
-  Positionen: TPosListe;
-  i: Integer;
 begin
-  Result := BelegLaden(Id, FKopfDaten, Positionen);
+  Result := BelegLaden(Id, FKopf, FZeilen);
   if not Result then
     Exit;
-  if not BelegartLaden(FKopfDaten.Modulart, FArt) then
-    Exit(False);
-  Caption := 'Planlos - ' + FArt.Bezeichnung + ' ' + FKopfDaten.Nummer;
-  Position := poDesigned;
-  Left := FArt.Links;
-  Top := FArt.Oben;
-  Width := FArt.Breite;
-  Height := FArt.Hoehe;
-  FBezeichnung.Text := FKopfDaten.Bezeichnung;
-  FKopftext.Text := FKopfDaten.Kopftext;
-  FFusstext.Text := FKopfDaten.Fusstext;
-  if Length(Positionen) = 0 then
-    FListe.RowCount := 2
-  else
-    FListe.RowCount := Length(Positionen) + 1;
-  for i := 0 to High(Positionen) do
-  begin
-    FListe.Cells[0, i + 1] := IntToStr(i + 1);
-    FListe.Cells[1, i + 1] := Positionen[i].Text;
-    FListe.Cells[2, i + 1] := MilliAlsText(Positionen[i].MengeMilli);
-    FListe.Cells[3, i + 1] := Positionen[i].Einheit;
-    FListe.Cells[4, i + 1] := CentAlsText(Positionen[i].EinzelpreisCent);
-    FListe.Cells[5, i + 1] := IntToStr(Positionen[i].MwstSatz);
-  end;
-  BereicheSetzen;
-  TastenAusDaten;
-  EmpfaengerZeigen;
-  SummenZeigen;
+  Result := BelegartLaden(FKopf.Modulart, FArt);
 end;
 
-procedure TBelegfenster.PositionHinzufuegen;
-var
-  Zeile, Satz: Integer;
+procedure TBelegfenster.KlappenLesen;
 begin
-  if not FArt.Positionen then
-    Exit;
-  if (FListe.RowCount = 2) and (Trim(FListe.Cells[1, 1]) = '') and
-     (Trim(FListe.Cells[4, 1]) = '') then
-    Zeile := 1
-  else
-  begin
-    FListe.RowCount := FListe.RowCount + 1;
-    Zeile := FListe.RowCount - 1;
-  end;
-  if FArt.Mwst then
-    Satz := 19
-  else
-    Satz := 0;
-  FListe.Cells[0, Zeile] := IntToStr(Zeile);
-  FListe.Cells[2, Zeile] := '1';
-  FListe.Cells[3, Zeile] := 'Stück';
-  FListe.Cells[4, Zeile] := '0,00';
-  FListe.Cells[5, Zeile] := IntToStr(Satz);
-  FListe.Row := Zeile;
-  FListe.Col := 1;
+  FKopfOffen := KlappOffen(BenutzerName, FArt.Id, 'kopf', FArt.KopfAn);
+  FInternOffen := KlappOffen(BenutzerName, FArt.Id, 'intern', FArt.InternAn);
+  FSummeOffen := KlappOffen(BenutzerName, FArt.Id, 'summe', FArt.SummeAn);
+  FFussOffen := KlappOffen(BenutzerName, FArt.Id, 'fuss', FArt.FussAn);
 end;
 
-procedure TBelegfenster.PositionEntfernen;
+procedure TBelegfenster.Klappe(const Bereich: string);
 var
-  Zeile, Spalte: Integer;
+  Offen: Boolean;
 begin
-  if not FArt.Positionen then
-    Exit;
-  Zeile := FListe.Row;
-  if Zeile < 1 then
-    Exit;
-  if FListe.RowCount <= 2 then
+  if Bereich = 'kopf' then
   begin
-    for Spalte := 0 to FListe.ColCount - 1 do
-      FListe.Cells[Spalte, 1] := '';
+    if not FArt.Kopf then
+      Exit;
+    FKopfOffen := not FKopfOffen;
+    Offen := FKopfOffen;
+  end
+  else if Bereich = 'intern' then
+  begin
+    if not FArt.Intern then
+      Exit;
+    FInternOffen := not FInternOffen;
+    Offen := FInternOffen;
+  end
+  else if Bereich = 'summe' then
+  begin
+    if not FArt.Summe then
+      Exit;
+    FSummeOffen := not FSummeOffen;
+    Offen := FSummeOffen;
   end
   else
-    FListe.DeleteRow(Zeile);
-  SummenZeigen;
+  begin
+    if not FArt.Fuss then
+      Exit;
+    FFussOffen := not FFussOffen;
+    Offen := FFussOffen;
+  end;
+  KlappMerken(BenutzerName, FArt.Id, Bereich, Offen);
+  Anordnen;
 end;
 
-function TBelegfenster.PositionenLesen(out Positionen: TPosListe;
-  out Fehler: string): Boolean;
-var
-  Zeile, Anzahl, Satz: Integer;
-  Zeilentext, MengeText, PreisText: string;
-  Milli, Cent: Int64;
+procedure TBelegfenster.KopfKlappen(Sender: TObject);
 begin
-  Result := False;
-  Fehler := '';
-  SetLength(Positionen, 0);
-  if not FArt.Positionen then
-    Exit(True);
-  Anzahl := 0;
-  for Zeile := 1 to FListe.RowCount - 1 do
+  Klappe('kopf');
+end;
+
+procedure TBelegfenster.InternKlappen(Sender: TObject);
+begin
+  Klappe('intern');
+end;
+
+procedure TBelegfenster.SummeKlappen(Sender: TObject);
+begin
+  Klappe('summe');
+end;
+
+procedure TBelegfenster.FussKlappen(Sender: TObject);
+begin
+  Klappe('fuss');
+end;
+
+procedure TBelegfenster.Anordnen;
+var
+  Unten, SummeH, FussH: Integer;
+begin
+  PanelKopf.Visible := FArt.Kopf;
+  if FArt.Kopf then
+    PanelKopf.Height := BereichHoehe('kopf', FKopfOffen);
+  LabelKopf.Caption := Pfeil(FKopfOffen) + 'Kopf';
+  PanelIntern.Visible := FArt.Intern;
+  if FArt.Intern then
+    PanelIntern.Height := BereichHoehe('intern', FInternOffen);
+  LabelIntern.Caption := Pfeil(FInternOffen) + 'Intern';
+  SummeH := 0;
+  FussH := 0;
+  PanelSumme.Visible := FArt.Summe;
+  if FArt.Summe then
   begin
-    Zeilentext := Trim(FListe.Cells[1, Zeile]);
-    MengeText := Trim(FListe.Cells[2, Zeile]);
-    PreisText := Trim(FListe.Cells[4, Zeile]);
-    if (Zeilentext = '') and (MengeText = '') and (PreisText = '') then
-      Continue;
-    if Zeilentext = '' then
-    begin
-      Fehler := 'Zeile ' + IntToStr(Zeile) + ' braucht einen Text.';
-      Exit;
-    end;
-    if not MilliAusText(MengeText, Milli) then
-    begin
-      Fehler := 'Menge in Zeile ' + IntToStr(Zeile) + ' ist keine Zahl.';
-      Exit;
-    end;
-    if not CentAusText(PreisText, Cent) then
-    begin
-      Fehler := 'Einzelpreis in Zeile ' + IntToStr(Zeile) + ' ist kein Betrag.';
-      Exit;
-    end;
-    if FArt.Mwst then
-      Satz := StrToIntDef(Trim(FListe.Cells[5, Zeile]), -1)
-    else
-      Satz := 0;
-    if (Satz <> 0) and (Satz <> 7) and (Satz <> 19) then
-    begin
-      Fehler := 'MwSt in Zeile ' + IntToStr(Zeile) + ' muss 19, 7 oder 0 sein.';
-      Exit;
-    end;
-    SetLength(Positionen, Anzahl + 1);
-    Positionen[Anzahl].Text := Zeilentext;
-    Positionen[Anzahl].MengeMilli := Milli;
-    Positionen[Anzahl].Einheit := Trim(FListe.Cells[3, Zeile]);
-    Positionen[Anzahl].EinzelpreisCent := Cent;
-    Positionen[Anzahl].MwstSatz := Satz;
-    Positionen[Anzahl].ArtikelId := 0;
-    Inc(Anzahl);
+    SummeH := BereichHoehe('summe', FSummeOffen);
+    PanelSumme.Height := SummeH;
   end;
-  Result := True;
+  LabelSumme.Caption := Pfeil(FSummeOffen) + 'Summen';
+  PanelFuss.Visible := FArt.Fuss;
+  if FArt.Fuss then
+    FussH := BereichHoehe('fuss', FFussOffen);
+  LabelFuss.Caption := Pfeil(FFussOffen) + 'Fuß';
+  Unten := SummeH + FussH;
+  PanelUnten.Visible := Unten > 0;
+  if FRand <> nil then
+    FRand.Height := Unten + PanelLeiste.Height;
+  FeldSichten;
+  PanelMitte.Visible := FArt.Positionen;
+end;
+
+procedure TBelegfenster.FeldSichten;
+var
+  KopfAuf, InternAuf, FussAuf, SummeAuf: Boolean;
+begin
+  KopfAuf := FArt.Kopf and FKopfOffen;
+  InternAuf := FArt.Intern and FInternOffen;
+  FussAuf := FArt.Fuss and FFussOffen;
+  SummeAuf := FArt.Summe and FSummeOffen;
+  MemoAdresse.Visible := KopfAuf and FArt.ZeigeKopfAdresse;
+  LabelKopftext.Visible := KopfAuf and FArt.ZeigeKopftext;
+  MemoKopf.Visible := KopfAuf and FArt.ZeigeKopftext;
+  LabelNrTitel.Visible := KopfAuf and FArt.ZeigeNr;
+  LabelNr.Visible := KopfAuf and FArt.ZeigeNr;
+  LabelDatum.Visible := KopfAuf and FArt.ZeigeDatum;
+  EditDatum.Visible := KopfAuf and FArt.ZeigeDatum;
+  LabelBearbeiter.Visible := KopfAuf and FArt.ZeigeBearbeiter;
+  EditBearbeiter.Visible := KopfAuf and FArt.ZeigeBearbeiter;
+  LabelZeichen.Visible := KopfAuf and FArt.ZeigeZeichen;
+  EditZeichen.Visible := KopfAuf and FArt.ZeigeZeichen;
+  if FArt.ZeichenText <> '' then
+    LabelZeichen.Caption := FArt.ZeichenText;
+  LabelProjekt.Visible := InternAuf and FArt.ZeigeProjekt;
+  EditProjekt.Visible := InternAuf and FArt.ZeigeProjekt;
+  LabelAdresse.Visible := InternAuf and FArt.ZeigeInternAdresse;
+  EditAdresse.Visible := InternAuf and FArt.ZeigeInternAdresse;
+  LabelBezeichnungTitel.Visible := InternAuf and FArt.ZeigeBezeichnung;
+  EditBezeichnung.Visible := InternAuf and FArt.ZeigeBezeichnung;
+  LabelGruppe.Visible := InternAuf and FArt.ZeigeGruppierung;
+  EditGruppe.Visible := InternAuf and FArt.ZeigeGruppierung;
+  LabelNotiz.Visible := InternAuf and FArt.ZeigeNotiz;
+  MemoNotiz.Visible := InternAuf and FArt.ZeigeNotiz;
+  LabelFusstext.Visible := FussAuf and FArt.ZeigeFusstext;
+  MemoFuss.Visible := FussAuf and FArt.ZeigeFusstext;
+  CheckSofort.Visible := SummeAuf;
+  ButtonJetzt.Visible := SummeAuf;
+  LabelExtern.Visible := SummeAuf;
+  MemoExtern.Visible := SummeAuf;
+  LabelInternSumme.Visible := SummeAuf;
+  MemoIntern.Visible := SummeAuf;
+end;
+
+procedure TBelegfenster.FelderFuellen;
+var
+  Projekt: TProjekt;
+begin
+  FFuellen := True;
+  try
+    MemoAdresse.Text := FKopf.AdresseText;
+    MemoKopf.Text := FKopf.Kopftext;
+    if FKopf.Nummer = '' then
+      LabelNr.Caption := 'neu'
+    else
+      LabelNr.Caption := FKopf.Nummer;
+    EditDatum.Text := FKopf.Erfasst;
+    if FKopf.BearbeiterId > 0 then
+      EditBearbeiter.Text := StammBezeichnung('lieferant', FKopf.BearbeiterId)
+    else
+      EditBearbeiter.Text := '';
+    EditZeichen.Text := FKopf.IhrZeichen;
+    if FKopf.ProjektStammId > 0 then
+    begin
+      if ProjektLaden(FKopf.ProjektStammId, Projekt) then
+        EditProjekt.Text := Projekt.Bezeichnung;
+    end
+    else
+      EditProjekt.Text := '';
+    if FKopf.AdresseId > 0 then
+      EditAdresse.Text := StammBezeichnung('lieferant', FKopf.AdresseId)
+    else
+      EditAdresse.Text := '';
+    EditBezeichnung.Text := FKopf.Bezeichnung;
+    EditGruppe.Text := FKopf.Gruppierung;
+    MemoNotiz.Text := FKopf.Notiz;
+    MemoFuss.Text := FKopf.Fusstext;
+    if FKopf.Nummer = '' then
+      Caption := FArt.Bezeichnung + ' neu'
+    else
+      Caption := FArt.Bezeichnung + ' ' + FKopf.Nummer;
+  finally
+    FFuellen := False;
+  end;
+end;
+
+procedure TBelegfenster.ZeileSchreiben(Index: Integer);
+var
+  Zeile: Integer;
+begin
+  Zeile := Index + 1;
+  GridPos.Cells[CPos, Zeile] := IntToStr(Index + 1);
+  GridPos.Cells[CGruppe, Zeile] := FZeilen[Index].Gruppe;
+  GridPos.Cells[CArtikel, Zeile] := FZeilen[Index].ArtikelName;
+  GridPos.Cells[CMenge, Zeile] := MilliAlsText(FZeilen[Index].MengeMilli);
+  GridPos.Cells[CEinheit, Zeile] := FZeilen[Index].Einheit;
+  GridPos.Cells[CEk, Zeile] := CentAlsText(FZeilen[Index].EkCent);
+  GridPos.Cells[CAuf, Zeile] := TextAusAufschlag(FZeilen[Index].AufschlagBp);
+  GridPos.Cells[CRab, Zeile] := TextAusAufschlag(FZeilen[Index].RabattBp);
+  GridPos.Cells[CVk, Zeile] := CentAlsText(FZeilen[Index].EinzelpreisCent);
+  GridPos.Cells[CSatz, Zeile] := IntToStr(FZeilen[Index].MwstSatz);
+end;
+
+procedure TBelegfenster.Gitter;
+var
+  i: Integer;
+begin
+  FFuellen := True;
+  try
+    if Length(FZeilen) = 0 then
+    begin
+      GridPos.RowCount := 2;
+      for i := 0 to GridPos.ColCount - 1 do
+        GridPos.Cells[i, 1] := '';
+      MemoPos.Text := '';
+      FZeile := -1;
+    end
+    else
+    begin
+      GridPos.RowCount := Length(FZeilen) + 1;
+      for i := 0 to High(FZeilen) do
+        ZeileSchreiben(i);
+      if (FZeile < 0) or (FZeile > High(FZeilen)) then
+        FZeile := 0;
+      GridPos.Row := FZeile + 1;
+      MemoPos.Text := FZeilen[FZeile].Text;
+    end;
+  finally
+    FFuellen := False;
+  end;
+end;
+
+procedure TBelegfenster.PosTextSichern;
+begin
+  if (FZeile >= 0) and (FZeile <= High(FZeilen)) then
+    FZeilen[FZeile].Text := MemoPos.Text;
+end;
+
+procedure TBelegfenster.ZelleLesen;
+var
+  Index, Spalte: Integer;
+  Cent: Int64;
+  Milli: Int64;
+  Bp, Satz: Integer;
+  Zahl: string;
+begin
+  if FFuellen then
+    Exit;
+  Index := GridPos.Row - 1;
+  if (Index < 0) or (Index > High(FZeilen)) then
+    Exit;
+  Spalte := GridPos.Col;
+  Zahl := Trim(GridPos.Cells[Spalte, Index + 1]);
+  case Spalte of
+    CGruppe: FZeilen[Index].Gruppe := Zahl;
+    CArtikel: FZeilen[Index].ArtikelName := Zahl;
+    CMenge:
+      if MilliAusText(Zahl, Milli) then
+        FZeilen[Index].MengeMilli := Milli;
+    CEinheit: FZeilen[Index].Einheit := Zahl;
+    CEk:
+      if CentAusText(Zahl, Cent) then
+        FZeilen[Index].EkCent := Cent;
+    CAuf:
+      if AufschlagAusText(Zahl, Bp) then
+        FZeilen[Index].AufschlagBp := Bp;
+    CRab:
+      if AufschlagAusText(Zahl, Bp) then
+        FZeilen[Index].RabattBp := Bp;
+    CVk:
+      if CentAusText(Zahl, Cent) then
+        FZeilen[Index].EinzelpreisCent := Cent;
+    CSatz:
+      begin
+        Satz := StrToIntDef(Zahl, -1);
+        if (Satz = 0) or (Satz = 7) or (Satz = 19) then
+          FZeilen[Index].MwstSatz := Satz;
+      end;
+  end;
+  if (Spalte = CEk) or (Spalte = CAuf) or (Spalte = CRab) then
+    FZeilen[Index].EinzelpreisCent := VkCent(FZeilen[Index].EkCent,
+      FZeilen[Index].AufschlagBp, FZeilen[Index].RabattBp);
+  FFuellen := True;
+  try
+    ZeileSchreiben(Index);
+  finally
+    FFuellen := False;
+  end;
+  if CheckSofort.Checked then
+    SummenZeigen;
+end;
+
+procedure TBelegfenster.ZelleFertig(Sender: TObject);
+begin
+  ZelleLesen;
+end;
+
+procedure TBelegfenster.ZelleWahl(Sender: TObject; aCol, aRow: Integer;
+  var CanSelect: Boolean);
+begin
+  CanSelect := True;
+  if FFuellen then
+    Exit;
+  PosTextSichern;
+  FZeile := aRow - 1;
+  if (FZeile >= 0) and (FZeile <= High(FZeilen)) then
+  begin
+    FFuellen := True;
+    try
+      MemoPos.Text := FZeilen[FZeile].Text;
+    finally
+      FFuellen := False;
+    end;
+  end;
+end;
+
+procedure TBelegfenster.PosTextVerlassen(Sender: TObject);
+begin
+  PosTextSichern;
+  if CheckSofort.Checked then
+    SummenZeigen;
 end;
 
 procedure TBelegfenster.SummenZeigen;
 var
-  Positionen: TPosListe;
-  Fehler, Anzeige: string;
   Summe: TBelegSumme;
+  Intern: TInternSumme;
+  Anzeige: string;
   i: Integer;
 begin
-  if not PositionenLesen(Positionen, Fehler) then
-  begin
-    FSumme.Text := Fehler;
-    Exit;
-  end;
-  Summe := SummeRechnen(Positionen, FArt.Mwst and FKopfDaten.MwstRechnen);
+  PosTextSichern;
+  Summe := SummeRechnen(FZeilen, FKopf.MwstRechnen and FArt.Mwst);
   Anzeige := 'Netto: ' + CentAlsText(Summe.NettoCent) + ' €';
-  if FArt.Mwst then
+  if FArt.Mwst and FKopf.MwstRechnen then
     for i := 0 to High(Summe.Gruppen) do
       if Summe.Gruppen[i].Satz <> 0 then
         Anzeige := Anzeige + LineEnding + 'MwSt ' + IntToStr(Summe.Gruppen[i].Satz) +
           ' %: ' + CentAlsText(Summe.Gruppen[i].SteuerCent) + ' €';
   Anzeige := Anzeige + LineEnding + 'Brutto: ' + CentAlsText(Summe.BruttoCent) + ' €';
-  FSumme.Text := Anzeige;
+  MemoExtern.Text := Anzeige;
+  Intern := InternRechnen(FZeilen);
+  MemoIntern.Text := 'EK: ' + CentAlsText(Intern.EkCent) + ' €' + LineEnding +
+    'VK: ' + CentAlsText(Intern.VkCent) + ' €' + LineEnding +
+    'Gewinn: ' + CentAlsText(Intern.GewinnCent) + ' €';
 end;
 
-procedure TBelegfenster.ListeGeaendert(Sender: TObject);
+procedure TBelegfenster.SofortKlick(Sender: TObject);
+begin
+  if FFuellen then
+    Exit;
+  if CheckSofort.Checked then
+    SummenZeigen;
+end;
+
+procedure TBelegfenster.JetztKlick(Sender: TObject);
 begin
   SummenZeigen;
 end;
 
+procedure TBelegfenster.Knoepfe;
+var
+  Aendern: Boolean;
+begin
+  Aendern := ZeileNeu;
+  ButtonNeu.Enabled := Aendern and FArt.Positionen;
+  ButtonKopieren.Enabled := Aendern and Darf('kopieren') and (Gewaehlt >= 0);
+  ButtonAendern.Enabled := Aendern and (Gewaehlt >= 0);
+  ButtonLoeschen.Enabled := ZeileLoeschen and (Gewaehlt >= 0);
+  ButtonSuchen.Enabled := Aendern;
+  MemoKopf.ReadOnly := not Aendern;
+  MemoFuss.ReadOnly := not Aendern;
+  MemoNotiz.ReadOnly := not Aendern;
+  MemoPos.ReadOnly := not Aendern;
+  EditBezeichnung.ReadOnly := not Aendern;
+  EditZeichen.ReadOnly := not Aendern;
+  EditDatum.ReadOnly := not Aendern;
+  if Aendern then
+    GridPos.Options := GridPos.Options + [goEditing]
+  else
+    GridPos.Options := GridPos.Options - [goEditing];
+  if FKopf.Id = 0 then
+    ButtonSpeichern.Enabled := Darf('neu')
+  else
+    ButtonSpeichern.Enabled := Darf('aendern');
+end;
+
+procedure TBelegfenster.FolgeKnopfe;
+var
+  Tasten: TBelegTasten;
+  i, n: Integer;
+  Knopf: TButton;
+begin
+  if FFolgeAngelegt then
+    Exit;
+  FFolgeAngelegt := True;
+  Tasten := BelegTasten(FArt.Kuerzel, 'beleg');
+  n := 0;
+  for i := 0 to High(Tasten) do
+    if Copy(Tasten[i].Aktion, 1, 6) = 'folge:' then
+    begin
+      Knopf := TButton.Create(Self);
+      Knopf.Parent := PanelLeiste;
+      Knopf.Height := 22;
+      Knopf.Top := 16;
+      Knopf.Width := 78;
+      Knopf.Caption := Tasten[i].Beschriftung;
+      Knopf.Hint := Copy(Tasten[i].Aktion, 7, 80);
+      Knopf.OnClick := @FolgeKlick;
+      Knopf.Enabled := Tasten[i].Erlaubt;
+      SetLength(FFolge, n + 1);
+      FFolge[n] := Knopf;
+      Inc(n);
+    end;
+end;
+
+procedure TBelegfenster.FolgeKlick(Sender: TObject);
+begin
+  Folge(TButton(Sender).Hint);
+end;
+
+procedure TBelegfenster.LeisteOrdnen;
+var
+  Knopfe: array[0..16] of TButton;
+  Schilder: array[0..16] of TLabel;
+  Anzahl, i, Links: Integer;
+
+  procedure Dazu(Knopf: TButton; Schild: TLabel);
+  begin
+    if (Knopf = nil) or (Anzahl > High(Knopfe)) then
+      Exit;
+    Knopfe[Anzahl] := Knopf;
+    Schilder[Anzahl] := Schild;
+    Inc(Anzahl);
+  end;
+
+begin
+  Anzahl := 0;
+  Dazu(ButtonAbbrechen, LabelEsc);
+  Dazu(ButtonNeu, LabelF2);
+  Dazu(ButtonAusgabe, LabelF3);
+  Dazu(ButtonSuchen, LabelF4);
+  Dazu(ButtonKopieren, LabelF5);
+  Dazu(ButtonAendern, LabelF6);
+  Dazu(ButtonLoeschen, LabelF8);
+  for i := 0 to High(FFolge) do
+    Dazu(FFolge[i], nil);
+  Links := 4;
+  for i := 0 to Anzahl - 1 do
+  begin
+    Knopfe[i].Left := Links;
+    Knopfe[i].Top := 16;
+    if Schilder[i] <> nil then
+    begin
+      Schilder[i].Left := Links;
+      Schilder[i].Width := Knopfe[i].Width;
+    end;
+    Links := Links + Knopfe[i].Width + 4;
+  end;
+  ButtonSpeichern.Left := PanelLeiste.ClientWidth - ButtonSpeichern.Width - 4;
+  LabelF10.Left := ButtonSpeichern.Left;
+  LabelF10.Width := ButtonSpeichern.Width;
+end;
+
+procedure TBelegfenster.FormZeigen(Sender: TObject);
+begin
+  Left := FArt.Links;
+  Top := FArt.Oben;
+  if FArt.Breite >= 515 then
+    Width := FArt.Breite;
+  if FArt.Hoehe >= 360 then
+    Height := FArt.Hoehe;
+  KlappenLesen;
+  FelderFuellen;
+  Gitter;
+  Anordnen;
+  SummenZeigen;
+  FolgeKnopfe;
+  Knoepfe;
+  LeisteOrdnen;
+end;
+
+procedure TBelegfenster.FormGeaendert(Sender: TObject);
+begin
+  if FRand <> nil then
+    LeisteOrdnen;
+end;
+
+procedure TBelegfenster.ZeileAnlegen;
+var
+  Index: Integer;
+begin
+  if not ZeileNeu then
+  begin
+    ShowMessage('Dafür fehlt das Recht.');
+    Exit;
+  end;
+  PosTextSichern;
+  Index := Length(FZeilen);
+  SetLength(FZeilen, Index + 1);
+  FZeilen[Index] := Default(TBelegPosition);
+  FZeilen[Index].MengeMilli := 1000;
+  FZeilen[Index].Einheit := 'Stück';
+  if FArt.Mwst then
+    FZeilen[Index].MwstSatz := FArt.MwstSatz
+  else
+    FZeilen[Index].MwstSatz := 0;
+  FZeile := Index;
+  Gitter;
+  Knoepfe;
+  MemoPos.SetFocus;
+end;
+
+procedure TBelegfenster.NeuKlick(Sender: TObject);
+begin
+  ZeileAnlegen;
+end;
+
+procedure TBelegfenster.KopierenKlick(Sender: TObject);
+var
+  Quelle, Index: Integer;
+begin
+  Quelle := Gewaehlt;
+  if Quelle < 0 then
+  begin
+    ShowMessage('Bitte zuerst eine Position auswählen.');
+    Exit;
+  end;
+  if not (ZeileNeu and Darf('kopieren')) then
+  begin
+    ShowMessage('Dafür fehlt das Recht.');
+    Exit;
+  end;
+  PosTextSichern;
+  Index := Length(FZeilen);
+  SetLength(FZeilen, Index + 1);
+  FZeilen[Index] := FZeilen[Quelle];
+  FZeilen[Index].Id := 0;
+  FZeile := Index;
+  Gitter;
+  Knoepfe;
+  if CheckSofort.Checked then
+    SummenZeigen;
+end;
+
+procedure TBelegfenster.AendernKlick(Sender: TObject);
+begin
+  if not ZeileNeu then
+  begin
+    ShowMessage('Dafür fehlt das Recht.');
+    Exit;
+  end;
+  if Gewaehlt < 0 then
+  begin
+    ShowMessage('Bitte zuerst eine Position auswählen.');
+    Exit;
+  end;
+  MemoPos.SetFocus;
+end;
+
+procedure TBelegfenster.LoeschenKlick(Sender: TObject);
+var
+  Index, i: Integer;
+begin
+  Index := Gewaehlt;
+  if Index < 0 then
+    Exit;
+  if not ZeileLoeschen then
+  begin
+    ShowMessage('Dafür fehlt das Recht.');
+    Exit;
+  end;
+  if MessageDlg('Position ' + IntToStr(Index + 1) + ' löschen?',
+    mtConfirmation, [mbYes, mbNo], 0) <> mrYes then
+    Exit;
+  for i := Index to High(FZeilen) - 1 do
+    FZeilen[i] := FZeilen[i + 1];
+  SetLength(FZeilen, Length(FZeilen) - 1);
+  if Index > High(FZeilen) then
+    FZeile := High(FZeilen)
+  else
+    FZeile := Index;
+  Gitter;
+  Knoepfe;
+  SummenZeigen;
+end;
+
+procedure TBelegfenster.AusgabeKlick(Sender: TObject);
+begin
+  ShowMessage('Drucken folgt später.');
+end;
+
+procedure TBelegfenster.ArtikelHolen;
+var
+  Id: Int64;
+  Index: Integer;
+  Artikel: TArtikel;
+begin
+  if not ZeileNeu then
+  begin
+    ShowMessage('Dafür fehlt das Recht.');
+    Exit;
+  end;
+  if not ArtikelWaehlen(Id) then
+    Exit;
+  if not uartikel.ArtikelLaden(Id, Artikel) then
+    Exit;
+  if Gewaehlt < 0 then
+    ZeileAnlegen;
+  Index := Gewaehlt;
+  if Index < 0 then
+    Exit;
+  FZeilen[Index].ArtikelId := Artikel.Id;
+  FZeilen[Index].Gruppe := Artikel.Gruppe;
+  FZeilen[Index].ArtikelName := Artikel.Bezeichnung;
+  if Trim(Artikel.PosText) <> '' then
+    FZeilen[Index].Text := Artikel.PosText
+  else
+    FZeilen[Index].Text := Artikel.Bezeichnung;
+  FZeilen[Index].EkCent := Artikel.EkCent;
+  FZeilen[Index].EinheitEk := Artikel.EinheitEk;
+  FZeilen[Index].AufschlagBp := Artikel.AufschlagBp;
+  FZeilen[Index].RabattBp := 0;
+  FZeilen[Index].EinzelpreisCent := VkCent(Artikel.EkCent, Artikel.AufschlagBp, 0);
+  if Artikel.EinheitMenge <> '' then
+    FZeilen[Index].Einheit := Artikel.EinheitMenge;
+  if FArt.Mwst then
+    FZeilen[Index].MwstSatz := Artikel.MwstSatz;
+  if FZeilen[Index].MengeMilli = 0 then
+    FZeilen[Index].MengeMilli := 1000;
+  FZeile := Index;
+  Gitter;
+  SummenZeigen;
+end;
+
+procedure TBelegfenster.ProjektSuchen(Sender: TObject);
+var
+  Id: Int64;
+  Projekt: TProjekt;
+begin
+  if not ZeileNeu then
+    Exit;
+  if not ListenWahl('projekt', False, Id) then
+    Exit;
+  FKopf.ProjektStammId := Id;
+  if ProjektLaden(Id, Projekt) then
+    EditProjekt.Text := Projekt.Bezeichnung;
+end;
+
+procedure TBelegfenster.AdresseSuchen(Sender: TObject);
+var
+  Id: Int64;
+  Maske: string;
+begin
+  if not ZeileNeu then
+    Exit;
+  Maske := FArt.EmpfaengerMaske;
+  if Maske = '' then
+    Maske := 'kunde';
+  if not ListenWahl(Maske, False, Id) then
+    Exit;
+  FKopf.AdresseId := Id;
+  FKopf.AdresseText := AdressBlock(Id);
+  EditAdresse.Text := StammBezeichnung('lieferant', Id);
+  MemoAdresse.Text := FKopf.AdresseText;
+end;
+
+procedure TBelegfenster.GruppeSuchen(Sender: TObject);
+var
+  Id: Int64;
+begin
+  if not ZeileNeu then
+    Exit;
+  if not ListenWahl('gruppierung', False, Id) then
+    Exit;
+  FKopf.Gruppierung := StammBezeichnung('gruppierung', Id);
+  EditGruppe.Text := FKopf.Gruppierung;
+end;
+
+procedure TBelegfenster.BearbeiterSuchen(Sender: TObject);
+var
+  Id: Int64;
+begin
+  if not ZeileNeu then
+    Exit;
+  if not ListenWahl('mitarbeiter', False, Id) then
+    Exit;
+  FKopf.BearbeiterId := Id;
+  EditBearbeiter.Text := StammBezeichnung('lieferant', Id);
+end;
+
+procedure TBelegfenster.KopftextSuchen(Sender: TObject);
+var
+  Id: Int64;
+begin
+  if not ZeileNeu then
+    Exit;
+  if not TextbausteinWaehlen('Kopftext', Id) then
+    Exit;
+  FKopf.KopfBausteinId := Id;
+  MemoKopf.Text := TextbausteinInhalt(Id);
+end;
+
+procedure TBelegfenster.FusstextSuchen(Sender: TObject);
+var
+  Id: Int64;
+begin
+  if not ZeileNeu then
+    Exit;
+  if not TextbausteinWaehlen('Fusstext', Id) then
+    Exit;
+  FKopf.FussBausteinId := Id;
+  MemoFuss.Text := TextbausteinInhalt(Id);
+end;
+
+procedure TBelegfenster.DatumHeute(Sender: TObject);
+begin
+  if not ZeileNeu then
+    Exit;
+  FKopf.Erfasst := FormatDateTime('yyyy-mm-dd', Now);
+  EditDatum.Text := FKopf.Erfasst;
+end;
+
+procedure TBelegfenster.Suchen;
+var
+  Ziel: TWinControl;
+begin
+  Ziel := ActiveControl;
+  if Ziel = EditProjekt then
+    ProjektSuchen(nil)
+  else if (Ziel = EditAdresse) or (Ziel = MemoAdresse) then
+    AdresseSuchen(nil)
+  else if Ziel = EditGruppe then
+    GruppeSuchen(nil)
+  else if Ziel = EditBearbeiter then
+    BearbeiterSuchen(nil)
+  else if Ziel = EditDatum then
+    DatumHeute(nil)
+  else if Ziel = MemoKopf then
+    KopftextSuchen(nil)
+  else if Ziel = MemoFuss then
+    FusstextSuchen(nil)
+  else if FArt.Positionen then
+    ArtikelHolen
+  else
+    AdresseSuchen(nil);
+end;
+
+procedure TBelegfenster.SuchenKlick(Sender: TObject);
+begin
+  Suchen;
+end;
+
 function TBelegfenster.SpeichernStill(out Fehler: string): Int64;
 var
-  Positionen: TPosListe;
+  i: Integer;
 begin
   Result := 0;
-  if not PositionenLesen(Positionen, Fehler) then
-    Exit;
-  FKopfDaten.Modulart := FArt.Kuerzel;
-  FKopfDaten.Bezeichnung := FBezeichnung.Text;
-  FKopfDaten.Kopftext := FKopftext.Text;
-  FKopfDaten.Fusstext := FFusstext.Text;
-  Result := BelegSpeichern(FKopfDaten, Positionen, Fehler);
+  PosTextSichern;
+  for i := 0 to High(FZeilen) do
+    if Trim(FZeilen[i].Text) = '' then
+    begin
+      Fehler := 'Position ' + IntToStr(i + 1) + ' braucht einen Text.';
+      Exit;
+    end;
+  FKopf.Modulart := FArt.Kuerzel;
+  FKopf.Bezeichnung := Trim(EditBezeichnung.Text);
+  FKopf.Kopftext := MemoKopf.Text;
+  FKopf.Fusstext := MemoFuss.Text;
+  FKopf.Notiz := MemoNotiz.Text;
+  FKopf.IhrZeichen := Trim(EditZeichen.Text);
+  FKopf.Erfasst := Trim(EditDatum.Text);
+  if FKopf.Gruppierung = '' then
+    FKopf.Gruppierung := Trim(EditGruppe.Text);
+  Result := BelegSpeichern(FKopf, FZeilen, Fehler);
   if Result > 0 then
-    Caption := 'Planlos - ' + FArt.Bezeichnung + ' ' + FKopfDaten.Nummer;
+    Caption := FArt.Bezeichnung + ' ' + FKopf.Nummer;
+end;
+
+procedure TBelegfenster.SpeichernKlick(Sender: TObject);
+var
+  Fehler: string;
+begin
+  if FKopf.Id = 0 then
+  begin
+    if not Darf('neu') then
+    begin
+      ShowMessage('Dafür fehlt das Recht.');
+      Exit;
+    end;
+  end
+  else if not Darf('aendern') then
+  begin
+    ShowMessage('Dafür fehlt das Recht.');
+    Exit;
+  end;
+  if SpeichernStill(Fehler) = 0 then
+    ShowMessage(Fehler)
+  else
+    ModalResult := mrOk;
+end;
+
+procedure TBelegfenster.AbbrechenKlick(Sender: TObject);
+begin
+  ModalResult := mrCancel;
 end;
 
 procedure TBelegfenster.Folge(const ZielKuerzel: string);
@@ -450,85 +1129,65 @@ begin
     BelegBearbeiten('', Neu);
 end;
 
-procedure TBelegfenster.Aktion(const Aktionsname: string);
-var
-  Fehler: string;
-  Gewaehlt: Int64;
-begin
-  if Aktionsname = 'hilfe' then
-    ShowMessage(
-      FArt.Bezeichnung + ' ist eine Belegart aus der Datenbank.' + LineEnding +
-      'F3 wählt den ' + FArt.BeschriftungEmpfaenger + '.' + LineEnding +
-      'F5 fügt eine Position an, F8 entfernt sie.' + LineEnding +
-      'F10 speichert. Folgebelege stehen als eigene Tasten da, wenn die ' +
-      'Belegart das erlaubt.')
-  else if Aktionsname = 'empfaenger' then
-  begin
-    if FArt.EmpfaengerMaske = '' then
-      Exit;
-    Gewaehlt := AdressSucheWaehlen(FArt.EmpfaengerMaske);
-    if Gewaehlt > 0 then
-    begin
-      FKopfDaten.AdresseId := Gewaehlt;
-      EmpfaengerZeigen;
-    end;
-  end
-  else if Aktionsname = 'position' then
-    PositionHinzufuegen
-  else if Aktionsname = 'position_weg' then
-    PositionEntfernen
-  else if Aktionsname = 'speichern' then
-  begin
-    if FKopfDaten.Id = 0 then
-    begin
-      if not AktionZulaessig('beleg', FArt.Kuerzel, 'neu', Fehler) then
-      begin
-        ShowMessage(Fehler);
-        Exit;
-      end;
-    end
-    else if not AktionZulaessig('beleg', FArt.Kuerzel, 'aendern', Fehler) then
-    begin
-      ShowMessage(Fehler);
-      Exit;
-    end;
-    if SpeichernStill(Fehler) = 0 then
-      ShowMessage(Fehler)
-    else
-      ModalResult := mrOk;
-  end
-  else if Aktionsname = 'schliessen' then
-    ModalResult := mrCancel
-  else if Copy(Aktionsname, 1, 6) = 'folge:' then
-    Folge(Copy(Aktionsname, 7, 80));
-end;
-
-procedure TBelegfenster.TasteGedrueckt(Sender: TObject; Ebene, Taste: Integer);
-var
-  i: Integer;
-begin
-  for i := 0 to High(FTastenInfo) do
-    if (FTastenInfo[i].Ebene = Ebene) and (FTastenInfo[i].Taste = Taste) and
-       FTastenInfo[i].Erlaubt then
-    begin
-      Aktion(FTastenInfo[i].Aktion);
-      Exit;
-    end;
-end;
-
 procedure TBelegfenster.FormKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
+var
+  Memo: Boolean;
 begin
-  if Key = VK_ESCAPE then
+  Memo := (ActiveControl = MemoKopf) or (ActiveControl = MemoFuss) or
+    (ActiveControl = MemoNotiz) or (ActiveControl = MemoPos) or
+    (ActiveControl = MemoAdresse) or (ActiveControl = MemoExtern) or
+    (ActiveControl = MemoIntern);
+  if (Key = VK_ESCAPE) or ((ssShift in Shift) and (Key = VK_ESCAPE)) then
   begin
     ModalResult := mrCancel;
     Key := 0;
-    Exit;
-  end;
-  if (Key >= VK_F1) and (Key <= VK_F12) then
+  end
+  else if Key = VK_F12 then
+    Key := 0
+  else if (ssShift in Shift) and (Key = VK_F6) then
   begin
-    AlleLeistenNachziehen;
-    TasteGedrueckt(Self, AktuelleEbene, Key - VK_F1 + 1);
+    ShowMessage('Die Einstellung der Belegart folgt später.');
+    Key := 0;
+  end
+  else if Key = VK_F2 then
+  begin
+    ZeileAnlegen;
+    Key := 0;
+  end
+  else if Key = VK_F3 then
+  begin
+    AusgabeKlick(nil);
+    Key := 0;
+  end
+  else if Key = VK_F4 then
+  begin
+    Suchen;
+    Key := 0;
+  end
+  else if Key = VK_F5 then
+  begin
+    KopierenKlick(nil);
+    Key := 0;
+  end
+  else if Key = VK_F6 then
+  begin
+    AendernKlick(nil);
+    Key := 0;
+  end
+  else if Key = VK_F8 then
+  begin
+    LoeschenKlick(nil);
+    Key := 0;
+  end
+  else if Key = VK_F10 then
+  begin
+    SpeichernKlick(nil);
+    Key := 0;
+  end
+  else if (Key = VK_RETURN) and not Memo and (ActiveControl <> GridPos) then
+  begin
+    SpeichernKlick(nil);
     Key := 0;
   end;
 end;

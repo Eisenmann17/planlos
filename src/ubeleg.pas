@@ -30,15 +30,40 @@ type
     Oben: Integer;
     Breite: Integer;
     Hoehe: Integer;
+    Intern: Boolean;
+    KopfAn: Boolean;
+    InternAn: Boolean;
+    SummeAn: Boolean;
+    FussAn: Boolean;
+    ZeigeProjekt: Boolean;
+    ZeigeInternAdresse: Boolean;
+    ZeigeBezeichnung: Boolean;
+    ZeigeGruppierung: Boolean;
+    ZeigeNotiz: Boolean;
+    ZeigeKopfAdresse: Boolean;
+    ZeigeNr: Boolean;
+    ZeigeDatum: Boolean;
+    ZeigeBearbeiter: Boolean;
+    ZeigeZeichen: Boolean;
+    ZeichenText: string;
+    ZeigeKopftext: Boolean;
+    ZeigeFusstext: Boolean;
+    MwstSatz: Integer;
   end;
 
   TBelegPosition = record
     Id: Int64;
     PositionNr: Integer;
     ArtikelId: Int64;
+    Gruppe: string;
+    ArtikelName: string;
     Text: string;
     MengeMilli: Int64;
     Einheit: string;
+    EkCent: Int64;
+    EinheitEk: string;
+    AufschlagBp: Integer;
+    RabattBp: Integer;
     EinzelpreisCent: Int64;
     MwstSatz: Integer;
   end;
@@ -48,6 +73,7 @@ type
     Modulart: string;
     Nummer: string;
     AdresseId: Int64;
+    AdresseText: string;
     Bezeichnung: string;
     Kopftext: string;
     Fusstext: string;
@@ -55,6 +81,13 @@ type
     BezugId: Int64;
     BezugNummer: string;
     MwstRechnen: Boolean;
+    Gruppierung: string;
+    ProjektStammId: Int64;
+    KopfBausteinId: Int64;
+    FussBausteinId: Int64;
+    IhrZeichen: string;
+    BearbeiterId: Int64;
+    Erfasst: string;
   end;
 
   TMwstGruppe = record
@@ -68,6 +101,12 @@ type
     SteuerCent: Int64;
     BruttoCent: Int64;
     Gruppen: array of TMwstGruppe;
+  end;
+
+  TInternSumme = record
+    EkCent: Int64;
+    VkCent: Int64;
+    GewinnCent: Int64;
   end;
 
   TPosListe = array of TBelegPosition;
@@ -88,8 +127,18 @@ function MilliAusText(const Text: string; out Milli: Int64): Boolean;
 function CentAlsText(Cent: Int64): string;
 function MilliAlsText(Milli: Int64): string;
 function PositionNetto(const Position: TBelegPosition): Int64;
+function PositionEk(const Position: TBelegPosition): Int64;
+function VkCent(EkCent: Int64; AufschlagBp, RabattBp: Integer): Int64;
 function SummeRechnen(const Positionen: array of TBelegPosition;
   MwstRechnen: Boolean): TBelegSumme;
+function InternRechnen(const Positionen: array of TBelegPosition): TInternSumme;
+{ Zugeklappte Summen sind 23 hoch, nicht die Fußhöhe 17. }
+function BereichHoehe(const Bereich: string; Offen: Boolean): Integer;
+function KlappOffen(const Benutzer: string; ModulartId: Integer;
+  const Bereich: string; Vorgabe: Boolean): Boolean;
+procedure KlappMerken(const Benutzer: string; ModulartId: Integer;
+  const Bereich: string; Offen: Boolean);
+function AdressBlock(Id: Int64): string;
 
 function BelegartLaden(const Kuerzel: string; out Art: TBelegart): Boolean;
 function BelegTasten(const Kuerzel, Kontext: string): TBelegTasten;
@@ -268,6 +317,160 @@ begin
   Result := Kaufmaennisch(Position.MengeMilli * Position.EinzelpreisCent, 1000);
 end;
 
+function Bereit: Boolean; forward;
+
+function PositionEk(const Position: TBelegPosition): Int64;
+begin
+  Result := Kaufmaennisch(Position.MengeMilli * Position.EkCent, 1000);
+end;
+
+function VkCent(EkCent: Int64; AufschlagBp, RabattBp: Integer): Int64;
+var
+  MitAufschlag: Int64;
+begin
+  MitAufschlag := Kaufmaennisch(EkCent * (10000 + AufschlagBp), 10000);
+  Result := Kaufmaennisch(MitAufschlag * (10000 - RabattBp), 10000);
+end;
+
+function InternRechnen(const Positionen: array of TBelegPosition): TInternSumme;
+var
+  i: Integer;
+begin
+  Result.EkCent := 0;
+  Result.VkCent := 0;
+  Result.GewinnCent := 0;
+  for i := 0 to High(Positionen) do
+  begin
+    Result.EkCent := Result.EkCent + PositionEk(Positionen[i]);
+    Result.VkCent := Result.VkCent + PositionNetto(Positionen[i]);
+  end;
+  Result.GewinnCent := Result.VkCent - Result.EkCent;
+end;
+
+function BereichHoehe(const Bereich: string; Offen: Boolean): Integer;
+begin
+  if Bereich = 'kopf' then
+  begin
+    if Offen then
+      Result := 182
+    else
+      Result := 17;
+  end
+  else if Bereich = 'intern' then
+  begin
+    if Offen then
+      Result := 108
+    else
+      Result := 17;
+  end
+  else if Bereich = 'fuss' then
+  begin
+    if Offen then
+      Result := 89
+    else
+      Result := 17;
+  end
+  else if Bereich = 'summe' then
+  begin
+    if Offen then
+      Result := 94
+    else
+      Result := 23;
+  end
+  else
+    Result := 17;
+end;
+
+function KlappOffen(const Benutzer: string; ModulartId: Integer;
+  const Bereich: string; Vorgabe: Boolean): Boolean;
+var
+  Parameter: TStringList;
+  Wert: string;
+begin
+  Result := Vorgabe;
+  if not Bereit then
+    Exit;
+  Parameter := TStringList.Create;
+  try
+    Parameter.Values['benutzer'] := Benutzer;
+    Parameter.Values['art'] := IntToStr(ModulartId);
+    Parameter.Values['bereich'] := Bereich;
+    Wert := Trim(PlanlosDB.SkalarMit(
+      'SELECT offen FROM klappzustand WHERE benutzer = :benutzer AND ' +
+      'modulart_id = :art AND bereich = :bereich', Parameter));
+    if Wert <> '' then
+      Result := Wert = '1';
+  finally
+    Parameter.Free;
+  end;
+end;
+
+procedure KlappMerken(const Benutzer: string; ModulartId: Integer;
+  const Bereich: string; Offen: Boolean);
+var
+  Parameter: TStringList;
+  OffenZahl: Integer;
+begin
+  if not Bereit then
+    Exit;
+  if Offen then
+    OffenZahl := 1
+  else
+    OffenZahl := 0;
+  Parameter := TStringList.Create;
+  try
+    Parameter.Values['benutzer'] := Benutzer;
+    Parameter.Values['art'] := IntToStr(ModulartId);
+    Parameter.Values['bereich'] := Bereich;
+    PlanlosDB.Ausfuehren(
+      'DELETE FROM klappzustand WHERE benutzer = :benutzer AND modulart_id = :art ' +
+      'AND bereich = :bereich', Parameter);
+    Parameter.Values['offen'] := IntToStr(OffenZahl);
+    PlanlosDB.Ausfuehren(
+      'INSERT INTO klappzustand (benutzer, modulart_id, bereich, offen) ' +
+      'VALUES (:benutzer, :art, :bereich, :offen)', Parameter);
+  finally
+    Parameter.Free;
+  end;
+end;
+
+function AdressBlock(Id: Int64): string;
+var
+  Parameter, Zeile: TStringList;
+  Name: string;
+
+  procedure ZeileDazu(const Text: string);
+  begin
+    if Trim(Text) = '' then
+      Exit;
+    if Result <> '' then
+      Result := Result + LineEnding;
+    Result := Result + Trim(Text);
+  end;
+
+begin
+  Result := '';
+  if (Id = 0) or not Bereit then
+    Exit;
+  Parameter := TStringList.Create;
+  Zeile := TStringList.Create;
+  try
+    Parameter.Values['id'] := IntToStr(Id);
+    PlanlosDB.ErsteZeile(
+      'SELECT firma, anrede, vorname, nachname, strasse, plz, ort FROM adresse ' +
+      'WHERE id = :id', Parameter, Zeile);
+    ZeileDazu(Zeile.Values['firma']);
+    Name := Trim(Zeile.Values['anrede'] + ' ' + Zeile.Values['vorname'] + ' ' +
+      Zeile.Values['nachname']);
+    ZeileDazu(Name);
+    ZeileDazu(Zeile.Values['strasse']);
+    ZeileDazu(Trim(Zeile.Values['plz'] + ' ' + Zeile.Values['ort']));
+  finally
+    Zeile.Free;
+    Parameter.Free;
+  end;
+end;
+
 function SummeRechnen(const Positionen: array of TBelegPosition;
   MwstRechnen: Boolean): TBelegSumme;
 var
@@ -341,10 +544,29 @@ begin
   Art.Summe := True;
   Art.Fuss := True;
   Art.Mwst := True;
-  Art.Links := 40;
-  Art.Oben := 30;
-  Art.Breite := 900;
-  Art.Hoehe := 640;
+  Art.Links := 50;
+  Art.Oben := 50;
+  Art.Breite := 793;
+  Art.Hoehe := 660;
+  Art.Intern := True;
+  Art.KopfAn := True;
+  Art.InternAn := True;
+  Art.SummeAn := True;
+  Art.FussAn := True;
+  Art.ZeigeProjekt := True;
+  Art.ZeigeInternAdresse := True;
+  Art.ZeigeBezeichnung := True;
+  Art.ZeigeGruppierung := True;
+  Art.ZeigeNotiz := True;
+  Art.ZeigeKopfAdresse := True;
+  Art.ZeigeNr := True;
+  Art.ZeigeDatum := True;
+  Art.ZeigeBearbeiter := True;
+  Art.ZeigeZeichen := True;
+  Art.ZeichenText := 'Ihr Zeichen:';
+  Art.ZeigeKopftext := True;
+  Art.ZeigeFusstext := True;
+  Art.MwstSatz := 19;
   if not Bereit then
     Exit;
   Parameter := TStringList.Create;
@@ -354,7 +576,11 @@ begin
     PlanlosDB.ErsteZeile(
       'SELECT id, kuerzel, bezeichnung, nummernkreis, empfaenger_maske, ' +
       'beschriftung_empfaenger, bereich_kopf, bereich_positionen, bereich_summe, ' +
-      'bereich_fuss, mwst, fenster_links, fenster_oben, fenster_breite, fenster_hoehe ' +
+      'bereich_fuss, mwst, fenster_links, fenster_oben, fenster_breite, fenster_hoehe, ' +
+      'intern_en, fenster_kopf_an, fenster_intern_an, fenster_summe_an, fenster_fuss_an, ' +
+      'intern_projekt, intern_adresse, intern_bezeichnung, intern_gruppierung, intern_notiz, ' +
+      'kopf_adressfeld, kopf_nr, kopf_datum, kopf_bearbeiter, kopf_zeichen, kopf_zeichen_text, ' +
+      'kopftext_an, fusstext_an, mwst_satz ' +
       'FROM modulart WHERE kuerzel = :kuerzel', Parameter, Zeile);
     if Zeile.Values['id'] = '' then
       Exit;
@@ -371,8 +597,28 @@ begin
     Art.Mwst := Wahr(Zeile.Values['mwst']);
     Art.Links := StrToIntDef(Zeile.Values['fenster_links'], 40);
     Art.Oben := StrToIntDef(Zeile.Values['fenster_oben'], 30);
-    Art.Breite := StrToIntDef(Zeile.Values['fenster_breite'], 900);
-    Art.Hoehe := StrToIntDef(Zeile.Values['fenster_hoehe'], 640);
+    Art.Breite := StrToIntDef(Zeile.Values['fenster_breite'], 793);
+    Art.Hoehe := StrToIntDef(Zeile.Values['fenster_hoehe'], 660);
+    Art.Intern := Wahr(Zeile.Values['intern_en']);
+    Art.KopfAn := Wahr(Zeile.Values['fenster_kopf_an']);
+    Art.InternAn := Wahr(Zeile.Values['fenster_intern_an']);
+    Art.SummeAn := Wahr(Zeile.Values['fenster_summe_an']);
+    Art.FussAn := Wahr(Zeile.Values['fenster_fuss_an']);
+    Art.ZeigeProjekt := Wahr(Zeile.Values['intern_projekt']);
+    Art.ZeigeInternAdresse := Wahr(Zeile.Values['intern_adresse']);
+    Art.ZeigeBezeichnung := Wahr(Zeile.Values['intern_bezeichnung']);
+    Art.ZeigeGruppierung := Wahr(Zeile.Values['intern_gruppierung']);
+    Art.ZeigeNotiz := Wahr(Zeile.Values['intern_notiz']);
+    Art.ZeigeKopfAdresse := Wahr(Zeile.Values['kopf_adressfeld']);
+    Art.ZeigeNr := Wahr(Zeile.Values['kopf_nr']);
+    Art.ZeigeDatum := Wahr(Zeile.Values['kopf_datum']);
+    Art.ZeigeBearbeiter := Wahr(Zeile.Values['kopf_bearbeiter']);
+    Art.ZeigeZeichen := Wahr(Zeile.Values['kopf_zeichen']);
+    if Zeile.Values['kopf_zeichen_text'] <> '' then
+      Art.ZeichenText := Zeile.Values['kopf_zeichen_text'];
+    Art.ZeigeKopftext := Wahr(Zeile.Values['kopftext_an']);
+    Art.ZeigeFusstext := Wahr(Zeile.Values['fusstext_an']);
+    Art.MwstSatz := StrToIntDef(Zeile.Values['mwst_satz'], 19);
     Result := Art.Id > 0;
   finally
     Zeile.Free;
@@ -544,15 +790,29 @@ begin
   end;
 
   Jetzt := FormatDateTime('yyyy-mm-dd"T"hh:nn:ss', Now);
+  if Kopf.Erfasst = '' then
+    Kopf.Erfasst := Copy(Jetzt, 1, 10);
   Parameter := TStringList.Create;
   try
     Parameter.Values['art'] := IntToStr(Art.Id);
     Parameter.Values['adresse'] := IntToStr(Kopf.AdresseId);
+    Parameter.Values['adresse_text'] := Kopf.AdresseText;
     Parameter.Values['bezeichnung'] := Kopf.Bezeichnung;
     Parameter.Values['kopf'] := Kopf.Kopftext;
     Parameter.Values['fuss'] := Kopf.Fusstext;
     Parameter.Values['notiz'] := Kopf.Notiz;
+    Parameter.Values['gruppe'] := Kopf.Gruppierung;
+    Parameter.Values['zeichen'] := Kopf.IhrZeichen;
+    Parameter.Values['projekt'] := IntToStr(Kopf.ProjektStammId);
+    Parameter.Values['kopf_id'] := IntToStr(Kopf.KopfBausteinId);
+    Parameter.Values['fuss_id'] := IntToStr(Kopf.FussBausteinId);
     Parameter.Values['jetzt'] := Jetzt;
+    if Kopf.BearbeiterId > 0 then
+      Parameter.Values['bearbeiter'] := IntToStr(Kopf.BearbeiterId)
+    else if AngemeldeterMitarbeiter > 0 then
+      Parameter.Values['bearbeiter'] := IntToStr(AngemeldeterMitarbeiter)
+    else
+      Parameter.Values['bearbeiter'] := '';
     if Kopf.Id = 0 then
     begin
       Kopf.Nummer := NaechsteNummer(Art);
@@ -563,15 +823,15 @@ begin
         Parameter.Values['bezug'] := ''
       else
         Parameter.Values['bezug'] := IntToStr(Kopf.BezugId);
-      if AngemeldeterMitarbeiter > 0 then
-        Parameter.Values['bearbeiter'] := IntToStr(AngemeldeterMitarbeiter)
-      else
-        Parameter.Values['bearbeiter'] := '';
+      Parameter.Values['erfasst'] := Kopf.Erfasst + Copy(Jetzt, 11, 20);
       PlanlosDB.Ausfuehren(
         'INSERT INTO beleg (modulart_id, nummer, adresse_id, bezeichnung, kopftext, ' +
-        'fusstext, notiz, bezug_beleg_id, mwst_rechnen, bearbeiter_id, angelegt, geaendert) ' +
-        'VALUES (:art, :nummer, NULLIF(:adresse, ''0''), :bezeichnung, :kopf, :fuss, :notiz, ' +
-        'NULLIF(:bezug, ''''), :mwst, NULLIF(:bearbeiter, ''''), :jetzt, :jetzt)', Parameter);
+        'fusstext, notiz, bezug_beleg_id, mwst_rechnen, bearbeiter_id, gruppierung, ' +
+        'projekt_stamm_id, kopf_baustein_id, fuss_baustein_id, adresse_text, ihr_zeichen, ' +
+        'angelegt, geaendert) VALUES (:art, :nummer, NULLIF(:adresse, ''0''), :bezeichnung, ' +
+        ':kopf, :fuss, :notiz, NULLIF(:bezug, ''''), :mwst, NULLIF(:bearbeiter, ''''), ' +
+        ':gruppe, NULLIF(:projekt, ''0''), NULLIF(:kopf_id, ''0''), NULLIF(:fuss_id, ''0''), ' +
+        ':adresse_text, :zeichen, :erfasst, :jetzt)', Parameter);
       Kopf.Id := StrToInt64Def(Trim(PlanlosDB.Skalar('SELECT last_insert_rowid()')), 0);
     end
     else
@@ -579,7 +839,10 @@ begin
       Parameter.Values['id'] := IntToStr(Kopf.Id);
       if PlanlosDB.Ausfuehren(
         'UPDATE beleg SET adresse_id = NULLIF(:adresse, ''0''), bezeichnung = :bezeichnung, ' +
-        'kopftext = :kopf, fusstext = :fuss, notiz = :notiz, geaendert = :jetzt ' +
+        'kopftext = :kopf, fusstext = :fuss, notiz = :notiz, geaendert = :jetzt, ' +
+        'gruppierung = :gruppe, adresse_text = :adresse_text, ihr_zeichen = :zeichen, ' +
+        'bearbeiter_id = NULLIF(:bearbeiter, ''''), projekt_stamm_id = NULLIF(:projekt, ''0''), ' +
+        'kopf_baustein_id = NULLIF(:kopf_id, ''0''), fuss_baustein_id = NULLIF(:fuss_id, ''0'') ' +
         'WHERE id = :id AND modulart_id = :art', Parameter) < 1 then
       begin
         Fehler := 'Der Beleg gehört nicht zu dieser Belegart.';
@@ -600,14 +863,22 @@ begin
       Parameter.Values['einheit'] := Positionen[i].Einheit;
       Parameter.Values['preis'] := IntToStr(Positionen[i].EinzelpreisCent);
       Parameter.Values['satz'] := IntToStr(Positionen[i].MwstSatz);
+      Parameter.Values['gruppe'] := Positionen[i].Gruppe;
+      Parameter.Values['artikelname'] := Positionen[i].ArtikelName;
+      Parameter.Values['ek'] := IntToStr(Positionen[i].EkCent);
+      Parameter.Values['eek'] := Positionen[i].EinheitEk;
+      Parameter.Values['auf'] := IntToStr(Positionen[i].AufschlagBp);
+      Parameter.Values['rabatt'] := IntToStr(Positionen[i].RabattBp);
       if Positionen[i].ArtikelId > 0 then
         ArtikelSql := IntToStr(Positionen[i].ArtikelId)
       else
         ArtikelSql := 'NULL';
       PlanlosDB.Ausfuehren(
         'INSERT INTO belegposition (beleg_id, position_nr, artikel_id, positionstext, ' +
-        'menge_milli, einheit, einzelpreis_cent, mwst_satz) VALUES (:beleg, :nr, ' +
-        ArtikelSql + ', :text, :menge, :einheit, :preis, :satz)', Parameter);
+        'menge_milli, einheit, einzelpreis_cent, mwst_satz, gruppe, artikelname, ' +
+        'ek_cent, einheit_ek, aufschlag_bp, rabatt_bp) VALUES (:beleg, :nr, ' +
+        ArtikelSql + ', :text, :menge, :einheit, :preis, :satz, :gruppe, :artikelname, ' +
+        ':ek, :eek, :auf, :rabatt)', Parameter);
     end;
     Result := Kopf.Id;
   finally
@@ -651,6 +922,14 @@ begin
   Kopf.BezugId := 0;
   Kopf.BezugNummer := '';
   Kopf.MwstRechnen := True;
+  Kopf.AdresseText := '';
+  Kopf.Gruppierung := '';
+  Kopf.ProjektStammId := 0;
+  Kopf.KopfBausteinId := 0;
+  Kopf.FussBausteinId := 0;
+  Kopf.IhrZeichen := '';
+  Kopf.BearbeiterId := 0;
+  Kopf.Erfasst := '';
   SetLength(Positionen, 0);
   if not Bereit then
     Exit;
@@ -664,7 +943,9 @@ begin
     PlanlosDB.ErsteZeile(
       'SELECT b.id, m.kuerzel AS kuerzel, b.nummer AS belegnummer, b.adresse_id, ' +
       'b.bezeichnung, b.kopftext, b.fusstext, b.notiz, b.bezug_beleg_id, ' +
-      'b.mwst_rechnen, v.nummer AS bezugnummer ' +
+      'b.mwst_rechnen, v.nummer AS bezugnummer, b.adresse_text, b.gruppierung, ' +
+      'b.projekt_stamm_id, b.kopf_baustein_id, b.fuss_baustein_id, b.ihr_zeichen, ' +
+      'b.bearbeiter_id, b.angelegt ' +
       'FROM beleg b JOIN modulart m ON m.id = b.modulart_id ' +
       'LEFT JOIN beleg v ON v.id = b.bezug_beleg_id WHERE b.id = :id',
       Parameter, Zeile);
@@ -681,9 +962,18 @@ begin
     Kopf.BezugId := StrToInt64Def(Zeile.Values['bezug_beleg_id'], 0);
     Kopf.BezugNummer := Zeile.Values['bezugnummer'];
     Kopf.MwstRechnen := Wahr(Zeile.Values['mwst_rechnen']);
+    Kopf.AdresseText := Zeile.Values['adresse_text'];
+    Kopf.Gruppierung := Zeile.Values['gruppierung'];
+    Kopf.ProjektStammId := StrToInt64Def(Zeile.Values['projekt_stamm_id'], 0);
+    Kopf.KopfBausteinId := StrToInt64Def(Zeile.Values['kopf_baustein_id'], 0);
+    Kopf.FussBausteinId := StrToInt64Def(Zeile.Values['fuss_baustein_id'], 0);
+    Kopf.IhrZeichen := Zeile.Values['ihr_zeichen'];
+    Kopf.BearbeiterId := StrToInt64Def(Zeile.Values['bearbeiter_id'], 0);
+    Kopf.Erfasst := Copy(Zeile.Values['angelegt'], 1, 10);
     PlanlosDB.AlleZeilen(
       'SELECT id, position_nr, artikel_id, positionstext, menge_milli, einheit, ' +
-      'einzelpreis_cent, mwst_satz FROM belegposition WHERE beleg_id = :id ' +
+      'einzelpreis_cent, mwst_satz, gruppe, artikelname, ek_cent, einheit_ek, ' +
+      'aufschlag_bp, rabatt_bp FROM belegposition WHERE beleg_id = :id ' +
       'ORDER BY position_nr, id', Parameter, Spalten, Zeilen);
     SetLength(Positionen, Zeilen.Count);
     for i := 0 to Zeilen.Count - 1 do
@@ -699,6 +989,18 @@ begin
       Positionen[i].Einheit := Teile[5];
       Positionen[i].EinzelpreisCent := StrToInt64Def(Teile[6], 0);
       Positionen[i].MwstSatz := StrToIntDef(Teile[7], 0);
+      if Teile.Count > 8 then
+        Positionen[i].Gruppe := Teile[8];
+      if Teile.Count > 9 then
+        Positionen[i].ArtikelName := Teile[9];
+      if Teile.Count > 10 then
+        Positionen[i].EkCent := StrToInt64Def(Teile[10], 0);
+      if Teile.Count > 11 then
+        Positionen[i].EinheitEk := Teile[11];
+      if Teile.Count > 12 then
+        Positionen[i].AufschlagBp := StrToIntDef(Teile[12], 0);
+      if Teile.Count > 13 then
+        Positionen[i].RabattBp := StrToIntDef(Teile[13], 0);
     end;
     Result := True;
   finally
