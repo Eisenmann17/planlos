@@ -72,6 +72,7 @@ type
     ButtonKategorie: TButton;
     ButtonGruppierung: TButton;
     ButtonStueckliste: TButton;
+    ButtonStuecklisten: TButton;
     ButtonProjekt: TButton;
     ButtonTextbaustein: TButton;
     ButtonBriefkopf: TButton;
@@ -102,6 +103,7 @@ type
     MenuKategorie: TMenuItem;
     MenuGruppierung: TMenuItem;
     MenuStueckliste: TMenuItem;
+    MenuStuecklisten: TMenuItem;
     MenuProjektStamm: TMenuItem;
     MenuTextbaustein: TMenuItem;
     MenuBriefkopf: TMenuItem;
@@ -138,6 +140,7 @@ type
     procedure MenueKategorie(Sender: TObject);
     procedure MenueGruppierung(Sender: TObject);
     procedure MenueStueckliste(Sender: TObject);
+    procedure MenueStuecklisten(Sender: TObject);
     procedure MenueProjektStamm(Sender: TObject);
     procedure MenueTextbaustein(Sender: TObject);
     procedure MenueBriefkopf(Sender: TObject);
@@ -213,7 +216,8 @@ implementation
 {$R *.lfm}
 
 uses
-  ubeleg, ubelegfenster, ubenutzer, utestdaten, ubriefkopffenster, ugrafikfenster;
+  ubeleg, ubelegfenster, ubenutzer, utestdaten, ubriefkopffenster, ugrafikfenster,
+  ustuecklistefenster;
 
 function Teile(const Zeile: string; Ziel: TStrings): Boolean;
 var
@@ -1057,6 +1061,11 @@ end;
 procedure THauptfenster.MenueStueckliste(Sender: TObject);
 begin
   AdressSucheZeigen('stuecklistengruppe');
+end;
+
+procedure THauptfenster.MenueStuecklisten(Sender: TObject);
+begin
+  StuecklisteStammZeigen;
 end;
 
 procedure THauptfenster.MenueAngebot(Sender: TObject);

@@ -16,6 +16,15 @@ bezeichnung=Pauschale
 
 [stuecklistengruppe]
 bezeichnung=Beschlag
+---
+bezeichnung=Geländer
+
+[stueckliste]
+bezeichnung=Geländer Standard
+gruppe=Geländer
+einheit=Meter
+zeile=Flachstahl|8,5|kg|2,40|20
+zeile=Schweißen|0,5|Stunden|45,00|0
 
 [kunde]
 firma=Meier GmbH
