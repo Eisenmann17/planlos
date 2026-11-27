@@ -78,6 +78,7 @@ type
     ButtonBriefkopf: TButton;
     ButtonGrafik: TButton;
     ButtonBelegart: TButton;
+    ButtonFensterliste: TButton;
     PanelTestdaten: TPanel;
     ButtonTestdaten: TButton;
     LabelEinstellung: TLabel;
@@ -116,6 +117,7 @@ type
     MenuProjekt: TMenuItem;
     MenuEinstellungen: TMenuItem;
     MenuBelegart: TMenuItem;
+    MenuFensterliste: TMenuItem;
     MenuHilfe: TMenuItem;
     MenuHilfeText: TMenuItem;
     MenuDatenbank: TMenuItem;
@@ -146,6 +148,7 @@ type
     procedure MenueBriefkopf(Sender: TObject);
     procedure MenueGrafik(Sender: TObject);
     procedure MenueBelegart(Sender: TObject);
+    procedure MenueFensterliste(Sender: TObject);
     procedure BelegartenSchluss(Sender: TObject);
     procedure MenueAngebot(Sender: TObject);
     procedure MenueAuftrag(Sender: TObject);
@@ -217,7 +220,7 @@ implementation
 
 uses
   ubeleg, ubelegfenster, ubenutzer, utestdaten, ubriefkopffenster, ugrafikfenster,
-  ustuecklistefenster;
+  ustuecklistefenster, ufensterliste;
 
 function Teile(const Zeile: string; Ziel: TStrings): Boolean;
 var
@@ -1123,6 +1126,11 @@ end;
 procedure THauptfenster.MenueBelegart(Sender: TObject);
 begin
   AdressSucheZeigen('modulart', @BelegartenSchluss);
+end;
+
+procedure THauptfenster.MenueFensterliste(Sender: TObject);
+begin
+  FensterlisteZeigen;
 end;
 
 function KontaktPruefen(Protokoll: TStrings): string;

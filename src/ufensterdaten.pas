@@ -37,6 +37,8 @@ function FensterSpeichern(var Satz: TFensterSatz; out Fehler: string;
 function FensterMitVorgabe(const Fenster, Kontext: string;
   Links, Oben, Breite, Hoehe: Integer; out Satz: TFensterSatz;
   out Fehler: string): Boolean;
+procedure FensterAlle(Ziel: TStrings);
+function FensterLoeschen(Id: Int64; out Fehler: string): Boolean;
 function BriefkopfStandard: Int64;
 function BriefkopfLesen(Id: Int64; out Absender, Fusszeile: string): Boolean;
 function BriefkopfDaten(Id: Int64; out Bezeichnung, Absender, Fusszeile: string;
@@ -225,6 +227,49 @@ begin
     Satz.SqlText := Allgemein.SqlText;
   end;
   Result := FensterSpeichern(Satz, Fehler, False);
+end;
+
+procedure FensterAlle(Ziel: TStrings);
+var
+  Spalten, Zeilen: TStringList;
+begin
+  Ziel.Clear;
+  if not Bereit then
+    Exit;
+  Spalten := TStringList.Create;
+  Zeilen := TStringList.Create;
+  try
+    PlanlosDB.AlleZeilen(
+      'SELECT id, fenster, kontext, sql_text FROM fenstereinstellung ' +
+      'ORDER BY fenster, kontext, id', nil, Spalten, Zeilen);
+    Ziel.Assign(Zeilen);
+  finally
+    Zeilen.Free;
+    Spalten.Free;
+  end;
+end;
+
+function FensterLoeschen(Id: Int64; out Fehler: string): Boolean;
+var
+  Parameter: TStringList;
+begin
+  Result := False;
+  Fehler := '';
+  if not Bereit or (Id <= 0) then
+  begin
+    Fehler := 'Die Fenstereinstellung wurde nicht gefunden.';
+    Exit;
+  end;
+  Parameter := TStringList.Create;
+  try
+    Parameter.Values['id'] := IntToStr(Id);
+    Result := PlanlosDB.Ausfuehren(
+      'DELETE FROM fenstereinstellung WHERE id = :id', Parameter) > 0;
+    if not Result then
+      Fehler := 'Die Fenstereinstellung wurde nicht gefunden.';
+  finally
+    Parameter.Free;
+  end;
 end;
 
 function BriefkopfStandard: Int64;
