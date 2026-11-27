@@ -972,7 +972,8 @@ end;
 procedure TBelegfenster.LageSetzen;
 var
   Satz: TFensterSatz;
-  Breite, Hoehe: Integer;
+  Breite, Hoehe, i: Integer;
+  HauptDa: Boolean;
 begin
   if FArt.Kuerzel = '' then
     Exit;
@@ -984,9 +985,19 @@ begin
   if FArt.Hoehe >= 360 then
     Hoehe := FArt.Hoehe;
   Position := poDesigned;
+  HauptDa := False;
+  for i := 0 to Screen.FormCount - 1 do
+    if Screen.Forms[i].ClassName = 'THauptfenster' then
+      HauptDa := True;
   if FensterLesen('beleg', FArt.Kuerzel, Satz) and (Satz.Breite > 40) and
      (Satz.Hoehe > 40) then
     SetBounds(Satz.Links, Satz.Oben, Satz.Breite, Satz.Hoehe)
+  else if HauptDa then
+  begin
+    Width := Breite;
+    Height := Hoehe;
+    FensterStaffeln(Self);
+  end
   else if FensterlageBewusst(FArt.Links, FArt.Oben) then
     SetBounds(FArt.Links, FArt.Oben, Breite, Hoehe)
   else
