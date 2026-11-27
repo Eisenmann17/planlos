@@ -1,0 +1,113 @@
+object Fensterliste: TFensterliste
+  Left = 200
+  Height = 420
+  Top = 80
+  Width = 720
+  Caption = 'Fenstereinstellungen'
+  ClientHeight = 420
+  ClientWidth = 720
+  Color = clBtnFace
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  KeyPreview = True
+  Position = poDesigned
+  OnKeyDown = FormKeyDown
+  OnShow = FormZeigen
+  object LabelHinweis: TLabel
+    Left = 8
+    Height = 15
+    Top = 8
+    Width = 700
+    Caption = 'Gespeicherte Stellungen. Vorgabe löscht den Satz, dann gilt wieder die allgemeine Einstellung.'
+  end
+  object GridListe: TStringGrid
+    Left = 8
+    Height = 320
+    Top = 28
+    Width = 704
+    ColCount = 2
+    FixedCols = 0
+    RowCount = 2
+    Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRowSelect, goColSizing, goThumbTracking]
+    TabOrder = 0
+    OnDblClick = AendernKlick
+  end
+  object PanelKnopf: TPanel
+    Left = 0
+    Height = 40
+    Top = 380
+    Width = 720
+    Align = alBottom
+    BevelOuter = bvNone
+    Caption = ''
+    TabOrder = 1
+    object LabelF6: TLabel
+      Left = 8
+      Height = 14
+      Top = 0
+      Width = 110
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'F6'
+      Font.Color = clTeal
+      Font.Height = -11
+      Font.Name = 'MS Sans Serif'
+      ParentFont = False
+    end
+    object ButtonAendern: TButton
+      Left = 8
+      Height = 22
+      Top = 16
+      Width = 110
+      Caption = 'ändern'
+      TabOrder = 0
+      OnClick = AendernKlick
+    end
+    object LabelF8: TLabel
+      Left = 126
+      Height = 14
+      Top = 0
+      Width = 110
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'F8'
+      Font.Color = clTeal
+      Font.Height = -11
+      Font.Name = 'MS Sans Serif'
+      ParentFont = False
+    end
+    object ButtonVorgabe: TButton
+      Left = 126
+      Height = 22
+      Top = 16
+      Width = 110
+      Caption = 'Vorgabe'
+      TabOrder = 1
+      OnClick = VorgabeKlick
+    end
+    object LabelEsc: TLabel
+      Left = 244
+      Height = 14
+      Top = 0
+      Width = 92
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'ESC'
+      Font.Color = clTeal
+      Font.Height = -11
+      Font.Name = 'MS Sans Serif'
+      ParentFont = False
+    end
+    object ButtonSchliessen: TButton
+      Left = 244
+      Height = 22
+      Top = 16
+      Width = 92
+      Cancel = True
+      Caption = 'schließen'
+      TabOrder = 2
+      OnClick = SchliessenKlick
+    end
+  end
+end

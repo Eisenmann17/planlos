@@ -637,6 +637,15 @@ object Hauptfenster: THauptfenster
         OnClick = MenueBelegart
         TabOrder = 0
       end
+      object ButtonFensterliste: TButton
+        Left = 190
+        Height = 25
+        Top = 110
+        Width = 180
+        Caption = 'Fenstereinstellungen'
+        OnClick = MenueFensterliste
+        TabOrder = 1
+      end
     end
     object TabHilfe: TTabSheet
       Caption = 'Wartung/Hilfe'
@@ -817,6 +826,10 @@ object Hauptfenster: THauptfenster
       object MenuBelegart: TMenuItem
         Caption = '&Belegart'
         OnClick = MenueBelegart
+      end
+      object MenuFensterliste: TMenuItem
+        Caption = '&Fenstereinstellungen'
+        OnClick = MenueFensterliste
       end
     end
     object MenuHilfe: TMenuItem

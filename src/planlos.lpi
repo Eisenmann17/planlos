@@ -30,7 +30,7 @@
         <PackageName Value="LCL"/>
       </Item1>
     </RequiredPackages>
-    <Units Count="41">
+    <Units Count="42">
       <Unit0>
         <Filename Value="planlos.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -235,6 +235,11 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="ustuecklistefenster"/>
       </Unit40>
+      <Unit41>
+        <Filename Value="ufensterliste.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="ufensterliste"/>
+      </Unit41>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

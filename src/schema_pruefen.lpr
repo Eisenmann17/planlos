@@ -38,6 +38,7 @@ var
   Vorlage: TDruckvorlage;
   DruckLayout, DruckLayout2: TDruckLayout;
   FensterSatz, FensterSatz2: TFensterSatz;
+  FensterZeilen: TStringList;
   Sicherung: TSearchRec;
   GrafikId, KopfBrief, BildId: Int64;
   Roh: RawByteString;
@@ -852,6 +853,18 @@ begin
       if not FensterLesen('suche', 'rechnung', FensterSatz2) or
          (FensterSatz2.Breite <> 200) then
         Fehlschlag('Eine fehlende Fenstereinstellung wird nicht angelegt.');
+      FensterZeilen := TStringList.Create;
+      try
+        FensterAlle(FensterZeilen);
+        if Pos('rechnung', FensterZeilen.Text) = 0 then
+          Fehlschlag('Die Liste der Fenstereinstellungen zeigt den Satz nicht.');
+        if not FensterLoeschen(FensterSatz.Id, FolgeFehler) then
+          Fehlschlag(FolgeFehler);
+        if FensterLesen('suche', 'rechnung', FensterSatz2) then
+          Fehlschlag('Eine gelöschte Fenstereinstellung gilt noch.');
+      finally
+        FensterZeilen.Free;
+      end;
       DB.Ausfuehren('UPDATE schema_info SET version = 14 WHERE id = 1', nil);
       DB.ParameterSetzen('migrationsprobe', 'bleibt');
       DB.SchemaSicherstellen;
