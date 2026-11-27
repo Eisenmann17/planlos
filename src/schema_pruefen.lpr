@@ -137,6 +137,11 @@ begin
         Fehlschlag('Das Schema hat Belegarten verdoppelt.');
       if DB.Ganzzahl('SELECT version FROM schema_info WHERE id = 1') <> 15 then
         Fehlschlag('Das Schema soll auf Version 15 stehen.');
+      if FensterlageBewusst(50, 50) or FensterlageBewusst(0, 0) or
+         FensterlageBewusst(0, 40) then
+        Fehlschlag('50/50 und leer sind keine gesetzte Fensterlage.');
+      if not FensterlageBewusst(120, 80) then
+        Fehlschlag('Eine andere Fensterlage soll gelten.');
       if ZeilenVkCent(8500, 240, 2000) <> 2448 then
         Fehlschlag('8,5 kg mal 2,40 Euro plus 20 Prozent sind nicht 24,48 Euro.');
       if ZeilenVkCent(500, 4500, 0) <> 2250 then

@@ -128,6 +128,8 @@ type
 
   TBelegTasten = array of TBelegTaste;
 
+{ 50/50 und leer gelten nicht als gesetzte Fensterlage. }
+function FensterlageBewusst(Links, Oben: Integer): Boolean;
 function Kaufmaennisch(Zaehler, Nenner: Int64): Int64;
 function CentAusText(const Text: string; out Cent: Int64): Boolean;
 function MilliAusText(const Text: string; out Milli: Int64): Boolean;
@@ -196,6 +198,11 @@ implementation
 
 uses
   udatenbank, ubenutzer;
+
+function FensterlageBewusst(Links, Oben: Integer): Boolean;
+begin
+  Result := (Links > 0) and (Oben > 0) and not ((Links = 50) and (Oben = 50));
+end;
 
 function Kaufmaennisch(Zaehler, Nenner: Int64): Int64;
 var

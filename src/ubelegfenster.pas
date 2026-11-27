@@ -76,9 +76,11 @@ type
     ButtonSpeichern: TButton;
     PanelMitte: TPanel;
     MemoPos: TMemo;
+    LabelPositionstext: TLabel;
     GridPos: TStringGrid;
     procedure FormErzeugen(Sender: TObject);
     procedure FormZeigen(Sender: TObject);
+    procedure FormZerstoeren(Sender: TObject);
     procedure FormGeaendert(Sender: TObject);
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure KopfKlappen(Sender: TObject);
@@ -152,6 +154,8 @@ type
     procedure Suchen;
     procedure ArtikelHolen;
     procedure ZeileAnlegen;
+    procedure LageSetzen;
+    procedure LageNachziehen(Data: PtrInt);
     function SpeichernStill(out Fehler: string): Int64;
     procedure Folge(const ZielKuerzel: string);
   public
@@ -309,6 +313,7 @@ begin
   GridPos.ColWidths[CRab] := 60;
   GridPos.ColWidths[CVk] := 70;
   GridPos.ColWidths[CSatz] := 45;
+  OnDestroy := @FormZerstoeren;
   FMenuF2 := TPopupMenu.Create(Self);
   Eintrag := TMenuItem.Create(FMenuF2);
   Eintrag.Caption := 'Artikel aus Stammdaten';
@@ -460,6 +465,7 @@ begin
   FKopf.BriefkopfAn := True;
   FKopf.BriefkopfId := BriefkopfStandard;
   SetLength(FZeilen, 0);
+  FensterMerken(Self, 'beleg', Kuerzel);
 end;
 
 function TBelegfenster.OeffneId(Id: Int64): Boolean;
@@ -468,6 +474,8 @@ begin
   if not Result then
     Exit;
   Result := BelegartLaden(FKopf.Modulart, FArt);
+  if Result then
+    FensterMerken(Self, 'beleg', FArt.Kuerzel);
 end;
 
 procedure TBelegfenster.KlappenLesen;
@@ -961,20 +969,50 @@ begin
   end;
 end;
 
-procedure TBelegfenster.FormZeigen(Sender: TObject);
+procedure TBelegfenster.LageSetzen;
 var
   Satz: TFensterSatz;
+  Breite, Hoehe: Integer;
 begin
+  if FArt.Kuerzel = '' then
+    Exit;
   FensterMerken(Self, 'beleg', FArt.Kuerzel);
-  if not (FensterWirksam('beleg', FArt.Kuerzel, Satz) and (Satz.Breite > 40) and
-     (Satz.Hoehe > 40)) then
+  Breite := Width;
+  Hoehe := Height;
+  if FArt.Breite >= 515 then
+    Breite := FArt.Breite;
+  if FArt.Hoehe >= 360 then
+    Hoehe := FArt.Hoehe;
+  Position := poDesigned;
+  if FensterLesen('beleg', FArt.Kuerzel, Satz) and (Satz.Breite > 40) and
+     (Satz.Hoehe > 40) then
+    SetBounds(Satz.Links, Satz.Oben, Satz.Breite, Satz.Hoehe)
+  else if FensterlageBewusst(FArt.Links, FArt.Oben) then
+    SetBounds(FArt.Links, FArt.Oben, Breite, Hoehe)
+  else
   begin
-    if FArt.Breite >= 515 then
-      Width := FArt.Breite;
-    if FArt.Hoehe >= 360 then
-      Height := FArt.Hoehe;
+    Width := Breite;
+    Height := Hoehe;
+    FensterStaffeln(Self);
   end;
-  FensterAnwenden(Self);
+end;
+
+procedure TBelegfenster.LageNachziehen(Data: PtrInt);
+begin
+  if csDestroying in ComponentState then
+    Exit;
+  LageSetzen;
+end;
+
+procedure TBelegfenster.FormZerstoeren(Sender: TObject);
+begin
+  Application.RemoveAsyncCalls(Self);
+end;
+
+procedure TBelegfenster.FormZeigen(Sender: TObject);
+begin
+  LageSetzen;
+  Application.QueueAsyncCall(@LageNachziehen, 0);
   KlappenLesen;
   FelderFuellen;
   Gitter;

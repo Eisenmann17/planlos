@@ -1,7 +1,7 @@
 object Belegfenster: TBelegfenster
-  Left = 50
+  Left = 0
   Height = 660
-  Top = 50
+  Top = 0
   Width = 793
   Caption = 'Beleg'
   ClientHeight = 660
@@ -622,6 +622,16 @@ object Belegfenster: TBelegfenster
       ScrollBars = ssVertical
       TabOrder = 1
       OnExit = PosTextVerlassen
+    end
+    object LabelPositionstext: TLabel
+      Left = 8
+      Height = 16
+      Top = 190
+      Width = 120
+      Align = alBottom
+      Caption = 'Positionstext'
+      Font.Color = clNavy
+      ParentFont = False
     end
     object GridPos: TStringGrid
       Left = 0

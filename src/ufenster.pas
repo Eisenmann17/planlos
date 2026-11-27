@@ -10,10 +10,11 @@ unit ufenster;
 interface
 
 uses
-  Classes, SysUtils, Forms, Controls, StdCtrls, Grids;
+  Classes, SysUtils, Forms, Controls, StdCtrls, Grids, Menus;
 
 procedure FensterMerken(Formular: TCustomForm; const Fenster, Kontext: string);
 procedure FensterAnwenden(Formular: TCustomForm);
+procedure FensterStaffeln(Formular: TCustomForm);
 
 implementation
 
@@ -121,27 +122,13 @@ begin
     end;
 end;
 
-procedure FensterAnwenden(Formular: TCustomForm);
+procedure FensterStaffeln(Formular: TCustomForm);
 var
-  Merk: TMerk;
-  Satz: TFensterSatz;
   Haupt: TForm;
   SchrittX, SchrittY, Index: Integer;
 begin
-  if (Formular = nil) or MitteOderAnmeldung(Formular) then
+  if Formular = nil then
     Exit;
-  Merk := MerkSuchen(Formular);
-  if Merk = nil then
-    FensterMerken(Formular, Copy(Formular.ClassName, 2, 40), '');
-  Merk := MerkSuchen(Formular);
-  if FensterWirksam(Merk.Fenster, Merk.Kontext, Satz) and (Satz.Breite > 40) and
-     (Satz.Hoehe > 40) then
-  begin
-    Formular.Position := poDesigned;
-    Formular.SetBounds(Satz.Links, Satz.Oben, Satz.Breite, Satz.Hoehe);
-    SpaltenAnwenden(Formular, Satz.Spalten);
-    Exit;
-  end;
   Haupt := Hauptform;
   SchrittX := KaskadenSchritt('schritt_links', 9);
   SchrittY := KaskadenSchritt('schritt_oben', 26);
@@ -156,6 +143,39 @@ begin
   else
     Formular.SetBounds(24 + Index * SchrittX, 24 + Index * SchrittY,
       Formular.Width, Formular.Height);
+end;
+
+procedure FensterAnwenden(Formular: TCustomForm);
+var
+  Merk: TMerk;
+  Satz: TFensterSatz;
+begin
+  if (Formular = nil) or MitteOderAnmeldung(Formular) or
+     (Formular.ClassName = 'TBelegfenster') then
+    Exit;
+  Merk := MerkSuchen(Formular);
+  if Merk = nil then
+    FensterMerken(Formular, Copy(Formular.ClassName, 2, 40), '');
+  Merk := MerkSuchen(Formular);
+  if FensterWirksam(Merk.Fenster, Merk.Kontext, Satz) and (Satz.Breite > 40) and
+     (Satz.Hoehe > 40) then
+  begin
+    Formular.Position := poDesigned;
+    Formular.SetBounds(Satz.Links, Satz.Oben, Satz.Breite, Satz.Hoehe);
+    SpaltenAnwenden(Formular, Satz.Spalten);
+    Exit;
+  end;
+  FensterStaffeln(Formular);
+end;
+
+function MenueDesFensters(Formular: TCustomForm): TPopupMenu;
+var
+  i: Integer;
+begin
+  Result := nil;
+  for i := 0 to Formular.ComponentCount - 1 do
+    if Formular.Components[i] is TPopupMenu then
+      Exit(TPopupMenu(Formular.Components[i]));
 end;
 
 function SpaltenNamen(Formular: TCustomForm): TStringList;
@@ -272,6 +292,14 @@ begin
     Formular := Screen.ActiveCustomForm;
   if Formular = nil then
     Exit;
+  if (Key = VK_F2) and (Shift = []) and
+     (Formular.ClassName = 'TBelegfenster') then
+  begin
+    if MenueDesFensters(Formular) <> nil then
+      MenueDesFensters(Formular).PopUp(Mouse.CursorPos.X, Mouse.CursorPos.Y);
+    Key := 0;
+    Exit;
+  end;
   if (Key = VK_RETURN) and (Shift = []) and
      EnterZumNaechsten(Formular, TControl(Sender)) then
   begin
