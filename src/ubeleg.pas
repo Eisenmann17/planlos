@@ -11,7 +11,7 @@ unit ubeleg;
 interface
 
 uses
-  Classes, SysUtils;
+  Classes, SysUtils, ustueckliste;
 
 type
   TBelegart = record
@@ -70,6 +70,7 @@ type
     RabattBp: Integer;
     EinzelpreisCent: Int64;
     MwstSatz: Integer;
+    Unterzeilen: TStueckZeilen;
   end;
 
   TBelegKopf = record
@@ -806,6 +807,7 @@ var
   Parameter: TStringList;
   i, Nr: Integer;
   Jetzt, ArtikelSql, Text: string;
+  PosId: Int64;
 begin
   Result := 0;
   Fehler := '';
@@ -913,6 +915,9 @@ begin
 
     Parameter.Clear;
     Parameter.Values['beleg'] := IntToStr(Kopf.Id);
+    PlanlosDB.Ausfuehren(
+      'DELETE FROM belegstueckliste WHERE belegposition_id IN ' +
+      '(SELECT id FROM belegposition WHERE beleg_id = :beleg)', Parameter);
     PlanlosDB.Ausfuehren('DELETE FROM belegposition WHERE beleg_id = :beleg', Parameter);
     Nr := 0;
     for i := 0 to High(Positionen) do
@@ -945,6 +950,9 @@ begin
         'ek_cent, einheit_ek, aufschlag_bp, rabatt_bp) VALUES (:beleg, :nr, ' +
         ArtikelSql + ', :text, :menge, :einheit, :preis, :satz, :gruppe, :artikelname, ' +
         ':ek, :eek, :auf, :rabatt)', Parameter);
+      PosId := StrToInt64Def(PlanlosDB.Skalar('SELECT last_insert_rowid()'), 0);
+      if (PosId > 0) and (Length(Positionen[i].Unterzeilen) > 0) then
+        UnterzeilenSpeichern(PosId, Positionen[i].Unterzeilen);
     end;
     Result := Kopf.Id;
   finally
@@ -1071,6 +1079,8 @@ begin
         Positionen[i].AufschlagBp := StrToIntDef(Teile[12], 0);
       if Teile.Count > 13 then
         Positionen[i].RabattBp := StrToIntDef(Teile[13], 0);
+      if Positionen[i].Id > 0 then
+        UnterzeilenLaden(Positionen[i].Id, Positionen[i].Unterzeilen);
     end;
     Result := True;
   finally
@@ -1119,6 +1129,9 @@ begin
       'UPDATE beleg SET bezug_beleg_id = NULL WHERE bezug_beleg_id = :id', Parameter);
     PlanlosDB.Ausfuehren(
       'UPDATE beleg SET projekt_id = NULL WHERE projekt_id = :id', Parameter);
+    PlanlosDB.Ausfuehren(
+      'DELETE FROM belegstueckliste WHERE belegposition_id IN ' +
+      '(SELECT id FROM belegposition WHERE beleg_id = :id)', Parameter);
     PlanlosDB.Ausfuehren('DELETE FROM belegposition WHERE beleg_id = :id', Parameter);
     if PlanlosDB.Ausfuehren('DELETE FROM beleg WHERE id = :id', Parameter) < 1 then
       Fehler := 'Der Beleg konnte nicht gelöscht werden.'

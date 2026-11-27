@@ -17,7 +17,7 @@ implementation
 
 uses
   Classes, SysUtils, udatenbank, umaske, uartikel, unachschlage, uprojekt,
-  utextbaustein, ubeleg;
+  utextbaustein, ubeleg, ustueckliste;
 
 type
   TSatz = record
@@ -290,6 +290,8 @@ begin
       end;
       if Copy(Zeile, 1, 9) = 'position=' then
         Saetze[Anzahl - 1].Positionen.Add(Copy(Zeile, 10, MaxInt))
+      else if Copy(Zeile, 1, 6) = 'zeile=' then
+        Saetze[Anzahl - 1].Positionen.Add(Copy(Zeile, 7, MaxInt))
       else if Pos('=', Zeile) > 0 then
         Saetze[Anzahl - 1].Werte.Add(Zeile)
       else
@@ -438,6 +440,48 @@ begin
   end;
 end;
 
+function StueckAn(const Satz: TSatz; out Fehler: string): Int64;
+var
+  Liste: TStueckliste;
+  Teile: TStringList;
+  i: Integer;
+  Zeile: TStueckZeile;
+  Cent, Milli: Int64;
+  Bp: Integer;
+begin
+  Result := 0;
+  Liste := Default(TStueckliste);
+  Liste.Bezeichnung := Feld(Satz.Werte, 'bezeichnung');
+  Liste.Gruppe := Feld(Satz.Werte, 'gruppe');
+  Liste.Einheit := Feld(Satz.Werte, 'einheit');
+  Teile := TStringList.Create;
+  try
+    Teile.StrictDelimiter := True;
+    Teile.Delimiter := '|';
+    for i := 0 to Satz.Positionen.Count - 1 do
+    begin
+      Teile.DelimitedText := Satz.Positionen[i];
+      Zeile := Default(TStueckZeile);
+      if Teile.Count > 0 then
+        Zeile.Bezeichnung := Teile[0];
+      if (Teile.Count > 1) and MilliAusText(Teile[1], Milli) then
+        Zeile.MengeMilli := Milli;
+      if Teile.Count > 2 then
+        Zeile.Einheit := Teile[2];
+      if (Teile.Count > 3) and CentAusText(Teile[3], Cent) then
+        Zeile.EkCent := Cent;
+      if (Teile.Count > 4) and AufschlagAusText(Teile[4], Bp) then
+        Zeile.AufschlagBp := Bp;
+      SetLength(Liste.Zeilen, Length(Liste.Zeilen) + 1);
+      Liste.Zeilen[High(Liste.Zeilen)] := Zeile;
+    end;
+  finally
+    Teile.Free;
+  end;
+  if StuecklisteSpeichern(Liste, Fehler) then
+    Result := Liste.Id;
+end;
+
 function BelegAn(const Satz: TSatz; out Fehler: string): Int64;
 var
   Kopf: TBelegKopf;
@@ -535,6 +579,11 @@ begin
       else if Saetze[i].Art = 'textbaustein' then
       begin
         if TextAn(Saetze[i].Werte, Fehler) = 0 then
+          Exit;
+      end
+      else if Saetze[i].Art = 'stueckliste' then
+      begin
+        if StueckAn(Saetze[i], Fehler) = 0 then
           Exit;
       end
       else if Saetze[i].Art = 'beleg' then

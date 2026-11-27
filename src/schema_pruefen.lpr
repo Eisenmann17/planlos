@@ -14,7 +14,7 @@ uses
   Classes, SysUtils,
   udatenbank, umaske, ubeleg, ubenutzer, uartikel, unachschlage, uprojekt,
   utextbaustein, udruck, umodulart, urechner, udatum,   udrucklayout, utestdaten,
-  ufensterdaten, ugrafik, FPImage, FPWritePNG;
+  ufensterdaten, ugrafik, ustueckliste, FPImage, FPWritePNG;
 
 var
   DB: TPlanlosDatenbank;
@@ -45,6 +45,7 @@ var
   Schreiber: TFPWriterPNG;
   Strom: TStringStream;
   StandardAn: Boolean;
+  Stueck: TStueckliste;
   LayoutHinweis: string;
   SeitenZahl, iPos: Integer;
   DatumJahr, DatumMonat, DatumTag: Word;
@@ -133,8 +134,12 @@ begin
         Fehlschlag('Die Installationskennung hat sich geändert.');
       if DB.Ganzzahl('SELECT COUNT(*) FROM modulart') <> 5 then
         Fehlschlag('Das Schema hat Belegarten verdoppelt.');
-      if DB.Ganzzahl('SELECT version FROM schema_info WHERE id = 1') <> 14 then
-        Fehlschlag('Das Schema soll auf Version 14 stehen.');
+      if DB.Ganzzahl('SELECT version FROM schema_info WHERE id = 1') <> 15 then
+        Fehlschlag('Das Schema soll auf Version 15 stehen.');
+      if ZeilenVkCent(8500, 240, 2000) <> 2448 then
+        Fehlschlag('8,5 kg mal 2,40 Euro plus 20 Prozent sind nicht 24,48 Euro.');
+      if ZeilenVkCent(500, 4500, 0) <> 2250 then
+        Fehlschlag('0,5 Stunden mal 45 Euro sind nicht 22,50 Euro.');
       if DB.Ganzzahl('SELECT COUNT(*) FROM briefkopf') < 2 then
         Fehlschlag('Es sollen zwei Briefköpfe angelegt sein.');
       if not RechnerAuswerten('1,5 + 2,5', Rabatt, FolgeFehler) or
@@ -739,11 +744,32 @@ begin
       if DB.Ganzzahl(
         'SELECT zahl1_milli FROM artikel WHERE bezeichnung = ''Montage''') <> 0 then
         Fehlschlag('Zahl1 der Montage ist nicht 0.');
+      BildId := DB.Ganzzahl(
+        'SELECT id FROM stueckliste WHERE bezeichnung = ''Geländer Standard''');
+      if not StuecklisteLaden(BildId, Stueck) or (Stueck.Einheit <> 'Meter') or
+         (Length(Stueck.Zeilen) <> 2) or (SummeVkCent(Stueck.Zeilen) <> 4698) then
+        Fehlschlag('Die Beispielstückliste Geländer rechnet nicht auf 46,98 Euro je Meter.');
       AngebotId := DB.Ganzzahl(
         'SELECT b.id FROM beleg b JOIN modulart m ON m.id = b.modulart_id ' +
         'WHERE m.kuerzel = ''angebot'' AND b.bezeichnung = ''Fenster Erdgeschoss''');
       if not BelegLaden(AngebotId, Kopf, Positionen) then
         Fehlschlag('Der Beispielbeleg lässt sich nicht laden.');
+      SetLength(Positionen, Length(Positionen) + 1);
+      Positionen[High(Positionen)] := Default(TBelegPosition);
+      Positionen[High(Positionen)].Text := Stueck.Bezeichnung;
+      Positionen[High(Positionen)].MengeMilli := 1000;
+      Positionen[High(Positionen)].Einheit := Stueck.Einheit;
+      Positionen[High(Positionen)].MwstSatz := 19;
+      Positionen[High(Positionen)].Unterzeilen := Stueck.Zeilen;
+      Positionen[High(Positionen)].EinzelpreisCent := SummeVkCent(Stueck.Zeilen);
+      if BelegSpeichern(Kopf, Positionen, FolgeFehler) = 0 then
+        Fehlschlag(FolgeFehler);
+      if not BelegLaden(AngebotId, Kopf, Positionen) then
+        Fehlschlag('Der Beleg mit Stückliste lässt sich nicht lesen.');
+      if (Positionen[High(Positionen)].Text <> 'Geländer Standard') or
+         (Length(Positionen[High(Positionen)].Unterzeilen) <> 2) or
+         (Positionen[High(Positionen)].EinzelpreisCent <> 4698) then
+        Fehlschlag('Die Stückliste wurde nicht als Kopie an die Position gehängt.');
       if not DruckvorlageFuer('angebot', Vorlage) then
         Fehlschlag('Die Druckvorlage für den Beispielbeleg fehlt.');
       if not BelegPdfSchreiben(Kopf, Positionen, Vorlage, 'Angebot', 'Klaus Berger',
@@ -759,7 +785,8 @@ begin
         Free;
       end;
       if (Copy(Inhalt, 1, 5) <> '%PDF-') or (Pos('Meier', Inhalt) = 0) or
-         (Pos('Eiche', Inhalt) = 0) then
+         (Pos('Eiche', Inhalt) = 0) or (Pos('Geländer', Inhalt) = 0) or
+         (Pos('Flachstahl', Inhalt) > 0) then
         Fehlschlag('Der Beispielbeleg lässt sich nicht drucken.');
       Bild := TFPMemoryImage.Create(8, 4);
       Schreiber := TFPWriterPNG.Create;
@@ -825,15 +852,18 @@ begin
       if not FensterLesen('suche', 'rechnung', FensterSatz2) or
          (FensterSatz2.Breite <> 200) then
         Fehlschlag('Eine fehlende Fenstereinstellung wird nicht angelegt.');
-      DB.Ausfuehren('UPDATE schema_info SET version = 13 WHERE id = 1', nil);
+      DB.Ausfuehren('UPDATE schema_info SET version = 14 WHERE id = 1', nil);
       DB.ParameterSetzen('migrationsprobe', 'bleibt');
       DB.SchemaSicherstellen;
-      if DB.Ganzzahl('SELECT version FROM schema_info WHERE id = 1') <> 14 then
+      if DB.Ganzzahl('SELECT version FROM schema_info WHERE id = 1') <> 15 then
         Fehlschlag('Die Migration hat die Schemaversion nicht erhöht.');
       if DB.ParameterLesen('migrationsprobe', '') <> 'bleibt' then
         Fehlschlag('Die Migration hat vorhandene Daten gelöscht.');
+      if DB.Ganzzahl(
+        'SELECT COUNT(*) FROM stueckliste WHERE bezeichnung = ''Geländer Standard''') <> 1 then
+        Fehlschlag('Die Migration hat die Stückliste entfernt.');
       if FindFirst(IncludeTrailingPathDelimiter(ExtractFilePath(Pfad)) +
-        'sicherung' + DirectorySeparator + 'planlos-vor-14-*.sqlite',
+        'sicherung' + DirectorySeparator + 'planlos-vor-15-*.sqlite',
         faAnyFile, Sicherung) <> 0 then
         Fehlschlag('Vor der Migration fehlt die Sicherungskopie.')
       else

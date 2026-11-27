@@ -571,6 +571,15 @@ object Hauptfenster: THauptfenster
         TabOrder = 9
         OnClick = MenueStueckliste
       end
+      object ButtonStuecklisten: TButton
+        Left = 139
+        Height = 25
+        Top = 389
+        Width = 160
+        Caption = 'Stücklisten'
+        TabOrder = 14
+        OnClick = MenueStuecklisten
+      end
       object ButtonProjekt: TButton
         Left = 320
         Height = 25
@@ -758,6 +767,10 @@ object Hauptfenster: THauptfenster
       object MenuStueckliste: TMenuItem
         Caption = '&Stücklistengruppe'
         OnClick = MenueStueckliste
+      end
+      object MenuStuecklisten: TMenuItem
+        Caption = 'Stück&listen'
+        OnClick = MenueStuecklisten
       end
       object MenuProjektStamm: TMenuItem
         Caption = '&Projekt'

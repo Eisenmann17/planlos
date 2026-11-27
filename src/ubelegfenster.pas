@@ -12,7 +12,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, StdCtrls, ExtCtrls, Dialogs, Grids,
-  Graphics, LCLType, LCLIntf, Menus, ubeleg;
+  Graphics, LCLType, LCLIntf, Menus, ubeleg, ustueckliste;
 
 type
   TBelegfenster = class(TForm)
@@ -102,6 +102,9 @@ type
     procedure MenuStueckliste(Sender: TObject);
     procedure MenuNeueStueckliste(Sender: TObject);
     procedure MenuOhneVorgabe(Sender: TObject);
+    procedure StueckUebernehmen(Index: Integer; const Bezeichnung, Einheit: string;
+      const Zeilen: TStueckZeilen);
+    procedure StueckAendern(Sender: TObject);
     procedure SuchenKlick(Sender: TObject);
     procedure KopierenKlick(Sender: TObject);
     procedure AendernKlick(Sender: TObject);
@@ -164,7 +167,7 @@ implementation
 
 uses
   ubenutzer, uartikel, usuche, utextbaustein, utextbausteinfenster, uprojekt,
-  uartikelwahl, udruck, ufenster, ufensterdaten, ugrafik;
+  uartikelwahl, udruck, ufenster, ufensterdaten, ugrafik, ustuecklistefenster;
 
 const
   CPos = 0;
@@ -295,6 +298,7 @@ begin
   GridPos.Cells[CRab, 0] := 'Rabatt';
   GridPos.Cells[CVk, 0] := 'VK';
   GridPos.Cells[CSatz, 0] := 'MwSt';
+  GridPos.OnDblClick := @StueckAendern;
   GridPos.ColWidths[CPos] := 36;
   GridPos.ColWidths[CGruppe] := 90;
   GridPos.ColWidths[CArtikel] := 150;
@@ -329,14 +333,87 @@ begin
   ArtikelHolen;
 end;
 
-procedure TBelegfenster.MenuStueckliste(Sender: TObject);
+procedure TBelegfenster.StueckUebernehmen(Index: Integer; const Bezeichnung,
+  Einheit: string; const Zeilen: TStueckZeilen);
 begin
-  ShowMessage('kommt mit der Stückliste.');
+  if (Index < 0) or (Index > High(FZeilen)) then
+    Exit;
+  FZeilen[Index].Text := Bezeichnung;
+  FZeilen[Index].ArtikelName := Bezeichnung;
+  if Einheit <> '' then
+    FZeilen[Index].Einheit := Einheit;
+  if FZeilen[Index].MengeMilli = 0 then
+    FZeilen[Index].MengeMilli := 1000;
+  FZeilen[Index].Unterzeilen := Zeilen;
+  FZeilen[Index].EkCent := SummeEkCent(Zeilen);
+  FZeilen[Index].AufschlagBp := 0;
+  FZeilen[Index].RabattBp := 0;
+  FZeilen[Index].EinzelpreisCent := SummeVkCent(Zeilen);
+  FZeile := Index;
+  Gitter;
+  SummenZeigen;
+end;
+
+procedure TBelegfenster.MenuStueckliste(Sender: TObject);
+var
+  Id: Int64;
+  Index: Integer;
+  Liste: TStueckliste;
+begin
+  if not ZeileNeu then
+  begin
+    ShowMessage('Dafür fehlt das Recht.');
+    Exit;
+  end;
+  if not StuecklisteWaehlen(Id) then
+    Exit;
+  if not StuecklisteLaden(Id, Liste) then
+  begin
+    ShowMessage('Die Stückliste wurde nicht gefunden.');
+    Exit;
+  end;
+  ZeileAnlegen;
+  Index := FZeile;
+  StueckUebernehmen(Index, Liste.Bezeichnung, Liste.Einheit, Liste.Zeilen);
 end;
 
 procedure TBelegfenster.MenuNeueStueckliste(Sender: TObject);
+var
+  Bezeichnung, Einheit: string;
+  Zeilen: TStueckZeilen;
+  Index: Integer;
 begin
-  ShowMessage('kommt mit der Stückliste.');
+  if not ZeileNeu then
+  begin
+    ShowMessage('Dafür fehlt das Recht.');
+    Exit;
+  end;
+  ZeileAnlegen;
+  Index := FZeile;
+  Bezeichnung := '';
+  Einheit := 'Stück';
+  SetLength(Zeilen, 0);
+  if not StuecklisteZeilenBearbeiten(Bezeichnung, Einheit, Zeilen) then
+    Exit;
+  StueckUebernehmen(Index, Bezeichnung, Einheit, Zeilen);
+end;
+
+procedure TBelegfenster.StueckAendern(Sender: TObject);
+var
+  Index: Integer;
+  Bezeichnung, Einheit: string;
+  Zeilen: TStueckZeilen;
+begin
+  Index := Gewaehlt;
+  if (Index < 0) or (Length(FZeilen[Index].Unterzeilen) = 0) then
+    Exit;
+  if not ZeileNeu then
+    Exit;
+  Bezeichnung := FZeilen[Index].Text;
+  Einheit := FZeilen[Index].Einheit;
+  Zeilen := FZeilen[Index].Unterzeilen;
+  if StuecklisteZeilenBearbeiten(Bezeichnung, Einheit, Zeilen) then
+    StueckUebernehmen(Index, Bezeichnung, Einheit, Zeilen);
 end;
 
 procedure TBelegfenster.MenuOhneVorgabe(Sender: TObject);

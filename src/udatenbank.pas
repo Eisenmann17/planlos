@@ -420,12 +420,12 @@ begin
     'SELECT COUNT(*) FROM sqlite_master WHERE type = ''table'' AND name = ''schema_info''') = 0 then
     Exit;
   Version := Ganzzahl('SELECT version FROM schema_info WHERE id = 1');
-  if (Version <= 0) or (Version >= 14) then
+  if (Version <= 0) or (Version >= 15) then
     Exit;
   Ordner := IncludeTrailingPathDelimiter(ExtractFilePath(FPfad)) + 'sicherung';
   if not DirectoryExists(Ordner) then
     ForceDirectories(Ordner);
-  Ziel := IncludeTrailingPathDelimiter(Ordner) + 'planlos-vor-14-' +
+  Ziel := IncludeTrailingPathDelimiter(Ordner) + 'planlos-vor-15-' +
     FormatDateTime('yyyymmddhhnnss', Now) + '.sqlite';
   DateiKopieren(FPfad, Ziel);
 end;
@@ -891,10 +891,10 @@ begin
 
   if Ganzzahl('SELECT COUNT(*) FROM schema_info') = 0 then
     Direkt(
-      'INSERT INTO schema_info (id, version, angelegt) VALUES (1, 14, ' +
+      'INSERT INTO schema_info (id, version, angelegt) VALUES (1, 15, ' +
       QuotedStr(FormatDateTime('yyyy-mm-dd"T"hh:nn:ss', Now)) + ')')
-  else if Ganzzahl('SELECT version FROM schema_info WHERE id = 1') < 14 then
-    Direkt('UPDATE schema_info SET version = 14 WHERE id = 1');
+  else if Ganzzahl('SELECT version FROM schema_info WHERE id = 1') < 15 then
+    Direkt('UPDATE schema_info SET version = 15 WHERE id = 1');
   Direkt(
     'CREATE TABLE IF NOT EXISTS fenstereinstellung (' +
     'id INTEGER PRIMARY KEY, ' +
@@ -933,6 +933,32 @@ begin
     'bezeichnung TEXT NOT NULL UNIQUE, ' +
     'art TEXT NOT NULL, ' +
     'daten TEXT NOT NULL)');
+  Direkt(
+    'CREATE TABLE IF NOT EXISTS stueckliste (' +
+    'id INTEGER PRIMARY KEY, ' +
+    'bezeichnung TEXT NOT NULL, ' +
+    'gruppe TEXT, ' +
+    'einheit TEXT)');
+  Direkt(
+    'CREATE TABLE IF NOT EXISTS stuecklistenposition (' +
+    'id INTEGER PRIMARY KEY, ' +
+    'stueckliste_id INTEGER NOT NULL, ' +
+    'position_nr INTEGER NOT NULL, ' +
+    'bezeichnung TEXT, ' +
+    'menge_milli INTEGER NOT NULL DEFAULT 0, ' +
+    'einheit TEXT, ' +
+    'ek_cent INTEGER NOT NULL DEFAULT 0, ' +
+    'aufschlag_bp INTEGER NOT NULL DEFAULT 0)');
+  Direkt(
+    'CREATE TABLE IF NOT EXISTS belegstueckliste (' +
+    'id INTEGER PRIMARY KEY, ' +
+    'belegposition_id INTEGER NOT NULL, ' +
+    'position_nr INTEGER NOT NULL, ' +
+    'bezeichnung TEXT, ' +
+    'menge_milli INTEGER NOT NULL DEFAULT 0, ' +
+    'einheit TEXT, ' +
+    'ek_cent INTEGER NOT NULL DEFAULT 0, ' +
+    'aufschlag_bp INTEGER NOT NULL DEFAULT 0)');
 end;
 
 procedure TPlanlosDatenbank.ArtikelSchema;
