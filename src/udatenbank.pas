@@ -57,6 +57,7 @@ type
       Ausfuehren liefert die Zahl geänderter Zeilen. }
     function Ausfuehren(const SQL: string; Parameter: TStrings): Int64;
     function AbfragePruefen(const SQL: string; out Fehler: string): Boolean;
+    procedure TransaktionAbbrechen;
     procedure ErsteZeile(const SQL: string; Parameter: TStrings; Ziel: TStrings);
     procedure AlleZeilen(const SQL: string; Parameter: TStrings;
       Spalten, Zeilen: TStrings);
@@ -345,6 +346,15 @@ begin
   end;
 end;
 
+procedure TPlanlosDatenbank.TransaktionAbbrechen;
+var
+  Trans: TSQLTransaction;
+begin
+  Trans := TSQLTransaction(FTrans);
+  if (Trans <> nil) and Trans.Active then
+    Trans.Rollback;
+end;
+
 function TPlanlosDatenbank.AbfragePruefen(const SQL: string; out Fehler: string): Boolean;
 var
   Q: TSQLQuery;
@@ -410,12 +420,12 @@ begin
     'SELECT COUNT(*) FROM sqlite_master WHERE type = ''table'' AND name = ''schema_info''') = 0 then
     Exit;
   Version := Ganzzahl('SELECT version FROM schema_info WHERE id = 1');
-  if (Version <= 0) or (Version >= 13) then
+  if (Version <= 0) or (Version >= 14) then
     Exit;
   Ordner := IncludeTrailingPathDelimiter(ExtractFilePath(FPfad)) + 'sicherung';
   if not DirectoryExists(Ordner) then
     ForceDirectories(Ordner);
-  Ziel := IncludeTrailingPathDelimiter(Ordner) + 'planlos-vor-13-' +
+  Ziel := IncludeTrailingPathDelimiter(Ordner) + 'planlos-vor-14-' +
     FormatDateTime('yyyymmddhhnnss', Now) + '.sqlite';
   DateiKopieren(FPfad, Ziel);
 end;
@@ -881,10 +891,10 @@ begin
 
   if Ganzzahl('SELECT COUNT(*) FROM schema_info') = 0 then
     Direkt(
-      'INSERT INTO schema_info (id, version, angelegt) VALUES (1, 13, ' +
+      'INSERT INTO schema_info (id, version, angelegt) VALUES (1, 14, ' +
       QuotedStr(FormatDateTime('yyyy-mm-dd"T"hh:nn:ss', Now)) + ')')
-  else if Ganzzahl('SELECT version FROM schema_info WHERE id = 1') < 13 then
-    Direkt('UPDATE schema_info SET version = 13 WHERE id = 1');
+  else if Ganzzahl('SELECT version FROM schema_info WHERE id = 1') < 14 then
+    Direkt('UPDATE schema_info SET version = 14 WHERE id = 1');
   Direkt(
     'CREATE TABLE IF NOT EXISTS fenstereinstellung (' +
     'id INTEGER PRIMARY KEY, ' +
@@ -916,6 +926,13 @@ begin
     'WHERE NOT EXISTS (SELECT 1 FROM briefkopf WHERE id = 2)');
   Spalte('beleg', 'briefkopf_id', 'INTEGER');
   Spalte('beleg', 'briefkopf_an', 'INTEGER NOT NULL DEFAULT 1');
+  Spalte('briefkopf', 'grafik_id', 'INTEGER');
+  Direkt(
+    'CREATE TABLE IF NOT EXISTS grafik (' +
+    'id INTEGER PRIMARY KEY, ' +
+    'bezeichnung TEXT NOT NULL UNIQUE, ' +
+    'art TEXT NOT NULL, ' +
+    'daten TEXT NOT NULL)');
 end;
 
 procedure TPlanlosDatenbank.ArtikelSchema;

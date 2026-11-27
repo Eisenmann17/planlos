@@ -13,8 +13,8 @@ uses
   {$ENDIF}
   Classes, SysUtils,
   udatenbank, umaske, ubeleg, ubenutzer, uartikel, unachschlage, uprojekt,
-  utextbaustein, udruck, umodulart, urechner, udatum, udrucklayout, utestdaten,
-  ufensterdaten;
+  utextbaustein, udruck, umodulart, urechner, udatum,   udrucklayout, utestdaten,
+  ufensterdaten, ugrafik, FPImage, FPWritePNG;
 
 var
   DB: TPlanlosDatenbank;
@@ -39,6 +39,12 @@ var
   DruckLayout, DruckLayout2: TDruckLayout;
   FensterSatz, FensterSatz2: TFensterSatz;
   Sicherung: TSearchRec;
+  GrafikId, KopfBrief, BildId: Int64;
+  Roh: RawByteString;
+  Bild: TFPMemoryImage;
+  Schreiber: TFPWriterPNG;
+  Strom: TStringStream;
+  StandardAn: Boolean;
   LayoutHinweis: string;
   SeitenZahl, iPos: Integer;
   DatumJahr, DatumMonat, DatumTag: Word;
@@ -127,8 +133,8 @@ begin
         Fehlschlag('Die Installationskennung hat sich geändert.');
       if DB.Ganzzahl('SELECT COUNT(*) FROM modulart') <> 5 then
         Fehlschlag('Das Schema hat Belegarten verdoppelt.');
-      if DB.Ganzzahl('SELECT version FROM schema_info WHERE id = 1') <> 13 then
-        Fehlschlag('Das Schema soll auf Version 13 stehen.');
+      if DB.Ganzzahl('SELECT version FROM schema_info WHERE id = 1') <> 14 then
+        Fehlschlag('Das Schema soll auf Version 14 stehen.');
       if DB.Ganzzahl('SELECT COUNT(*) FROM briefkopf') < 2 then
         Fehlschlag('Es sollen zwei Briefköpfe angelegt sein.');
       if not RechnerAuswerten('1,5 + 2,5', Rabatt, FolgeFehler) or
@@ -495,6 +501,24 @@ begin
       Kopf.IhrZeichen := '';
       if BelegSpeichern(Kopf, Positionen, FolgeFehler) = 0 then
         Fehlschlag(FolgeFehler);
+      SetLength(Positionen, 3);
+      Positionen[1].Text := '';
+      Positionen[1].ArtikelName := '';
+      Positionen[1].Gruppe := '';
+      Positionen[1].ArtikelId := 0;
+      Positionen[1].EkCent := 0;
+      Positionen[1].EinzelpreisCent := 0;
+      Positionen[2] := Default(TBelegPosition);
+      Positionen[2].ArtikelName := 'Sonderteil';
+      Positionen[2].MengeMilli := 1000;
+      Positionen[2].EinzelpreisCent := 50;
+      Positionen[2].MwstSatz := 19;
+      if BelegSpeichern(Kopf, Positionen, FolgeFehler) = 0 then
+        Fehlschlag(FolgeFehler);
+      if not BelegLaden(AngebotId, Kopf, Positionen) then
+        Fehlschlag('Der Beleg lässt sich nach dem Aufräumen nicht lesen.');
+      if (Length(Positionen) <> 2) or (Positionen[1].Text <> 'Sonderteil') then
+        Fehlschlag('Leere Zeilen bleiben stehen oder der Artikelname wird nicht zum Text.');
       if BelegAnzahl('angebot', 'Meier') <> 0 then
         Fehlschlag('Die Belegsuche findet einen falschen Namen.');
       if BelegAnzahl('angebot', 'ANG-1') <> 1 then
@@ -737,6 +761,48 @@ begin
       if (Copy(Inhalt, 1, 5) <> '%PDF-') or (Pos('Meier', Inhalt) = 0) or
          (Pos('Eiche', Inhalt) = 0) then
         Fehlschlag('Der Beispielbeleg lässt sich nicht drucken.');
+      Bild := TFPMemoryImage.Create(8, 4);
+      Schreiber := TFPWriterPNG.Create;
+      Strom := TStringStream.Create('');
+      try
+        Bild.Colors[1, 1] := FPColor($FFFF, 0, 0, $FFFF);
+        Bild.SaveToStream(Strom, Schreiber);
+        Strom.Position := 0;
+        SetLength(Roh, Strom.Size);
+        if Strom.Size > 0 then
+          Strom.ReadBuffer(Roh[1], Strom.Size);
+      finally
+        Strom.Free;
+        Schreiber.Free;
+        Bild.Free;
+      end;
+      BildId := 0;
+      if not GrafikSpeichern(BildId, 'Logo', 'png', Roh, FolgeFehler) then
+        Fehlschlag(FolgeFehler);
+      if not GrafikInhalt(BildId, Meldung, Roh) or (Meldung <> 'png') or (Roh = '') then
+        Fehlschlag('Die Grafik kommt nicht wieder aus der Datenbank.');
+      KopfBrief := 1;
+      if not BriefkopfDaten(KopfBrief, Name, Fehler, Meldung, GrafikId, StandardAn) then
+        Fehlschlag('Der Briefkopf lässt sich nicht lesen.');
+      if not BriefkopfSpeichern(KopfBrief, Name, Fehler, Meldung, BildId,
+        StandardAn, FolgeFehler) then
+        Fehlschlag(FolgeFehler);
+      if not GrafikVonBriefkopf(KopfBrief, Vorlage.GrafikArt, Vorlage.GrafikDaten) then
+        Fehlschlag('Die Grafik hängt nicht am Briefkopf.');
+      if not BelegPdfSchreiben(Kopf, Positionen, Vorlage, 'Angebot', 'Klaus Berger',
+        GetTempDir + 'planlos-grafik.pdf', SeitenZahl, FolgeFehler) then
+        Fehlschlag(FolgeFehler);
+      Inhalt := '';
+      with TFileStream.Create(GetTempDir + 'planlos-grafik.pdf', fmOpenRead) do
+      try
+        SetLength(Inhalt, Size);
+        if Size > 0 then
+          ReadBuffer(Inhalt[1], Size);
+      finally
+        Free;
+      end;
+      if Pos('/Image', Inhalt) = 0 then
+        Fehlschlag('Der Druck enthält die Briefkopf-Grafik nicht.');
       FensterSatz := Default(TFensterSatz);
       FensterSatz.Fenster := 'suche';
       FensterSatz.Kontext := 'angebot';
@@ -753,15 +819,21 @@ begin
         Fehlschlag('Die Fenstereinstellung für den Angebotskontext fehlt.');
       if FensterLesen('suche', 'bestellung', FensterSatz2) then
         Fehlschlag('Die Bestellung darf die Fenstereinstellung des Angebots nicht teilen.');
-      DB.Ausfuehren('UPDATE schema_info SET version = 12 WHERE id = 1', nil);
+      if not FensterMitVorgabe('suche', 'rechnung', 4, 5, 200, 150, FensterSatz,
+        FolgeFehler) then
+        Fehlschlag(FolgeFehler);
+      if not FensterLesen('suche', 'rechnung', FensterSatz2) or
+         (FensterSatz2.Breite <> 200) then
+        Fehlschlag('Eine fehlende Fenstereinstellung wird nicht angelegt.');
+      DB.Ausfuehren('UPDATE schema_info SET version = 13 WHERE id = 1', nil);
       DB.ParameterSetzen('migrationsprobe', 'bleibt');
       DB.SchemaSicherstellen;
-      if DB.Ganzzahl('SELECT version FROM schema_info WHERE id = 1') <> 13 then
+      if DB.Ganzzahl('SELECT version FROM schema_info WHERE id = 1') <> 14 then
         Fehlschlag('Die Migration hat die Schemaversion nicht erhöht.');
       if DB.ParameterLesen('migrationsprobe', '') <> 'bleibt' then
         Fehlschlag('Die Migration hat vorhandene Daten gelöscht.');
       if FindFirst(IncludeTrailingPathDelimiter(ExtractFilePath(Pfad)) +
-        'sicherung' + DirectorySeparator + 'planlos-vor-13-*.sqlite',
+        'sicherung' + DirectorySeparator + 'planlos-vor-14-*.sqlite',
         faAnyFile, Sicherung) <> 0 then
         Fehlschlag('Vor der Migration fehlt die Sicherungskopie.')
       else

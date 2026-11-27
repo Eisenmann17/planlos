@@ -177,6 +177,71 @@ begin
     end;
 end;
 
+function EnterZumNaechsten(Formular: TCustomForm; Steuerung: TControl): Boolean;
+begin
+  Result := False;
+  if (Formular = nil) or (Steuerung = nil) or not (Steuerung is TWinControl) then
+    Exit;
+  if (Steuerung is TCustomMemo) or (Steuerung is TCustomGrid) or
+     (Steuerung is TButton) then
+    Exit;
+  if not ((Steuerung is TCustomEdit) or (Steuerung is TCustomComboBox) or
+          (Steuerung is TCheckBox)) then
+    Exit;
+  if (Formular.ClassName = 'TAnmeldeFenster') or
+     (Formular.ClassName = 'TRechnerFenster') or
+     (Formular.ClassName = 'TDatumFenster') or
+     (Formular.ClassName = 'TSuchfenster') or
+     (Formular.ClassName = 'TBelegsuche') or
+     (Formular.ClassName = 'TArtikelWahl') or
+     (Formular.ClassName = 'THauptfenster') then
+    Exit;
+  Result := True;
+end;
+
+function MeldungErnst(const Fehler: string): Boolean;
+var
+  Klein: string;
+begin
+  Klein := LowerCase(Fehler);
+  Result := (Fehler <> '') and (Pos('nicht gefunden', Klein) = 0) and
+    (Pos('not found', Klein) = 0);
+end;
+
+procedure StellungOeffnen(Formular: TCustomForm; Admin: Boolean);
+var
+  Merk: TMerk;
+  Satz: TFensterSatz;
+  Namen: TStringList;
+  Fehler: string;
+begin
+  Merk := MerkSuchen(Formular);
+  if Merk = nil then
+    FensterMerken(Formular, Copy(Formular.ClassName, 2, 40), '');
+  Merk := MerkSuchen(Formular);
+  if not FensterMitVorgabe(Merk.Fenster, Merk.Kontext, Formular.Left, Formular.Top,
+    Formular.Width, Formular.Height, Satz, Fehler) then
+  begin
+    Satz.Fenster := Merk.Fenster;
+    Satz.Kontext := Merk.Kontext;
+    Satz.Links := Formular.Left;
+    Satz.Oben := Formular.Top;
+    Satz.Breite := Formular.Width;
+    Satz.Hoehe := Formular.Height;
+    if MeldungErnst(Fehler) then
+      ShowMessage(Fehler);
+  end;
+  Namen := SpaltenNamen(Formular);
+  try
+    Offen := True;
+    if FensterEinstellungZeigen(Satz, Admin, Namen) then
+      SpaltenAnwenden(Formular, Satz.Spalten);
+  finally
+    Offen := False;
+    Namen.Free;
+  end;
+end;
+
 function KnopfFinden(Formular: TCustomForm; const Name: string): TButton;
 var
   i: Integer;
@@ -198,43 +263,25 @@ end;
 procedure TFensterHaken.Taste(Sender: TObject; var Key: Word; Shift: TShiftState);
 var
   Formular: TCustomForm;
-  Merk: TMerk;
-  Satz: TFensterSatz;
-  Namen: TStringList;
   Knopf: TButton;
-  Fehler: string;
 begin
   if Offen or not (Sender is TControl) then
     Exit;
   Formular := GetParentForm(TControl(Sender));
   if Formular = nil then
+    Formular := Screen.ActiveCustomForm;
+  if Formular = nil then
     Exit;
+  if (Key = VK_RETURN) and (Shift = []) and
+     EnterZumNaechsten(Formular, TControl(Sender)) then
+  begin
+    Formular.SelectNext(TWinControl(Sender), True, True);
+    Key := 0;
+    Exit;
+  end;
   if (Key = VK_F6) and (ssCtrl in Shift) then
   begin
-    Merk := MerkSuchen(Formular);
-    if Merk = nil then
-      FensterMerken(Formular, Copy(Formular.ClassName, 2, 40), '');
-    Merk := MerkSuchen(Formular);
-    if not FensterLesen(Merk.Fenster, Merk.Kontext, Satz) then
-    begin
-      Satz.Fenster := Merk.Fenster;
-      Satz.Kontext := Merk.Kontext;
-    end;
-    Satz.Links := Formular.Left;
-    Satz.Oben := Formular.Top;
-    Satz.Breite := Formular.Width;
-    Satz.Hoehe := Formular.Height;
-    if not FensterSpeichern(Satz, Fehler) then
-      ShowMessage(Fehler);
-    Namen := SpaltenNamen(Formular);
-    try
-      Offen := True;
-      if FensterEinstellungZeigen(Satz, False, Namen) then
-        SpaltenAnwenden(Formular, Satz.Spalten);
-    finally
-      Offen := False;
-      Namen.Free;
-    end;
+    StellungOeffnen(Formular, False);
     Key := 0;
   end
   else if (Key = VK_F6) and (ssAlt in Shift) then
@@ -245,28 +292,7 @@ begin
       Key := 0;
       Exit;
     end;
-    Merk := MerkSuchen(Formular);
-    if Merk = nil then
-      FensterMerken(Formular, Copy(Formular.ClassName, 2, 40), '');
-    Merk := MerkSuchen(Formular);
-    if not FensterLesen(Merk.Fenster, Merk.Kontext, Satz) then
-    begin
-      Satz.Fenster := Merk.Fenster;
-      Satz.Kontext := Merk.Kontext;
-    end;
-    Satz.Links := Formular.Left;
-    Satz.Oben := Formular.Top;
-    Satz.Breite := Formular.Width;
-    Satz.Hoehe := Formular.Height;
-    Namen := SpaltenNamen(Formular);
-    try
-      Offen := True;
-      if FensterEinstellungZeigen(Satz, True, Namen) then
-        SpaltenAnwenden(Formular, Satz.Spalten);
-    finally
-      Offen := False;
-      Namen.Free;
-    end;
+    StellungOeffnen(Formular, True);
     Key := 0;
   end
   else if (Key = VK_F10) and (Shift = []) then

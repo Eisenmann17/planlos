@@ -30,9 +30,21 @@ type
 
 function FensterLesen(const Fenster, Kontext: string; out Satz: TFensterSatz): Boolean;
 function FensterWirksam(const Fenster, Kontext: string; out Satz: TFensterSatz): Boolean;
-function FensterSpeichern(var Satz: TFensterSatz; out Fehler: string): Boolean;
+function FensterSpeichern(var Satz: TFensterSatz; out Fehler: string;
+  PruefeSql: Boolean = True): Boolean;
+{ Legt den Satz an, wenn er fehlt. Übernimmt dann Spalten, Sortierung,
+  Filter und Abfrage aus der allgemeinen Vorgabe des Fensters. }
+function FensterMitVorgabe(const Fenster, Kontext: string;
+  Links, Oben, Breite, Hoehe: Integer; out Satz: TFensterSatz;
+  out Fehler: string): Boolean;
 function BriefkopfStandard: Int64;
 function BriefkopfLesen(Id: Int64; out Absender, Fusszeile: string): Boolean;
+function BriefkopfDaten(Id: Int64; out Bezeichnung, Absender, Fusszeile: string;
+  out GrafikId: Int64; out IstStandard: Boolean): Boolean;
+function BriefkopfSpeichern(var Id: Int64; const Bezeichnung, Absender,
+  Fusszeile: string; GrafikId: Int64; IstStandard: Boolean;
+  out Fehler: string): Boolean;
+function BriefkopfLoeschen(Id: Int64; out Fehler: string): Boolean;
 procedure BriefkoepfeHolen(Namen, Nummern: TStrings);
 
 implementation
@@ -108,7 +120,8 @@ begin
   end;
 end;
 
-function FensterSpeichern(var Satz: TFensterSatz; out Fehler: string): Boolean;
+function FensterSpeichern(var Satz: TFensterSatz; out Fehler: string;
+  PruefeSql: Boolean): Boolean;
 var
   Parameter: TStringList;
   Bisher: TFensterSatz;
@@ -120,7 +133,7 @@ begin
     Fehler := 'Die Datenbank ist nicht geöffnet.';
     Exit;
   end;
-  if Trim(Satz.SqlText) <> '' then
+  if PruefeSql and (Trim(Satz.SqlText) <> '') then
     if not PlanlosDB.AbfragePruefen(Satz.SqlText, Fehler) then
     begin
       Fehler := 'Die Abfrage gilt nicht. Es bleibt die eingebaute Vorgabe.' +
@@ -128,44 +141,90 @@ begin
       Exit;
     end;
   if FensterLesen(Satz.Fenster, Satz.Kontext, Bisher) then
+  begin
     Satz.Id := Bisher.Id;
+    if not PruefeSql then
+      Satz.SqlText := Bisher.SqlText;
+  end;
   Parameter := TStringList.Create;
   try
-    Parameter.Values['fenster'] := Satz.Fenster;
-    Parameter.Values['kontext'] := Satz.Kontext;
-    Parameter.Values['links'] := IntToStr(Satz.Links);
-    Parameter.Values['oben'] := IntToStr(Satz.Oben);
-    Parameter.Values['breite'] := IntToStr(Satz.Breite);
-    Parameter.Values['hoehe'] := IntToStr(Satz.Hoehe);
-    Parameter.Values['spalten'] := Satz.Spalten;
-    Parameter.Values['sortierung'] := Satz.Sortierung;
-    Parameter.Values['filter'] := Satz.Filter;
-    Parameter.Values['sql'] := Satz.SqlText;
-    if Satz.Id = 0 then
-    begin
-      PlanlosDB.Ausfuehren(
-        'INSERT INTO fenstereinstellung (fenster, kontext, links, oben, breite, ' +
-        'hoehe, spalten, sortierung, filter, sql_text) VALUES (:fenster, :kontext, ' +
-        ':links, :oben, :breite, :hoehe, :spalten, :sortierung, :filter, :sql)',
-        Parameter);
-      Satz.Id := StrToInt64Def(PlanlosDB.Skalar('SELECT last_insert_rowid()'), 0);
-    end
-    else
-    begin
-      Parameter.Values['id'] := IntToStr(Satz.Id);
-      PlanlosDB.Ausfuehren(
-        'UPDATE fenstereinstellung SET links = :links, oben = :oben, ' +
-        'breite = :breite, hoehe = :hoehe, spalten = :spalten, ' +
-        'sortierung = :sortierung, filter = :filter, sql_text = :sql WHERE id = :id',
-        Parameter);
+    try
+      Parameter.Values['fenster'] := Satz.Fenster;
+      Parameter.Values['kontext'] := Satz.Kontext;
+      Parameter.Values['links'] := IntToStr(Satz.Links);
+      Parameter.Values['oben'] := IntToStr(Satz.Oben);
+      Parameter.Values['breite'] := IntToStr(Satz.Breite);
+      Parameter.Values['hoehe'] := IntToStr(Satz.Hoehe);
+      Parameter.Values['spalten'] := Satz.Spalten;
+      Parameter.Values['sortierung'] := Satz.Sortierung;
+      Parameter.Values['filter'] := Satz.Filter;
+      Parameter.Values['sql'] := Satz.SqlText;
+      if Satz.Id = 0 then
+      begin
+        PlanlosDB.Ausfuehren(
+          'INSERT INTO fenstereinstellung (fenster, kontext, links, oben, breite, ' +
+          'hoehe, spalten, sortierung, filter, sql_text) VALUES (:fenster, :kontext, ' +
+          ':links, :oben, :breite, :hoehe, :spalten, :sortierung, :filter, :sql)',
+          Parameter);
+        Satz.Id := StrToInt64Def(PlanlosDB.Skalar('SELECT last_insert_rowid()'), 0);
+      end
+      else
+      begin
+        Parameter.Values['id'] := IntToStr(Satz.Id);
+        PlanlosDB.Ausfuehren(
+          'UPDATE fenstereinstellung SET links = :links, oben = :oben, ' +
+          'breite = :breite, hoehe = :hoehe, spalten = :spalten, ' +
+          'sortierung = :sortierung, filter = :filter, sql_text = :sql WHERE id = :id',
+          Parameter);
+      end;
+      Satz.HatSatz := Satz.Id > 0;
+      Result := Satz.HatSatz;
+      if not Result then
+        Fehler := 'Die Fenstereinstellung wurde nicht gespeichert.';
+    except
+      on E: Exception do
+      begin
+        PlanlosDB.TransaktionAbbrechen;
+        Fehler := E.Message;
+        Result := False;
+      end;
     end;
-    Satz.HatSatz := Satz.Id > 0;
-    Result := Satz.HatSatz;
-    if not Result then
-      Fehler := 'Die Fenstereinstellung wurde nicht gespeichert.';
   finally
     Parameter.Free;
   end;
+end;
+
+function FensterMitVorgabe(const Fenster, Kontext: string;
+  Links, Oben, Breite, Hoehe: Integer; out Satz: TFensterSatz;
+  out Fehler: string): Boolean;
+var
+  Allgemein: TFensterSatz;
+begin
+  Fehler := '';
+  if FensterLesen(Fenster, Kontext, Satz) then
+  begin
+    Satz.Links := Links;
+    Satz.Oben := Oben;
+    Satz.Breite := Breite;
+    Satz.Hoehe := Hoehe;
+    Result := FensterSpeichern(Satz, Fehler, False);
+    Exit;
+  end;
+  Satz := Default(TFensterSatz);
+  Satz.Fenster := Fenster;
+  Satz.Kontext := Kontext;
+  Satz.Links := Links;
+  Satz.Oben := Oben;
+  Satz.Breite := Breite;
+  Satz.Hoehe := Hoehe;
+  if (Kontext <> '') and FensterLesen(Fenster, '', Allgemein) then
+  begin
+    Satz.Spalten := Allgemein.Spalten;
+    Satz.Sortierung := Allgemein.Sortierung;
+    Satz.Filter := Allgemein.Filter;
+    Satz.SqlText := Allgemein.SqlText;
+  end;
+  Result := FensterSpeichern(Satz, Fehler, False);
 end;
 
 function BriefkopfStandard: Int64;
@@ -201,6 +260,139 @@ begin
     Result := True;
   finally
     Zeile.Free;
+    Parameter.Free;
+  end;
+end;
+
+function BriefkopfDaten(Id: Int64; out Bezeichnung, Absender, Fusszeile: string;
+  out GrafikId: Int64; out IstStandard: Boolean): Boolean;
+var
+  Parameter, Zeile: TStringList;
+begin
+  Result := False;
+  Bezeichnung := '';
+  Absender := '';
+  Fusszeile := '';
+  GrafikId := 0;
+  IstStandard := False;
+  if not Bereit or (Id <= 0) then
+    Exit;
+  Parameter := TStringList.Create;
+  Zeile := TStringList.Create;
+  try
+    Parameter.Values['id'] := IntToStr(Id);
+    PlanlosDB.ErsteZeile(
+      'SELECT bezeichnung, absender, fusszeile, grafik_id, standard ' +
+      'FROM briefkopf WHERE id = :id', Parameter, Zeile);
+    if Zeile.Count = 0 then
+      Exit;
+    Bezeichnung := Zeile.Values['bezeichnung'];
+    Absender := Zeile.Values['absender'];
+    Fusszeile := Zeile.Values['fusszeile'];
+    GrafikId := StrToInt64Def(Zeile.Values['grafik_id'], 0);
+    IstStandard := Zeile.Values['standard'] = '1';
+    Result := True;
+  finally
+    Zeile.Free;
+    Parameter.Free;
+  end;
+end;
+
+function BriefkopfSpeichern(var Id: Int64; const Bezeichnung, Absender,
+  Fusszeile: string; GrafikId: Int64; IstStandard: Boolean;
+  out Fehler: string): Boolean;
+var
+  Parameter: TStringList;
+  Name: string;
+begin
+  Result := False;
+  Fehler := '';
+  Name := Trim(Bezeichnung);
+  if Name = '' then
+  begin
+    Fehler := 'Der Briefkopf braucht einen Namen.';
+    Exit;
+  end;
+  if not Bereit then
+  begin
+    Fehler := 'Die Datenbank ist nicht geöffnet.';
+    Exit;
+  end;
+  Parameter := TStringList.Create;
+  try
+    try
+      if IstStandard then
+        PlanlosDB.Ausfuehren('UPDATE briefkopf SET standard = 0', nil);
+      Parameter.Values['name'] := Name;
+      Parameter.Values['absender'] := Absender;
+      Parameter.Values['fuss'] := Fusszeile;
+      if GrafikId > 0 then
+        Parameter.Values['grafik'] := IntToStr(GrafikId)
+      else
+        Parameter.Values['grafik'] := '0';
+      if IstStandard then
+        Parameter.Values['standard'] := '1'
+      else
+        Parameter.Values['standard'] := '0';
+      if Id = 0 then
+      begin
+        PlanlosDB.Ausfuehren(
+          'INSERT INTO briefkopf (bezeichnung, absender, fusszeile, grafik_id, standard) ' +
+          'VALUES (:name, :absender, :fuss, NULLIF(:grafik, ''0''), :standard)',
+          Parameter);
+        Id := StrToInt64Def(PlanlosDB.Skalar('SELECT last_insert_rowid()'), 0);
+      end
+      else
+      begin
+        Parameter.Values['id'] := IntToStr(Id);
+        if PlanlosDB.Ausfuehren(
+          'UPDATE briefkopf SET bezeichnung = :name, absender = :absender, ' +
+          'fusszeile = :fuss, grafik_id = NULLIF(:grafik, ''0''), standard = :standard ' +
+          'WHERE id = :id', Parameter) < 1 then
+        begin
+          Fehler := 'Der Briefkopf wurde nicht gefunden.';
+          Exit;
+        end;
+      end;
+      Result := Id > 0;
+      if not Result then
+        Fehler := 'Der Briefkopf wurde nicht gespeichert.';
+    except
+      on E: Exception do
+      begin
+        PlanlosDB.TransaktionAbbrechen;
+        if Pos('UNIQUE', UpperCase(E.Message)) > 0 then
+          Fehler := 'Diesen Namen gibt es schon.'
+        else
+          Fehler := E.Message;
+      end;
+    end;
+  finally
+    Parameter.Free;
+  end;
+end;
+
+function BriefkopfLoeschen(Id: Int64; out Fehler: string): Boolean;
+var
+  Parameter: TStringList;
+begin
+  Result := False;
+  Fehler := '';
+  if not Bereit or (Id <= 0) then
+    Exit;
+  Parameter := TStringList.Create;
+  try
+    Parameter.Values['id'] := IntToStr(Id);
+    if PlanlosDB.Ganzzahl(
+      'SELECT COUNT(*) FROM beleg WHERE briefkopf_id = ' + IntToStr(Id)) > 0 then
+    begin
+      Fehler := 'Der Briefkopf wird von Belegen verwendet.';
+      Exit;
+    end;
+    Result := PlanlosDB.Ausfuehren('DELETE FROM briefkopf WHERE id = :id', Parameter) > 0;
+    if not Result then
+      Fehler := 'Der Briefkopf wurde nicht gefunden.';
+  finally
     Parameter.Free;
   end;
 end;
