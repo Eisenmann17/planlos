@@ -589,6 +589,24 @@ object Hauptfenster: THauptfenster
         TabOrder = 11
         OnClick = MenueTextbaustein
       end
+      object ButtonBriefkopf: TButton
+        Left = 320
+        Height = 25
+        Top = 117
+        Width = 140
+        Caption = 'Briefköpfe'
+        TabOrder = 12
+        OnClick = MenueBriefkopf
+      end
+      object ButtonGrafik: TButton
+        Left = 320
+        Height = 25
+        Top = 149
+        Width = 140
+        Caption = 'Grafiken'
+        TabOrder = 13
+        OnClick = MenueGrafik
+      end
     end
     object TabEinstellungen: TTabSheet
       Caption = 'Einstellungen'
@@ -748,6 +766,14 @@ object Hauptfenster: THauptfenster
       object MenuTextbaustein: TMenuItem
         Caption = '&Textbaustein'
         OnClick = MenueTextbaustein
+      end
+      object MenuBriefkopf: TMenuItem
+        Caption = '&Briefköpfe'
+        OnClick = MenueBriefkopf
+      end
+      object MenuGrafik: TMenuItem
+        Caption = '&Grafiken'
+        OnClick = MenueGrafik
       end
     end
     object MenuBelege: TMenuItem

@@ -27,6 +27,8 @@ type
     TextObenMm: Integer;
     RandUntenMm: Integer;
     LayoutText: string;
+    GrafikArt: string;
+    GrafikDaten: RawByteString;
   end;
 
 function DruckvorlageFuer(const ModulKuerzel: string; out Vorlage: TDruckvorlage): Boolean;
@@ -48,7 +50,55 @@ function BelegPdfSchreiben(const Kopf: TBelegKopf;
 implementation
 
 uses
-  Math, fppdf, udatenbank, udrucklayout;
+  Math, fppdf, FPImage, FPReadJPEG, FPReadPNG, udatenbank, udrucklayout;
+
+procedure GrafikAufSeite(Doc: TPDFDocument; Seite: TPDFPage;
+  const Vorlage: TDruckvorlage; Links: Single);
+var
+  Strom: TStringStream;
+  Leser: TFPCustomImageReaderClass;
+  Bild: TFPMemoryImage;
+  LeserObjekt: TFPCustomImageReader;
+  Nr: Integer;
+  Breite, Hoehe: Single;
+begin
+  if (Seite = nil) or (Vorlage.GrafikDaten = '') then
+    Exit;
+  if Vorlage.GrafikArt = 'jpg' then
+    Leser := TFPReaderJPEG
+  else if Vorlage.GrafikArt = 'png' then
+    Leser := TFPReaderPNG
+  else
+    Exit;
+  Strom := TStringStream.Create(Vorlage.GrafikDaten);
+  Bild := TFPMemoryImage.Create(0, 0);
+  LeserObjekt := Leser.Create;
+  try
+    try
+      Strom.Position := 0;
+      Bild.LoadFromStream(Strom, LeserObjekt);
+      Hoehe := 18;
+      if Bild.Height > 0 then
+        Breite := Hoehe * Bild.Width / Bild.Height
+      else
+        Breite := Hoehe;
+      if Breite > 70 then
+      begin
+        Hoehe := Hoehe * 70 / Breite;
+        Breite := 70;
+      end;
+      Strom.Position := 0;
+      Nr := Doc.Images.AddFromStream(Strom, Leser, False);
+      Seite.DrawImage(Links, 297 - 8 - Hoehe, Breite, Hoehe, Nr);
+    except
+      { Eine defekte Grafik lässt den übrigen Beleg trotzdem entstehen. }
+    end;
+  finally
+    LeserObjekt.Free;
+    Bild.Free;
+    Strom.Free;
+  end;
+end;
 
 var
   HinweisZuletzt: string;
@@ -575,6 +625,7 @@ begin
           SpalteX := SpalteX + Layout.Spalten[s].BreiteMm;
       end;
       NeueSeite;
+      GrafikAufSeite(Doc, Blatt[High(Blatt)], Vorlage, Links);
       b := BereichBei('firmenkopf');
       s := FeldBei(b, 'absender');
       if s >= 0 then
@@ -883,6 +934,7 @@ begin
       Rechts := 210 - Vorlage.RandRechtsMm;
       Grenze := SeiteHoch - Vorlage.RandUntenMm - 8;
       NeueSeite;
+      GrafikAufSeite(Doc, Blatt[High(Blatt)], Vorlage, Links);
       Text(Links, Vorlage.AnschriftObenMm, 7, Vorlage.Absender, False);
       Strich(Links, Vorlage.AnschriftObenMm + 2, Links + 80,
         Vorlage.AnschriftObenMm + 2);

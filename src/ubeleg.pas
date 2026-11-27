@@ -149,6 +149,9 @@ function AdressBlock(Id: Int64): string;
 function BelegartLaden(const Kuerzel: string; out Art: TBelegart): Boolean;
 function BelegTasten(const Kuerzel, Kontext: string): TBelegTasten;
 function AdressKurzname(Id: Int64): string;
+function PositionText(const Position: TBelegPosition): string;
+function PositionLeer(const Position: TBelegPosition): Boolean;
+procedure PositionenAufraeumen(var Liste: TPosListe);
 function BelegSpeichern(var Kopf: TBelegKopf; const Positionen: array of TBelegPosition;
   out Fehler: string): Int64;
 function BelegLaden(Id: Int64; out Kopf: TBelegKopf; out Positionen: TPosListe): Boolean;
@@ -765,13 +768,44 @@ begin
   Result := (Satz = 0) or (Satz = 7) or (Satz = 19);
 end;
 
+function PositionText(const Position: TBelegPosition): string;
+begin
+  Result := Trim(Position.Text);
+  if Result = '' then
+    Result := Trim(Position.ArtikelName);
+end;
+
+function PositionLeer(const Position: TBelegPosition): Boolean;
+begin
+  Result := (PositionText(Position) = '') and (Trim(Position.Gruppe) = '') and
+    (Position.ArtikelId = 0) and (Position.EkCent = 0) and
+    (Position.EinzelpreisCent = 0);
+end;
+
+procedure PositionenAufraeumen(var Liste: TPosListe);
+var
+  i, Anzahl: Integer;
+begin
+  Anzahl := 0;
+  for i := 0 to High(Liste) do
+  begin
+    if PositionLeer(Liste[i]) then
+      Continue;
+    Liste[i].Text := PositionText(Liste[i]);
+    if Anzahl <> i then
+      Liste[Anzahl] := Liste[i];
+    Inc(Anzahl);
+  end;
+  SetLength(Liste, Anzahl);
+end;
+
 function BelegSpeichern(var Kopf: TBelegKopf; const Positionen: array of TBelegPosition;
   out Fehler: string): Int64;
 var
   Art: TBelegart;
   Parameter: TStringList;
-  i: Integer;
-  Jetzt, ArtikelSql: string;
+  i, Nr: Integer;
+  Jetzt, ArtikelSql, Text: string;
 begin
   Result := 0;
   Fehler := '';
@@ -787,7 +821,9 @@ begin
   end;
   for i := 0 to High(Positionen) do
   begin
-    if Trim(Positionen[i].Text) = '' then
+    if PositionLeer(Positionen[i]) then
+      Continue;
+    if PositionText(Positionen[i]) = '' then
     begin
       Fehler := 'Position ' + IntToStr(i + 1) + ' braucht einen Text.';
       Exit;
@@ -878,12 +914,17 @@ begin
     Parameter.Clear;
     Parameter.Values['beleg'] := IntToStr(Kopf.Id);
     PlanlosDB.Ausfuehren('DELETE FROM belegposition WHERE beleg_id = :beleg', Parameter);
+    Nr := 0;
     for i := 0 to High(Positionen) do
     begin
+      if PositionLeer(Positionen[i]) then
+        Continue;
+      Text := PositionText(Positionen[i]);
+      Inc(Nr);
       Parameter.Clear;
       Parameter.Values['beleg'] := IntToStr(Kopf.Id);
-      Parameter.Values['nr'] := IntToStr(i + 1);
-      Parameter.Values['text'] := Positionen[i].Text;
+      Parameter.Values['nr'] := IntToStr(Nr);
+      Parameter.Values['text'] := Text;
       Parameter.Values['menge'] := IntToStr(Positionen[i].MengeMilli);
       Parameter.Values['einheit'] := Positionen[i].Einheit;
       Parameter.Values['preis'] := IntToStr(Positionen[i].EinzelpreisCent);

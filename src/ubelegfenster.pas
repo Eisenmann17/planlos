@@ -102,7 +102,6 @@ type
     procedure MenuStueckliste(Sender: TObject);
     procedure MenuNeueStueckliste(Sender: TObject);
     procedure MenuOhneVorgabe(Sender: TObject);
-    function ImPositionsbereich: Boolean;
     procedure SuchenKlick(Sender: TObject);
     procedure KopierenKlick(Sender: TObject);
     procedure AendernKlick(Sender: TObject);
@@ -165,7 +164,7 @@ implementation
 
 uses
   ubenutzer, uartikel, usuche, utextbaustein, utextbausteinfenster, uprojekt,
-  uartikelwahl, udruck, ufenster, ufensterdaten;
+  uartikelwahl, udruck, ufenster, ufensterdaten, ugrafik;
 
 const
   CPos = 0;
@@ -323,20 +322,6 @@ begin
   Eintrag.Caption := 'Artikel ohne Vorgabe';
   Eintrag.OnClick := @MenuOhneVorgabe;
   FMenuF2.Items.Add(Eintrag);
-end;
-
-function TBelegfenster.ImPositionsbereich: Boolean;
-var
-  Lauf: TControl;
-begin
-  Result := False;
-  Lauf := ActiveControl;
-  while Lauf <> nil do
-  begin
-    if (Lauf = GridPos) or (Lauf = MemoPos) then
-      Exit(True);
-    Lauf := Lauf.Parent;
-  end;
 end;
 
 procedure TBelegfenster.MenuArtikel(Sender: TObject);
@@ -900,14 +885,19 @@ begin
 end;
 
 procedure TBelegfenster.FormZeigen(Sender: TObject);
+var
+  Satz: TFensterSatz;
 begin
   FensterMerken(Self, 'beleg', FArt.Kuerzel);
-  Left := FArt.Links;
-  Top := FArt.Oben;
-  if FArt.Breite >= 515 then
-    Width := FArt.Breite;
-  if FArt.Hoehe >= 360 then
-    Height := FArt.Hoehe;
+  if not (FensterWirksam('beleg', FArt.Kuerzel, Satz) and (Satz.Breite > 40) and
+     (Satz.Hoehe > 40)) then
+  begin
+    if FArt.Breite >= 515 then
+      Width := FArt.Breite;
+    if FArt.Hoehe >= 360 then
+      Height := FArt.Hoehe;
+  end;
+  FensterAnwenden(Self);
   KlappenLesen;
   FelderFuellen;
   Gitter;
@@ -951,7 +941,7 @@ end;
 
 procedure TBelegfenster.NeuKlick(Sender: TObject);
 begin
-  ZeileAnlegen;
+  FMenuF2.PopUp(Mouse.CursorPos.X, Mouse.CursorPos.Y);
 end;
 
 procedure TBelegfenster.KopierenKlick(Sender: TObject);
@@ -1068,9 +1058,14 @@ begin
       Vorlage.Absender := Absender;
     if Fusszeile <> '' then
       Vorlage.Fusszeile := Fusszeile;
+    GrafikVonBriefkopf(FKopf.BriefkopfId, Vorlage.GrafikArt, Vorlage.GrafikDaten);
   end
   else if not FKopf.BriefkopfAn then
+  begin
     Vorlage.Absender := '';
+    Vorlage.GrafikArt := '';
+    Vorlage.GrafikDaten := '';
+  end;
   if not BelegPdfSchreiben(FKopf, FZeilen, Vorlage, FArt.Bezeichnung,
     EditBearbeiter.Text, Datei, Seiten, Fehler) then
     ShowMessage(Fehler)
@@ -1247,17 +1242,15 @@ begin
 end;
 
 function TBelegfenster.SpeichernStill(out Fehler: string): Int64;
-var
-  i: Integer;
 begin
   Result := 0;
+  if GridPos.EditorMode then
+    GridPos.EditorMode := False;
   PosTextSichern;
-  for i := 0 to High(FZeilen) do
-    if Trim(FZeilen[i].Text) = '' then
-    begin
-      Fehler := 'Position ' + IntToStr(i + 1) + ' braucht einen Text.';
-      Exit;
-    end;
+  PositionenAufraeumen(FZeilen);
+  if (FZeile < 0) or (FZeile > High(FZeilen)) then
+    FZeile := High(FZeilen);
+  Gitter;
   KopfAusMaske;
   Result := BelegSpeichern(FKopf, FZeilen, Fehler);
   if Result > 0 then
@@ -1338,12 +1331,7 @@ begin
   end
   else if Key = VK_F2 then
   begin
-    { F2 legt außerhalb der Positionen weiter eine Zeile an.
-      Im Positionsbereich öffnet es die Auswahl. }
-    if ImPositionsbereich then
-      FMenuF2.PopUp(Mouse.CursorPos.X, Mouse.CursorPos.Y)
-    else
-      ZeileAnlegen;
+    FMenuF2.PopUp(Mouse.CursorPos.X, Mouse.CursorPos.Y);
     Key := 0;
   end
   else if Key = VK_F3 then
@@ -1376,9 +1364,10 @@ begin
     SpeichernKlick(nil);
     Key := 0;
   end
-  else if (Key = VK_RETURN) and not Memo and (ActiveControl <> GridPos) then
+  else if (Key = VK_RETURN) and (Shift = []) and not Memo and
+          (ActiveControl <> GridPos) and (ActiveControl <> nil) then
   begin
-    SpeichernKlick(nil);
+    SelectNext(ActiveControl, True, True);
     Key := 0;
   end;
 end;

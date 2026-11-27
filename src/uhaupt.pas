@@ -74,6 +74,8 @@ type
     ButtonStueckliste: TButton;
     ButtonProjekt: TButton;
     ButtonTextbaustein: TButton;
+    ButtonBriefkopf: TButton;
+    ButtonGrafik: TButton;
     ButtonBelegart: TButton;
     PanelTestdaten: TPanel;
     ButtonTestdaten: TButton;
@@ -102,6 +104,8 @@ type
     MenuStueckliste: TMenuItem;
     MenuProjektStamm: TMenuItem;
     MenuTextbaustein: TMenuItem;
+    MenuBriefkopf: TMenuItem;
+    MenuGrafik: TMenuItem;
     MenuBelege: TMenuItem;
     MenuAngebot: TMenuItem;
     MenuAuftrag: TMenuItem;
@@ -136,6 +140,8 @@ type
     procedure MenueStueckliste(Sender: TObject);
     procedure MenueProjektStamm(Sender: TObject);
     procedure MenueTextbaustein(Sender: TObject);
+    procedure MenueBriefkopf(Sender: TObject);
+    procedure MenueGrafik(Sender: TObject);
     procedure MenueBelegart(Sender: TObject);
     procedure BelegartenSchluss(Sender: TObject);
     procedure MenueAngebot(Sender: TObject);
@@ -207,7 +213,7 @@ implementation
 {$R *.lfm}
 
 uses
-  ubeleg, ubelegfenster, ubenutzer, utestdaten;
+  ubeleg, ubelegfenster, ubenutzer, utestdaten, ubriefkopffenster, ugrafikfenster;
 
 function Teile(const Zeile: string; Ziel: TStrings): Boolean;
 var
@@ -1086,6 +1092,16 @@ end;
 procedure THauptfenster.MenueTextbaustein(Sender: TObject);
 begin
   AdressSucheZeigen('textbaustein');
+end;
+
+procedure THauptfenster.MenueBriefkopf(Sender: TObject);
+begin
+  BriefkopfFensterZeigen;
+end;
+
+procedure THauptfenster.MenueGrafik(Sender: TObject);
+begin
+  GrafikFensterZeigen;
 end;
 
 procedure THauptfenster.BelegartenSchluss(Sender: TObject);
