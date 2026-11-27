@@ -12,12 +12,15 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, StdCtrls, ExtCtrls, Dialogs, Grids,
-  Graphics, LCLType, LCLIntf, ubeleg;
+  Graphics, LCLType, LCLIntf, Menus, ubeleg;
 
 type
   TBelegfenster = class(TForm)
     PanelKopf: TPanel;
     LabelKopf: TLabel;
+    LabelBriefkopf: TLabel;
+    ComboBriefkopf: TComboBox;
+    CheckBriefkopf: TCheckBox;
     MemoAdresse: TMemo;
     LabelKopftext: TLabel;
     MemoKopf: TMemo;
@@ -94,6 +97,12 @@ type
     procedure NeuKlick(Sender: TObject);
     procedure AusgabeKlick(Sender: TObject);
     procedure KopfAusMaske;
+    procedure BriefkoepfeFuellen;
+    procedure MenuArtikel(Sender: TObject);
+    procedure MenuStueckliste(Sender: TObject);
+    procedure MenuNeueStueckliste(Sender: TObject);
+    procedure MenuOhneVorgabe(Sender: TObject);
+    function ImPositionsbereich: Boolean;
     procedure SuchenKlick(Sender: TObject);
     procedure KopierenKlick(Sender: TObject);
     procedure AendernKlick(Sender: TObject);
@@ -115,6 +124,8 @@ type
     FFussOffen: Boolean;
     FFuellen: Boolean;
     FRand: TPanel;
+    FMenuF2: TPopupMenu;
+    FBriefIds: array of Int64;
     FFolge: array of TButton;
     FFolgeAngelegt: Boolean;
     function BenutzerName: string;
@@ -154,7 +165,7 @@ implementation
 
 uses
   ubenutzer, uartikel, usuche, utextbaustein, utextbausteinfenster, uprojekt,
-  uartikelwahl, udruck;
+  uartikelwahl, udruck, ufenster, ufensterdaten;
 
 const
   CPos = 0;
@@ -253,6 +264,8 @@ begin
 end;
 
 procedure TBelegfenster.FormErzeugen(Sender: TObject);
+var
+  Eintrag: TMenuItem;
 begin
   FRand := TPanel.Create(Self);
   FRand.Parent := Self;
@@ -293,6 +306,83 @@ begin
   GridPos.ColWidths[CRab] := 60;
   GridPos.ColWidths[CVk] := 70;
   GridPos.ColWidths[CSatz] := 45;
+  FMenuF2 := TPopupMenu.Create(Self);
+  Eintrag := TMenuItem.Create(FMenuF2);
+  Eintrag.Caption := 'Artikel aus Stammdaten';
+  Eintrag.OnClick := @MenuArtikel;
+  FMenuF2.Items.Add(Eintrag);
+  Eintrag := TMenuItem.Create(FMenuF2);
+  Eintrag.Caption := 'Stückliste aus Stammdaten';
+  Eintrag.OnClick := @MenuStueckliste;
+  FMenuF2.Items.Add(Eintrag);
+  Eintrag := TMenuItem.Create(FMenuF2);
+  Eintrag.Caption := 'Neue Stückliste';
+  Eintrag.OnClick := @MenuNeueStueckliste;
+  FMenuF2.Items.Add(Eintrag);
+  Eintrag := TMenuItem.Create(FMenuF2);
+  Eintrag.Caption := 'Artikel ohne Vorgabe';
+  Eintrag.OnClick := @MenuOhneVorgabe;
+  FMenuF2.Items.Add(Eintrag);
+end;
+
+function TBelegfenster.ImPositionsbereich: Boolean;
+var
+  Lauf: TControl;
+begin
+  Result := False;
+  Lauf := ActiveControl;
+  while Lauf <> nil do
+  begin
+    if (Lauf = GridPos) or (Lauf = MemoPos) then
+      Exit(True);
+    Lauf := Lauf.Parent;
+  end;
+end;
+
+procedure TBelegfenster.MenuArtikel(Sender: TObject);
+begin
+  ArtikelHolen;
+end;
+
+procedure TBelegfenster.MenuStueckliste(Sender: TObject);
+begin
+  ShowMessage('kommt mit der Stückliste.');
+end;
+
+procedure TBelegfenster.MenuNeueStueckliste(Sender: TObject);
+begin
+  ShowMessage('kommt mit der Stückliste.');
+end;
+
+procedure TBelegfenster.MenuOhneVorgabe(Sender: TObject);
+begin
+  ZeileAnlegen;
+end;
+
+procedure TBelegfenster.BriefkoepfeFuellen;
+var
+  Namen, Nummern: TStringList;
+  i, Index: Integer;
+begin
+  Namen := TStringList.Create;
+  Nummern := TStringList.Create;
+  try
+    BriefkoepfeHolen(Namen, Nummern);
+    ComboBriefkopf.Items.Assign(Namen);
+    SetLength(FBriefIds, Nummern.Count);
+    Index := 0;
+    for i := 0 to Nummern.Count - 1 do
+    begin
+      FBriefIds[i] := StrToInt64Def(Nummern[i], 0);
+      if FBriefIds[i] = FKopf.BriefkopfId then
+        Index := i;
+    end;
+    if ComboBriefkopf.Items.Count > 0 then
+      ComboBriefkopf.ItemIndex := Index;
+  finally
+    Namen.Free;
+    Nummern.Free;
+  end;
 end;
 
 function TBelegfenster.OeffneNeu(const Kuerzel: string): Boolean;
@@ -305,6 +395,8 @@ begin
   FKopf.MwstRechnen := FArt.Mwst;
   FKopf.BearbeiterId := AngemeldeterMitarbeiter;
   FKopf.Erfasst := FormatDateTime('yyyy-mm-dd', Now);
+  FKopf.BriefkopfAn := True;
+  FKopf.BriefkopfId := BriefkopfStandard;
   SetLength(FZeilen, 0);
 end;
 
@@ -437,6 +529,9 @@ begin
   EditBearbeiter.Visible := KopfAuf and FArt.ZeigeBearbeiter;
   LabelZeichen.Visible := KopfAuf and FArt.ZeigeZeichen;
   EditZeichen.Visible := KopfAuf and FArt.ZeigeZeichen;
+  LabelBriefkopf.Visible := KopfAuf;
+  ComboBriefkopf.Visible := KopfAuf;
+  CheckBriefkopf.Visible := KopfAuf;
   if FArt.ZeichenText <> '' then
     LabelZeichen.Caption := FArt.ZeichenText;
   LabelProjekt.Visible := InternAuf and FArt.ZeigeProjekt;
@@ -477,6 +572,10 @@ begin
     else
       EditBearbeiter.Text := '';
     EditZeichen.Text := FKopf.IhrZeichen;
+    if FKopf.BriefkopfId = 0 then
+      FKopf.BriefkopfId := BriefkopfStandard;
+    BriefkoepfeFuellen;
+    CheckBriefkopf.Checked := FKopf.BriefkopfAn;
     if FKopf.ProjektStammId > 0 then
     begin
       if ProjektLaden(FKopf.ProjektStammId, Projekt) then
@@ -802,6 +901,7 @@ end;
 
 procedure TBelegfenster.FormZeigen(Sender: TObject);
 begin
+  FensterMerken(Self, 'beleg', FArt.Kuerzel);
   Left := FArt.Links;
   Top := FArt.Oben;
   if FArt.Breite >= 515 then
@@ -932,6 +1032,10 @@ begin
   FKopf.Notiz := MemoNotiz.Text;
   FKopf.IhrZeichen := Trim(EditZeichen.Text);
   FKopf.Erfasst := Trim(EditDatum.Text);
+  FKopf.BriefkopfAn := CheckBriefkopf.Checked;
+  if (ComboBriefkopf.ItemIndex >= 0) and
+     (ComboBriefkopf.ItemIndex <= High(FBriefIds)) then
+    FKopf.BriefkopfId := FBriefIds[ComboBriefkopf.ItemIndex];
   if FKopf.Gruppierung = '' then
     FKopf.Gruppierung := Trim(EditGruppe.Text);
 end;
@@ -939,7 +1043,7 @@ end;
 procedure TBelegfenster.AusgabeKlick(Sender: TObject);
 var
   Vorlage: TDruckvorlage;
-  Datei, Fehler, Meldung: string;
+  Datei, Fehler, Meldung, Absender, Fusszeile: string;
   Seiten: Integer;
 begin
   if not AktionZulaessig('beleg', FArt.Kuerzel, 'drucken', Meldung) then
@@ -958,6 +1062,15 @@ begin
     Datei := GetTempDir + 'planlos-neu.pdf'
   else
     Datei := GetTempDir + 'planlos-' + FKopf.Nummer + '.pdf';
+  if FKopf.BriefkopfAn and BriefkopfLesen(FKopf.BriefkopfId, Absender, Fusszeile) then
+  begin
+    if Absender <> '' then
+      Vorlage.Absender := Absender;
+    if Fusszeile <> '' then
+      Vorlage.Fusszeile := Fusszeile;
+  end
+  else if not FKopf.BriefkopfAn then
+    Vorlage.Absender := '';
   if not BelegPdfSchreiben(FKopf, FZeilen, Vorlage, FArt.Bezeichnung,
     EditBearbeiter.Text, Datei, Seiten, Fehler) then
     ShowMessage(Fehler)
@@ -983,7 +1096,7 @@ begin
     ShowMessage('Dafür fehlt das Recht.');
     Exit;
   end;
-  if not ArtikelWaehlen(Id) then
+  if not ArtikelWaehlen(Id, FArt.Kuerzel) then
     Exit;
   if not uartikel.ArtikelLaden(Id, Artikel) then
     Exit;
@@ -1225,7 +1338,12 @@ begin
   end
   else if Key = VK_F2 then
   begin
-    ZeileAnlegen;
+    { F2 legt außerhalb der Positionen weiter eine Zeile an.
+      Im Positionsbereich öffnet es die Auswahl. }
+    if ImPositionsbereich then
+      FMenuF2.PopUp(Mouse.CursorPos.X, Mouse.CursorPos.Y)
+    else
+      ZeileAnlegen;
     Key := 0;
   end
   else if Key = VK_F3 then

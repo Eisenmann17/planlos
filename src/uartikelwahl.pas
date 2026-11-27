@@ -14,14 +14,14 @@ uses
   Classes, SysUtils, Forms, Controls, StdCtrls, Grids, ExtCtrls, Graphics,
   LCLType;
 
-function ArtikelWaehlen(out Id: Int64): Boolean;
+function ArtikelWaehlen(out Id: Int64; const Kontext: string = ''): Boolean;
 
 implementation
 
 {$R *.lfm}
 
 uses
-  udatenbank;
+  udatenbank, ufenster;
 
 type
   TArtikelWahl = class(TForm)
@@ -49,13 +49,14 @@ type
     procedure Uebernehmen;
   end;
 
-function ArtikelWaehlen(out Id: Int64): Boolean;
+function ArtikelWaehlen(out Id: Int64; const Kontext: string = ''): Boolean;
 var
   Fenster: TArtikelWahl;
 begin
   Id := 0;
   Fenster := TArtikelWahl.Create(Application);
   try
+    FensterMerken(Fenster, 'artikelwahl', Kontext);
     if Fenster.ShowModal = mrOk then
       Id := Fenster.FId;
     Result := Id > 0;

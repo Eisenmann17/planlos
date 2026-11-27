@@ -92,6 +92,8 @@ type
     IhrZeichen: string;
     BearbeiterId: Int64;
     Erfasst: string;
+    BriefkopfId: Int64;
+    BriefkopfAn: Boolean;
   end;
 
   TMwstGruppe = record
@@ -816,6 +818,14 @@ begin
     Parameter.Values['notiz'] := Kopf.Notiz;
     Parameter.Values['gruppe'] := Kopf.Gruppierung;
     Parameter.Values['zeichen'] := Kopf.IhrZeichen;
+    if Kopf.BriefkopfId > 0 then
+      Parameter.Values['brief'] := IntToStr(Kopf.BriefkopfId)
+    else
+      Parameter.Values['brief'] := '0';
+    if Kopf.BriefkopfAn then
+      Parameter.Values['briefan'] := '1'
+    else
+      Parameter.Values['briefan'] := '0';
     Parameter.Values['projekt'] := IntToStr(Kopf.ProjektStammId);
     Parameter.Values['kopf_id'] := IntToStr(Kopf.KopfBausteinId);
     Parameter.Values['fuss_id'] := IntToStr(Kopf.FussBausteinId);
@@ -841,10 +851,11 @@ begin
         'INSERT INTO beleg (modulart_id, nummer, adresse_id, bezeichnung, kopftext, ' +
         'fusstext, notiz, bezug_beleg_id, mwst_rechnen, bearbeiter_id, gruppierung, ' +
         'projekt_stamm_id, kopf_baustein_id, fuss_baustein_id, adresse_text, ihr_zeichen, ' +
-        'angelegt, geaendert) VALUES (:art, :nummer, NULLIF(:adresse, ''0''), :bezeichnung, ' +
-        ':kopf, :fuss, :notiz, NULLIF(:bezug, ''''), :mwst, NULLIF(:bearbeiter, ''''), ' +
-        ':gruppe, NULLIF(:projekt, ''0''), NULLIF(:kopf_id, ''0''), NULLIF(:fuss_id, ''0''), ' +
-        ':adresse_text, :zeichen, :erfasst, :jetzt)', Parameter);
+        'briefkopf_id, briefkopf_an, angelegt, geaendert) VALUES (:art, :nummer, ' +
+        'NULLIF(:adresse, ''0''), :bezeichnung, :kopf, :fuss, :notiz, NULLIF(:bezug, ''''), ' +
+        ':mwst, NULLIF(:bearbeiter, ''''), :gruppe, NULLIF(:projekt, ''0''), ' +
+        'NULLIF(:kopf_id, ''0''), NULLIF(:fuss_id, ''0''), :adresse_text, :zeichen, ' +
+        'NULLIF(:brief, ''0''), :briefan, :erfasst, :jetzt)', Parameter);
       Kopf.Id := StrToInt64Def(Trim(PlanlosDB.Skalar('SELECT last_insert_rowid()')), 0);
     end
     else
@@ -855,7 +866,8 @@ begin
         'kopftext = :kopf, fusstext = :fuss, notiz = :notiz, geaendert = :jetzt, ' +
         'gruppierung = :gruppe, adresse_text = :adresse_text, ihr_zeichen = :zeichen, ' +
         'bearbeiter_id = NULLIF(:bearbeiter, ''''), projekt_stamm_id = NULLIF(:projekt, ''0''), ' +
-        'kopf_baustein_id = NULLIF(:kopf_id, ''0''), fuss_baustein_id = NULLIF(:fuss_id, ''0'') ' +
+        'kopf_baustein_id = NULLIF(:kopf_id, ''0''), fuss_baustein_id = NULLIF(:fuss_id, ''0''), ' +
+        'briefkopf_id = NULLIF(:brief, ''0''), briefkopf_an = :briefan ' +
         'WHERE id = :id AND modulart_id = :art', Parameter) < 1 then
       begin
         Fehler := 'Der Beleg gehört nicht zu dieser Belegart.';
@@ -943,6 +955,8 @@ begin
   Kopf.IhrZeichen := '';
   Kopf.BearbeiterId := 0;
   Kopf.Erfasst := '';
+  Kopf.BriefkopfId := 0;
+  Kopf.BriefkopfAn := True;
   SetLength(Positionen, 0);
   if not Bereit then
     Exit;
@@ -958,7 +972,7 @@ begin
       'b.bezeichnung, b.kopftext, b.fusstext, b.notiz, b.bezug_beleg_id, ' +
       'b.mwst_rechnen, v.nummer AS bezugnummer, b.adresse_text, b.gruppierung, ' +
       'b.projekt_stamm_id, b.kopf_baustein_id, b.fuss_baustein_id, b.ihr_zeichen, ' +
-      'b.bearbeiter_id, b.angelegt ' +
+      'b.bearbeiter_id, b.angelegt, b.briefkopf_id, b.briefkopf_an ' +
       'FROM beleg b JOIN modulart m ON m.id = b.modulart_id ' +
       'LEFT JOIN beleg v ON v.id = b.bezug_beleg_id WHERE b.id = :id',
       Parameter, Zeile);
@@ -983,6 +997,8 @@ begin
     Kopf.IhrZeichen := Zeile.Values['ihr_zeichen'];
     Kopf.BearbeiterId := StrToInt64Def(Zeile.Values['bearbeiter_id'], 0);
     Kopf.Erfasst := Copy(Zeile.Values['angelegt'], 1, 10);
+    Kopf.BriefkopfId := StrToInt64Def(Zeile.Values['briefkopf_id'], 0);
+    Kopf.BriefkopfAn := Zeile.Values['briefkopf_an'] <> '0';
     PlanlosDB.AlleZeilen(
       'SELECT id, position_nr, artikel_id, positionstext, menge_milli, einheit, ' +
       'einzelpreis_cent, mwst_satz, gruppe, artikelname, ek_cent, einheit_ek, ' +

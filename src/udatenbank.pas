@@ -37,6 +37,7 @@ type
     procedure ArtikelSchema;
     procedure NachschlageSchema;
     procedure ProjektTextSchema;
+    procedure SicherungVorMigration;
   public
     constructor Create;
     destructor Destroy; override;
@@ -55,6 +56,7 @@ type
     { Parameter sind Name=Wert. Leere Liste oder nil heißt: keine Platzhalter.
       Ausfuehren liefert die Zahl geänderter Zeilen. }
     function Ausfuehren(const SQL: string; Parameter: TStrings): Int64;
+    function AbfragePruefen(const SQL: string; out Fehler: string): Boolean;
     procedure ErsteZeile(const SQL: string; Parameter: TStrings; Ziel: TStrings);
     procedure AlleZeilen(const SQL: string; Parameter: TStrings;
       Spalten, Zeilen: TStrings);
@@ -343,6 +345,81 @@ begin
   end;
 end;
 
+function TPlanlosDatenbank.AbfragePruefen(const SQL: string; out Fehler: string): Boolean;
+var
+  Q: TSQLQuery;
+  Trans: TSQLTransaction;
+  Anfang: string;
+begin
+  Result := False;
+  Fehler := '';
+  Anfang := LowerCase(Trim(SQL));
+  if Anfang = '' then
+    Exit(True);
+  if (Pos(';', SQL) > 0) or (Copy(Anfang, 1, 6) <> 'select') then
+  begin
+    Fehler := 'Erlaubt ist eine einzelne SELECT-Abfrage.';
+    Exit;
+  end;
+  Q := QueryNeu(SQL, nil);
+  try
+    try
+      Q.Open;
+      Q.Close;
+      TransaktionSchliessen;
+      Result := True;
+    except
+      on E: Exception do
+      begin
+        Fehler := E.Message;
+        Trans := TSQLTransaction(FTrans);
+        if (Trans <> nil) and Trans.Active then
+          Trans.Rollback;
+      end;
+    end;
+  finally
+    Q.Free;
+  end;
+end;
+
+procedure DateiKopieren(const Von, Nach: string);
+var
+  Quelle, Ziel: TFileStream;
+begin
+  Quelle := TFileStream.Create(Von, fmOpenRead or fmShareDenyNone);
+  try
+    Ziel := TFileStream.Create(Nach, fmCreate);
+    try
+      Ziel.CopyFrom(Quelle, Quelle.Size);
+    finally
+      Ziel.Free;
+    end;
+  finally
+    Quelle.Free;
+  end;
+end;
+
+procedure TPlanlosDatenbank.SicherungVorMigration;
+var
+  Version: Integer;
+  Ordner, Ziel: string;
+begin
+  if (FArt <> daSQLite) or not FileExists(FPfad) then
+    Exit;
+  if Ganzzahl(
+    'SELECT COUNT(*) FROM sqlite_master WHERE type = ''table'' AND name = ''schema_info''') = 0 then
+    Exit;
+  Version := Ganzzahl('SELECT version FROM schema_info WHERE id = 1');
+  if (Version <= 0) or (Version >= 13) then
+    Exit;
+  Ordner := IncludeTrailingPathDelimiter(ExtractFilePath(FPfad)) + 'sicherung';
+  if not DirectoryExists(Ordner) then
+    ForceDirectories(Ordner);
+  Ziel := IncludeTrailingPathDelimiter(Ordner) + 'planlos-vor-13-' +
+    FormatDateTime('yyyymmddhhnnss', Now) + '.sqlite';
+  DateiKopieren(FPfad, Ziel);
+end;
+
 procedure TPlanlosDatenbank.ErsteZeile(const SQL: string; Parameter: TStrings;
   Ziel: TStrings);
 var
@@ -596,7 +673,8 @@ var
   Kennung: string;
   G: TGUID;
 begin
-  { Schema-Version 5. Vorhandene Zeilen werden nicht überschrieben,
+  SicherungVorMigration;
+  { Vorhandene Zeilen werden nicht überschrieben,
     damit eine spätere Umbenennung beim nächsten Start erhalten bleibt. }
 
   Direkt(
@@ -803,10 +881,41 @@ begin
 
   if Ganzzahl('SELECT COUNT(*) FROM schema_info') = 0 then
     Direkt(
-      'INSERT INTO schema_info (id, version, angelegt) VALUES (1, 12, ' +
+      'INSERT INTO schema_info (id, version, angelegt) VALUES (1, 13, ' +
       QuotedStr(FormatDateTime('yyyy-mm-dd"T"hh:nn:ss', Now)) + ')')
-  else if Ganzzahl('SELECT version FROM schema_info WHERE id = 1') < 12 then
-    Direkt('UPDATE schema_info SET version = 12 WHERE id = 1');
+  else if Ganzzahl('SELECT version FROM schema_info WHERE id = 1') < 13 then
+    Direkt('UPDATE schema_info SET version = 13 WHERE id = 1');
+  Direkt(
+    'CREATE TABLE IF NOT EXISTS fenstereinstellung (' +
+    'id INTEGER PRIMARY KEY, ' +
+    'fenster TEXT NOT NULL, ' +
+    'kontext TEXT NOT NULL DEFAULT '''', ' +
+    'links INTEGER NOT NULL DEFAULT 0, ' +
+    'oben INTEGER NOT NULL DEFAULT 0, ' +
+    'breite INTEGER NOT NULL DEFAULT 0, ' +
+    'hoehe INTEGER NOT NULL DEFAULT 0, ' +
+    'spalten TEXT, ' +
+    'sortierung TEXT, ' +
+    'filter TEXT, ' +
+    'sql_text TEXT, ' +
+    'UNIQUE (fenster, kontext))');
+  Direkt(
+    'CREATE TABLE IF NOT EXISTS briefkopf (' +
+    'id INTEGER PRIMARY KEY, ' +
+    'bezeichnung TEXT NOT NULL UNIQUE, ' +
+    'absender TEXT NOT NULL, ' +
+    'fusszeile TEXT, ' +
+    'standard INTEGER NOT NULL DEFAULT 0)');
+  Direkt(
+    'INSERT INTO briefkopf (id, bezeichnung, absender, fusszeile, standard) ' +
+    'SELECT 1, ''offiziell'', ''Planlos · Musterweg 1 · 12345 Musterstadt'', '''', 1 ' +
+    'WHERE NOT EXISTS (SELECT 1 FROM briefkopf WHERE id = 1)');
+  Direkt(
+    'INSERT INTO briefkopf (id, bezeichnung, absender, fusszeile, standard) ' +
+    'SELECT 2, ''intern'', ''Planlos intern'', '''', 0 ' +
+    'WHERE NOT EXISTS (SELECT 1 FROM briefkopf WHERE id = 2)');
+  Spalte('beleg', 'briefkopf_id', 'INTEGER');
+  Spalte('beleg', 'briefkopf_an', 'INTEGER NOT NULL DEFAULT 1');
 end;
 
 procedure TPlanlosDatenbank.ArtikelSchema;

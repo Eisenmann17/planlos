@@ -88,7 +88,8 @@ implementation
 uses
   ubenutzer, uartikel, uartikelfenster, uartikelgruppe, unachschlage,
   unachschlagefenster, uprojekt, uprojektfenster, utextbaustein,
-  utextbausteinfenster, umodulart, umodulartfenster;
+  utextbausteinfenster, umodulart, umodulartfenster, udatenbank, ufenster,
+  ufensterdaten;
 
 procedure AdressSucheZeigen(const Kuerzel: string; NachSchluss: TNotifyEvent);
 var
@@ -298,8 +299,10 @@ end;
 function TSuchfenster.Oeffne(const Kuerzel: string): Boolean;
 var
   Info: TMaskenInfo;
+  SatzSuche: TFensterSatz;
 begin
   FKuerzel := Kuerzel;
+  FensterMerken(Self, 'suche', Kuerzel);
   Result := MaskeLaden(Kuerzel, Info);
   if not Result then
     Exit;
@@ -319,6 +322,13 @@ begin
   FHinweis.Caption := 'Maske ' + Info.Bezeichnung +
     '. Felder und Tasten kommen aus der Datenbank.';
   TastenAusDaten;
+  if FensterWirksam('suche', Kuerzel, SatzSuche) then
+  begin
+    if SatzSuche.Filter <> '' then
+      FFilter.Text := SatzSuche.Filter;
+    if SatzSuche.Sortierung <> '' then
+      FSortierung := StrToIntDef(SatzSuche.Sortierung, FSortierung);
+  end;
   ListeLaden;
   KnoepfeStellen;
   LeisteRichten(nil);
@@ -353,23 +363,40 @@ procedure TSuchfenster.ListeLaden;
 var
   Spalten, Zeilen, TeileZeile: TStringList;
   Spalte, Zeile: Integer;
+  SatzSuche: TFensterSatz;
+  SqlGing: Boolean;
 begin
   Spalten := TStringList.Create;
   Zeilen := TStringList.Create;
   TeileZeile := TStringList.Create;
   try
-    if FKuerzel = 'projekt' then
-      ProjektLesen(FFilter.Text, Spalten, Zeilen)
-    else if FKuerzel = 'textbaustein' then
-      TextbausteinLesen(FFilter.Text, FEinschraenkung, Spalten, Zeilen)
-    else if FKuerzel = 'modulart' then
-      ModulartLesen(FFilter.Text, Spalten, Zeilen)
-    else if FKuerzel = 'benutzer' then
-      BenutzerLesen(FFilter.Text, Spalten, Zeilen)
-    else if Stammliste(FKuerzel) then
-      StammLesen(FKuerzel, FFilter.Text, Spalten, Zeilen)
-    else
-      TrefferLesen(FKuerzel, FFilter.Text, Spalten, Zeilen);
+    SqlGing := False;
+    if FensterLesen('suche', FKuerzel, SatzSuche) and (Trim(SatzSuche.SqlText) <> '') then
+    begin
+      try
+        PlanlosDB.AlleZeilen(SatzSuche.SqlText, nil, Spalten, Zeilen);
+        SqlGing := True;
+      except
+        on E: Exception do
+          ShowMessage('Die gespeicherte Abfrage gilt nicht. Es gilt die Vorgabe.' +
+            LineEnding + E.Message);
+      end;
+    end;
+    if not SqlGing then
+    begin
+      if FKuerzel = 'projekt' then
+        ProjektLesen(FFilter.Text, Spalten, Zeilen)
+      else if FKuerzel = 'textbaustein' then
+        TextbausteinLesen(FFilter.Text, FEinschraenkung, Spalten, Zeilen)
+      else if FKuerzel = 'modulart' then
+        ModulartLesen(FFilter.Text, Spalten, Zeilen)
+      else if FKuerzel = 'benutzer' then
+        BenutzerLesen(FFilter.Text, Spalten, Zeilen)
+      else if Stammliste(FKuerzel) then
+        StammLesen(FKuerzel, FFilter.Text, Spalten, Zeilen)
+      else
+        TrefferLesen(FKuerzel, FFilter.Text, Spalten, Zeilen);
+    end;
     if Spalten.Count < 1 then
       Spalten.Add('id');
     FListe.ColCount := Spalten.Count;
