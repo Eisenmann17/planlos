@@ -13,7 +13,8 @@ uses
   {$ENDIF}
   Classes, SysUtils,
   udatenbank, umaske, ubeleg, ubenutzer, uartikel, unachschlage, uprojekt,
-  utextbaustein, udruck, umodulart, urechner, udatum, udrucklayout, utestdaten;
+  utextbaustein, udruck, umodulart, urechner, udatum, udrucklayout, utestdaten,
+  ufensterdaten;
 
 var
   DB: TPlanlosDatenbank;
@@ -36,6 +37,8 @@ var
   Baustein: TTextbaustein;
   Vorlage: TDruckvorlage;
   DruckLayout, DruckLayout2: TDruckLayout;
+  FensterSatz, FensterSatz2: TFensterSatz;
+  Sicherung: TSearchRec;
   LayoutHinweis: string;
   SeitenZahl, iPos: Integer;
   DatumJahr, DatumMonat, DatumTag: Word;
@@ -124,8 +127,10 @@ begin
         Fehlschlag('Die Installationskennung hat sich geändert.');
       if DB.Ganzzahl('SELECT COUNT(*) FROM modulart') <> 5 then
         Fehlschlag('Das Schema hat Belegarten verdoppelt.');
-      if DB.Ganzzahl('SELECT version FROM schema_info WHERE id = 1') <> 12 then
-        Fehlschlag('Das Schema soll auf Version 12 stehen.');
+      if DB.Ganzzahl('SELECT version FROM schema_info WHERE id = 1') <> 13 then
+        Fehlschlag('Das Schema soll auf Version 13 stehen.');
+      if DB.Ganzzahl('SELECT COUNT(*) FROM briefkopf') < 2 then
+        Fehlschlag('Es sollen zwei Briefköpfe angelegt sein.');
       if not RechnerAuswerten('1,5 + 2,5', Rabatt, FolgeFehler) or
          (Abs(Rabatt - 4) > 0.0001) then
         Fehlschlag('1,5 + 2,5 ist nicht 4.');
@@ -732,6 +737,35 @@ begin
       if (Copy(Inhalt, 1, 5) <> '%PDF-') or (Pos('Meier', Inhalt) = 0) or
          (Pos('Eiche', Inhalt) = 0) then
         Fehlschlag('Der Beispielbeleg lässt sich nicht drucken.');
+      FensterSatz := Default(TFensterSatz);
+      FensterSatz.Fenster := 'suche';
+      FensterSatz.Kontext := 'angebot';
+      FensterSatz.Links := 15;
+      FensterSatz.Oben := 25;
+      FensterSatz.Breite := 480;
+      FensterSatz.Hoehe := 320;
+      FensterSatz.Filter := 'Meier';
+      FensterSatz.Sortierung := '2';
+      if not FensterSpeichern(FensterSatz, FolgeFehler) then
+        Fehlschlag(FolgeFehler);
+      if not FensterLesen('suche', 'angebot', FensterSatz2) or
+         (FensterSatz2.Breite <> 480) or (FensterSatz2.Filter <> 'Meier') then
+        Fehlschlag('Die Fenstereinstellung für den Angebotskontext fehlt.');
+      if FensterLesen('suche', 'bestellung', FensterSatz2) then
+        Fehlschlag('Die Bestellung darf die Fenstereinstellung des Angebots nicht teilen.');
+      DB.Ausfuehren('UPDATE schema_info SET version = 12 WHERE id = 1', nil);
+      DB.ParameterSetzen('migrationsprobe', 'bleibt');
+      DB.SchemaSicherstellen;
+      if DB.Ganzzahl('SELECT version FROM schema_info WHERE id = 1') <> 13 then
+        Fehlschlag('Die Migration hat die Schemaversion nicht erhöht.');
+      if DB.ParameterLesen('migrationsprobe', '') <> 'bleibt' then
+        Fehlschlag('Die Migration hat vorhandene Daten gelöscht.');
+      if FindFirst(IncludeTrailingPathDelimiter(ExtractFilePath(Pfad)) +
+        'sicherung' + DirectorySeparator + 'planlos-vor-13-*.sqlite',
+        faAnyFile, Sicherung) <> 0 then
+        Fehlschlag('Vor der Migration fehlt die Sicherungskopie.')
+      else
+        FindClose(Sicherung);
     end
     else
     begin

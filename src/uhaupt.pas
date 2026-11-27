@@ -1229,9 +1229,12 @@ begin
         try
           K3 := KindfensterOeffnen;
           Liste.Add('K3=' + IntToStr(K3.Left) + ',' + IntToStr(K3.Top));
-          if (Grund = '') and ((K3.Left <> KaskadenAnfangLinks) or
-             (K3.Top <> KaskadenAnfangOben)) then
-            Grund := 'Ohne Kaskade soll das Fenster an der Grundposition stehen.';
+          if (Grund = '') and ((K1.Left <> Left + SchrittL) or
+           (K1.Top <> Top + SchrittO)) then
+          Grund := 'Das erste Fenster steht nicht eine Stufe neben dem Hauptfenster.';
+        if (Grund = '') and ((K3.Left <> Left + SchrittL) or
+           (K3.Top <> Top + SchrittO)) then
+          Grund := 'Ohne Kaskade soll das Fenster eine Stufe neben dem Hauptfenster stehen.';
         finally
           KaskadeUmschalten;
         end;

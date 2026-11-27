@@ -1,0 +1,142 @@
+object FensterEinstellung: TFensterEinstellung
+  Left = 220
+  Height = 460
+  Top = 120
+  Width = 520
+  BorderStyle = bsDialog
+  Caption = 'Fenstereinstellungen'
+  ClientHeight = 460
+  ClientWidth = 520
+  Color = clBtnFace
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  KeyPreview = True
+  Position = poScreenCenter
+  OnKeyDown = FormKeyDown
+  OnShow = FormZeigen
+  object LabelKontext: TLabel
+    Left = 12
+    Height = 32
+    Top = 8
+    Width = 496
+    AutoSize = False
+    WordWrap = True
+    Caption = ''
+  end
+  object LabelSpalten: TLabel
+    Left = 12
+    Height = 13
+    Top = 44
+    Width = 120
+    Caption = 'Sichtbare Spalten'
+  end
+  object ListSpalten: TCheckListBox
+    Left = 12
+    Height = 140
+    Top = 60
+    Width = 496
+    ItemHeight = 15
+    TabOrder = 0
+  end
+  object LabelSortierung: TLabel
+    Left = 12
+    Height = 13
+    Top = 208
+    Width = 70
+    Caption = 'Sortierung'
+  end
+  object EditSortierung: TEdit
+    Left = 120
+    Height = 21
+    Top = 204
+    Width = 160
+    TabOrder = 1
+  end
+  object LabelFilter: TLabel
+    Left = 12
+    Height = 13
+    Top = 236
+    Width = 80
+    Caption = 'Vorgabefilter'
+  end
+  object EditFilter: TEdit
+    Left = 120
+    Height = 21
+    Top = 232
+    Width = 388
+    TabOrder = 2
+  end
+  object LabelSql: TLabel
+    Left = 12
+    Height = 13
+    Top = 264
+    Width = 200
+    Caption = 'SQL der Liste'
+    Visible = False
+  end
+  object MemoSql: TMemo
+    Left = 12
+    Height = 110
+    Top = 280
+    Width = 496
+    ScrollBars = ssVertical
+    TabOrder = 3
+    Visible = False
+  end
+  object PanelKnopf: TPanel
+    Left = 0
+    Height = 48
+    Top = 412
+    Width = 520
+    Align = alBottom
+    BevelOuter = bvNone
+    Caption = ''
+    TabOrder = 4
+    object LabelEsc: TLabel
+      Left = 12
+      Height = 14
+      Top = 4
+      Width = 92
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'ESC'
+      Font.Color = clTeal
+      Font.Height = -11
+      Font.Name = 'MS Sans Serif'
+      ParentFont = False
+    end
+    object ButtonAbbrechen: TButton
+      Left = 12
+      Height = 22
+      Top = 20
+      Width = 92
+      Cancel = True
+      Caption = 'abbrechen'
+      OnClick = AbbrechenKlick
+      TabOrder = 0
+    end
+    object LabelF10: TLabel
+      Left = 416
+      Height = 14
+      Top = 4
+      Width = 92
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'F10'
+      Font.Color = clTeal
+      Font.Height = -11
+      Font.Name = 'MS Sans Serif'
+      ParentFont = False
+    end
+    object ButtonSpeichern: TButton
+      Left = 416
+      Height = 22
+      Top = 20
+      Width = 92
+      Caption = 'speichern'
+      OnClick = SpeichernKlick
+      TabOrder = 1
+    end
+  end
+end
