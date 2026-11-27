@@ -13,7 +13,6 @@ object Hauptfenster: THauptfenster
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
   KeyPreview = True
-  Menu = Hauptmenue
   OnKeyDown = FormKeyDown
   OnShow = FormShow
   Position = poScreenCenter
@@ -626,7 +625,7 @@ object Hauptfenster: THauptfenster
         Height = 65
         Top = 24
         Width = 308
-        Caption = 'Angemeldet wird beim Start. Die Rolle steht in der Datenbank.'#13'Das Passwort liegt nur als gesalzener Hash, nie im Klartext.'#13#13'Die Belegart steuert Fenster, Felder und erlaubte Funktionen.'
+        Caption = 'Die Listen stehen als Knöpfe unter diesem Text.'#13'Belegart steuert Fenster, Felder und erlaubte Funktionen.'#13'Fenstereinstellungen steht direkt darunter.'
       end
       object ButtonBelegart: TButton
         Left = 16
@@ -638,10 +637,10 @@ object Hauptfenster: THauptfenster
         TabOrder = 0
       end
       object ButtonFensterliste: TButton
-        Left = 190
+        Left = 16
         Height = 25
-        Top = 110
-        Width = 180
+        Top = 144
+        Width = 160
         Caption = 'Fenstereinstellungen'
         OnClick = MenueFensterliste
         TabOrder = 1
@@ -653,13 +652,13 @@ object Hauptfenster: THauptfenster
       ClientWidth = 1298
       object PanelTestdaten: TPanel
         Left = 0
-        Height = 40
+        Height = 104
         Top = 0
         Width = 1298
         Align = alTop
         BevelOuter = bvNone
         Caption = ''
-        ClientHeight = 40
+        ClientHeight = 104
         ClientWidth = 1298
         TabOrder = 1
         object ButtonTestdaten: TButton
@@ -670,6 +669,105 @@ object Hauptfenster: THauptfenster
           Caption = 'Testdaten einspielen'
           OnClick = MenueTestdaten
           TabOrder = 0
+        end
+        object ButtonHilfe: TButton
+          Left = 204
+          Height = 25
+          Top = 8
+          Width = 120
+          Caption = 'Hilfe'
+          OnClick = MenueHilfe
+          TabOrder = 1
+        end
+        object ButtonUeber: TButton
+          Left = 332
+          Height = 25
+          Top = 8
+          Width = 120
+          Caption = 'Über Planlos'
+          OnClick = MenueUeber
+          TabOrder = 2
+        end
+        object ButtonDatenbank: TButton
+          Left = 460
+          Height = 25
+          Top = 8
+          Width = 140
+          Caption = 'Datenbank'
+          OnClick = MenueDatenbank
+          TabOrder = 3
+        end
+        object ButtonNeuesFenster: TButton
+          Left = 16
+          Height = 25
+          Top = 40
+          Width = 140
+          Caption = 'Neues Fenster'
+          OnClick = MenueFenster
+          TabOrder = 4
+        end
+        object ButtonKaskade: TButton
+          Left = 164
+          Height = 25
+          Top = 40
+          Width = 160
+          Caption = 'Kaskade umschalten'
+          OnClick = MenueKaskade
+          TabOrder = 5
+        end
+        object ButtonAlleZu: TButton
+          Left = 332
+          Height = 25
+          Top = 40
+          Width = 160
+          Caption = 'Alle Fenster zu'
+          OnClick = MenueAlleZu
+          TabOrder = 6
+        end
+        object ButtonAngebot: TButton
+          Left = 16
+          Height = 25
+          Top = 72
+          Width = 140
+          Caption = 'Angebot'
+          OnClick = MenueAngebot
+          TabOrder = 7
+        end
+        object ButtonAuftrag: TButton
+          Left = 164
+          Height = 25
+          Top = 72
+          Width = 160
+          Caption = 'Auftragsbestätigung'
+          OnClick = MenueAuftrag
+          TabOrder = 8
+        end
+        object ButtonBestellung: TButton
+          Left = 332
+          Height = 25
+          Top = 72
+          Width = 120
+          Caption = 'Bestellung'
+          OnClick = MenueBestellung
+          TabOrder = 9
+        end
+        object ButtonRechnung: TButton
+          Left = 460
+          Height = 25
+          Top = 72
+          Width = 120
+          Caption = 'Rechnung'
+          OnClick = MenueRechnung
+          TabOrder = 10
+        end
+        object ButtonProjektBeleg: TButton
+          Left = 588
+          Height = 25
+          Top = 72
+          Width = 120
+          Caption = 'Projekt'
+          OnClick = MenueProjekt
+          TabOrder = 11
         end
       end
       object MemoHilfe: TMemo

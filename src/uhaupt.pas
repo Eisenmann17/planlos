@@ -81,6 +81,17 @@ type
     ButtonFensterliste: TButton;
     PanelTestdaten: TPanel;
     ButtonTestdaten: TButton;
+    ButtonHilfe: TButton;
+    ButtonUeber: TButton;
+    ButtonDatenbank: TButton;
+    ButtonNeuesFenster: TButton;
+    ButtonKaskade: TButton;
+    ButtonAlleZu: TButton;
+    ButtonAngebot: TButton;
+    ButtonAuftrag: TButton;
+    ButtonBestellung: TButton;
+    ButtonRechnung: TButton;
+    ButtonProjektBeleg: TButton;
     LabelEinstellung: TLabel;
     MemoHilfe: TMemo;
     PanelTasten: TPanel;
@@ -869,6 +880,7 @@ begin
     LineEnding +
     'Explorer: Belegart wählen, filtern, mit Neu anlegen oder mit Doppelklick öffnen.' +
     LineEnding +
+    'Einstellungen: Belegart, darunter Fenstereinstellungen.' + LineEnding +
     'Stammdaten: Kunde, Lieferant, Mitarbeiter, Kontakt.' + LineEnding +
     'In der Adresse öffnet ein Feld mit > eine Auswahlliste (Klick oder F4).' +
     LineEnding + LineEnding +
