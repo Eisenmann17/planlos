@@ -75,8 +75,6 @@ type
     LabelF10: TLabel;
     ButtonSpeichern: TButton;
     PanelMitte: TPanel;
-    MemoPos: TMemo;
-    LabelPositionstext: TLabel;
     GridPos: TStringGrid;
     procedure FormErzeugen(Sender: TObject);
     procedure FormZeigen(Sender: TObject);
@@ -115,7 +113,6 @@ type
     procedure SpeichernKlick(Sender: TObject);
     procedure ZelleFertig(Sender: TObject);
     procedure ZelleWahl(Sender: TObject; aCol, aRow: Integer; var CanSelect: Boolean);
-    procedure PosTextVerlassen(Sender: TObject);
   private
     FArt: TBelegart;
     FKopf: TBelegKopf;
@@ -154,6 +151,7 @@ type
     procedure Suchen;
     procedure ArtikelHolen;
     procedure ZeileAnlegen;
+    procedure ZeileFokussieren(Index: Integer);
     procedure LageSetzen;
     procedure LageNachziehen(Data: PtrInt);
     function SpeichernStill(out Fehler: string): Int64;
@@ -357,6 +355,7 @@ begin
   FZeile := Index;
   Gitter;
   SummenZeigen;
+  ZeileFokussieren(Index);
 end;
 
 procedure TBelegfenster.MenuStueckliste(Sender: TObject);
@@ -393,13 +392,13 @@ begin
     ShowMessage('Dafür fehlt das Recht.');
     Exit;
   end;
-  ZeileAnlegen;
-  Index := FZeile;
   Bezeichnung := '';
   Einheit := 'Stück';
   SetLength(Zeilen, 0);
   if not StuecklisteZeilenBearbeiten(Bezeichnung, Einheit, Zeilen) then
     Exit;
+  ZeileAnlegen;
+  Index := FZeile;
   StueckUebernehmen(Index, Bezeichnung, Einheit, Zeilen);
 end;
 
@@ -677,7 +676,10 @@ begin
   Zeile := Index + 1;
   GridPos.Cells[CPos, Zeile] := IntToStr(Index + 1);
   GridPos.Cells[CGruppe, Zeile] := FZeilen[Index].Gruppe;
-  GridPos.Cells[CArtikel, Zeile] := FZeilen[Index].ArtikelName;
+  if FZeilen[Index].Text <> '' then
+    GridPos.Cells[CArtikel, Zeile] := FZeilen[Index].Text
+  else
+    GridPos.Cells[CArtikel, Zeile] := FZeilen[Index].ArtikelName;
   GridPos.Cells[CMenge, Zeile] := MilliAlsText(FZeilen[Index].MengeMilli);
   GridPos.Cells[CEinheit, Zeile] := FZeilen[Index].Einheit;
   GridPos.Cells[CEk, Zeile] := CentAlsText(FZeilen[Index].EkCent);
@@ -698,7 +700,6 @@ begin
       GridPos.RowCount := 2;
       for i := 0 to GridPos.ColCount - 1 do
         GridPos.Cells[i, 1] := '';
-      MemoPos.Text := '';
       FZeile := -1;
     end
     else
@@ -709,7 +710,6 @@ begin
       if (FZeile < 0) or (FZeile > High(FZeilen)) then
         FZeile := 0;
       GridPos.Row := FZeile + 1;
-      MemoPos.Text := FZeilen[FZeile].Text;
     end;
   finally
     FFuellen := False;
@@ -718,8 +718,8 @@ end;
 
 procedure TBelegfenster.PosTextSichern;
 begin
-  if (FZeile >= 0) and (FZeile <= High(FZeilen)) then
-    FZeilen[FZeile].Text := MemoPos.Text;
+  if GridPos.EditorMode then
+    GridPos.EditorMode := False;
 end;
 
 procedure TBelegfenster.ZelleLesen;
@@ -739,7 +739,11 @@ begin
   Zahl := Trim(GridPos.Cells[Spalte, Index + 1]);
   case Spalte of
     CGruppe: FZeilen[Index].Gruppe := Zahl;
-    CArtikel: FZeilen[Index].ArtikelName := Zahl;
+    CArtikel:
+      begin
+        FZeilen[Index].ArtikelName := Zahl;
+        FZeilen[Index].Text := Zahl;
+      end;
     CMenge:
       if MilliAusText(Zahl, Milli) then
         FZeilen[Index].MengeMilli := Milli;
@@ -789,22 +793,6 @@ begin
     Exit;
   PosTextSichern;
   FZeile := aRow - 1;
-  if (FZeile >= 0) and (FZeile <= High(FZeilen)) then
-  begin
-    FFuellen := True;
-    try
-      MemoPos.Text := FZeilen[FZeile].Text;
-    finally
-      FFuellen := False;
-    end;
-  end;
-end;
-
-procedure TBelegfenster.PosTextVerlassen(Sender: TObject);
-begin
-  PosTextSichern;
-  if CheckSofort.Checked then
-    SummenZeigen;
 end;
 
 procedure TBelegfenster.SummenZeigen;
@@ -856,7 +844,6 @@ begin
   MemoKopf.ReadOnly := not Aendern;
   MemoFuss.ReadOnly := not Aendern;
   MemoNotiz.ReadOnly := not Aendern;
-  MemoPos.ReadOnly := not Aendern;
   EditBezeichnung.ReadOnly := not Aendern;
   EditZeichen.ReadOnly := not Aendern;
   EditDatum.ReadOnly := not Aendern;
@@ -1062,7 +1049,18 @@ begin
   FZeile := Index;
   Gitter;
   Knoepfe;
-  MemoPos.SetFocus;
+  ZeileFokussieren(Index);
+end;
+
+procedure TBelegfenster.ZeileFokussieren(Index: Integer);
+begin
+  if (Index < 0) or (Index > High(FZeilen)) then
+    Exit;
+  FZeile := Index;
+  GridPos.Row := Index + 1;
+  GridPos.Col := CArtikel;
+  if GridPos.CanFocus then
+    GridPos.SetFocus;
 end;
 
 procedure TBelegfenster.NeuKlick(Sender: TObject);
@@ -1109,7 +1107,7 @@ begin
     ShowMessage('Bitte zuerst eine Position auswählen.');
     Exit;
   end;
-  MemoPos.SetFocus;
+  ZeileFokussieren(Gewaehlt);
 end;
 
 procedure TBelegfenster.LoeschenKlick(Sender: TObject);
@@ -1221,10 +1219,9 @@ begin
     Exit;
   if not uartikel.ArtikelLaden(Id, Artikel) then
     Exit;
-  if Gewaehlt < 0 then
-    ZeileAnlegen;
-  Index := Gewaehlt;
-  if Index < 0 then
+  ZeileAnlegen;
+  Index := FZeile;
+  if (Index < 0) or (Index > High(FZeilen)) then
     Exit;
   FZeilen[Index].ArtikelId := Artikel.Id;
   FZeilen[Index].Gruppe := Artikel.Gruppe;
@@ -1247,6 +1244,7 @@ begin
   FZeile := Index;
   Gitter;
   SummenZeigen;
+  ZeileFokussieren(Index);
 end;
 
 procedure TBelegfenster.ProjektSuchen(Sender: TObject);
@@ -1440,9 +1438,8 @@ var
   Memo: Boolean;
 begin
   Memo := (ActiveControl = MemoKopf) or (ActiveControl = MemoFuss) or
-    (ActiveControl = MemoNotiz) or (ActiveControl = MemoPos) or
-    (ActiveControl = MemoAdresse) or (ActiveControl = MemoExtern) or
-    (ActiveControl = MemoIntern);
+    (ActiveControl = MemoNotiz) or (ActiveControl = MemoAdresse) or
+    (ActiveControl = MemoExtern) or (ActiveControl = MemoIntern);
   if (Key = VK_ESCAPE) or ((ssShift in Shift) and (Key = VK_ESCAPE)) then
   begin
     ModalResult := mrCancel;
