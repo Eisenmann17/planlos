@@ -141,12 +141,17 @@ begin
     begin
       SetLength(FIds, 0);
       GridListe.RowCount := 2;
-      GridListe.Cells[0, 1] := '';
+      GridListe.Cells[0, 1] :=
+        'Noch keine eigenen Einstellungen. Mit Strg+F6 in einem Fenster speichern.';
+      GridListe.ColWidths[0] := 640;
       GridListe.Cells[1, 1] := '';
       if FAdmin then
         GridListe.Cells[2, 1] := '';
+      LabelHinweis.Caption := GridListe.Cells[0, 1];
       Exit;
     end;
+    LabelHinweis.Caption :=
+      'Gespeicherte Stellungen. Vorgabe löscht den Satz, dann gilt wieder die allgemeine Einstellung.';
     GridListe.RowCount := Zeilen.Count + 1;
     SetLength(FIds, Zeilen.Count);
     for i := 0 to Zeilen.Count - 1 do
