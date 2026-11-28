@@ -212,9 +212,9 @@ begin
   if not FensterLesen(GridListe.Cells[0, Index + 1], GridListe.Cells[1, Index + 1],
     Satz) then
   begin
-    ShowMessage('Die Fenstereinstellung wurde nicht gefunden.');
-    ListeLaden;
-    Exit;
+    Satz := Default(TFensterSatz);
+    Satz.Fenster := GridListe.Cells[0, Index + 1];
+    Satz.Kontext := GridListe.Cells[1, Index + 1];
   end;
   Namen := TStringList.Create;
   try

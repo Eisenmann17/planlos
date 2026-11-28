@@ -142,42 +142,59 @@ begin
         LineEnding + Fehler;
       Exit;
     end;
+  if Trim(Satz.Fenster) = '' then
+  begin
+    Fehler := 'Das Fenster hat keinen Namen.';
+    Exit;
+  end;
   if FensterLesen(Satz.Fenster, Satz.Kontext, Bisher) then
   begin
     Satz.Id := Bisher.Id;
     if not PruefeSql then
       Satz.SqlText := Bisher.SqlText;
-  end;
+  end
+  else
+    Satz.Id := 0;
   Parameter := TStringList.Create;
   try
     try
-      Parameter.Values['fenster'] := Satz.Fenster;
-      Parameter.Values['kontext'] := Satz.Kontext;
-      Parameter.Values['links'] := IntToStr(Satz.Links);
-      Parameter.Values['oben'] := IntToStr(Satz.Oben);
-      Parameter.Values['breite'] := IntToStr(Satz.Breite);
-      Parameter.Values['hoehe'] := IntToStr(Satz.Hoehe);
-      Parameter.Values['spalten'] := Satz.Spalten;
-      Parameter.Values['sortierung'] := Satz.Sortierung;
-      Parameter.Values['filter'] := Satz.Filter;
-      Parameter.Values['sql'] := Satz.SqlText;
+      if Satz.Id > 0 then
+      begin
+        Parameter.Values['links'] := IntToStr(Satz.Links);
+        Parameter.Values['oben'] := IntToStr(Satz.Oben);
+        Parameter.Values['breite'] := IntToStr(Satz.Breite);
+        Parameter.Values['hoehe'] := IntToStr(Satz.Hoehe);
+        Parameter.Values['spalten'] := Satz.Spalten;
+        Parameter.Values['sortierung'] := Satz.Sortierung;
+        Parameter.Values['filter'] := Satz.Filter;
+        Parameter.Values['sql'] := Satz.SqlText;
+        Parameter.Values['id'] := IntToStr(Satz.Id);
+        if PlanlosDB.Ausfuehren(
+          'UPDATE fenstereinstellung SET links = :links, oben = :oben, ' +
+          'breite = :breite, hoehe = :hoehe, spalten = :spalten, ' +
+          'sortierung = :sortierung, filter = :filter, sql_text = :sql WHERE id = :id',
+          Parameter) < 1 then
+          Satz.Id := 0;
+      end;
       if Satz.Id = 0 then
       begin
+        Parameter.Clear;
+        Parameter.Values['fenster'] := Satz.Fenster;
+        Parameter.Values['kontext'] := Satz.Kontext;
+        Parameter.Values['links'] := IntToStr(Satz.Links);
+        Parameter.Values['oben'] := IntToStr(Satz.Oben);
+        Parameter.Values['breite'] := IntToStr(Satz.Breite);
+        Parameter.Values['hoehe'] := IntToStr(Satz.Hoehe);
+        Parameter.Values['spalten'] := Satz.Spalten;
+        Parameter.Values['sortierung'] := Satz.Sortierung;
+        Parameter.Values['filter'] := Satz.Filter;
+        Parameter.Values['sql'] := Satz.SqlText;
         PlanlosDB.Ausfuehren(
           'INSERT INTO fenstereinstellung (fenster, kontext, links, oben, breite, ' +
           'hoehe, spalten, sortierung, filter, sql_text) VALUES (:fenster, :kontext, ' +
           ':links, :oben, :breite, :hoehe, :spalten, :sortierung, :filter, :sql)',
           Parameter);
         Satz.Id := StrToInt64Def(PlanlosDB.Skalar('SELECT last_insert_rowid()'), 0);
-      end
-      else
-      begin
-        Parameter.Values['id'] := IntToStr(Satz.Id);
-        PlanlosDB.Ausfuehren(
-          'UPDATE fenstereinstellung SET links = :links, oben = :oben, ' +
-          'breite = :breite, hoehe = :hoehe, spalten = :spalten, ' +
-          'sortierung = :sortierung, filter = :filter, sql_text = :sql WHERE id = :id',
-          Parameter);
       end;
       Satz.HatSatz := Satz.Id > 0;
       Result := Satz.HatSatz;
@@ -187,7 +204,10 @@ begin
       on E: Exception do
       begin
         PlanlosDB.TransaktionAbbrechen;
-        Fehler := E.Message;
+        if Pos('not found', LowerCase(E.Message)) > 0 then
+          Fehler := 'Die Fenstereinstellung wurde nicht gefunden.'
+        else
+          Fehler := E.Message;
         Result := False;
       end;
     end;
