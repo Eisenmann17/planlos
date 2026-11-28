@@ -613,29 +613,9 @@ object Belegfenster: TBelegfenster
     ClientHeight = 255
     ClientWidth = 785
     TabOrder = 4
-    object MemoPos: TMemo
-      Left = 0
-      Height = 48
-      Top = 207
-      Width = 785
-      Align = alBottom
-      ScrollBars = ssVertical
-      TabOrder = 1
-      OnExit = PosTextVerlassen
-    end
-    object LabelPositionstext: TLabel
-      Left = 8
-      Height = 16
-      Top = 190
-      Width = 120
-      Align = alBottom
-      Caption = 'Positionstext'
-      Font.Color = clNavy
-      ParentFont = False
-    end
     object GridPos: TStringGrid
       Left = 0
-      Height = 207
+      Height = 255
       Top = 0
       Width = 785
       Align = alClient
