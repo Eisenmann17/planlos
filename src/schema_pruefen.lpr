@@ -850,6 +850,21 @@ begin
       if not FensterLesen('suche', 'angebot', FensterSatz2) or
          (FensterSatz2.Breite <> 480) or (FensterSatz2.Filter <> 'Meier') then
         Fehlschlag('Die Fenstereinstellung für den Angebotskontext fehlt.');
+      FensterSatz.Links := 30;
+      FensterSatz.Filter := 'Neu';
+      if not FensterSpeichern(FensterSatz, FolgeFehler) then
+        Fehlschlag('Zweites Speichern: ' + FolgeFehler);
+      if not FensterLesen('suche', 'angebot', FensterSatz2) or
+         (FensterSatz2.Links <> 30) or (FensterSatz2.Filter <> 'Neu') then
+        Fehlschlag('Eine vorhandene Fenstereinstellung lässt sich nicht ändern.');
+      if not FensterLoeschen(FensterSatz.Id, FolgeFehler) then
+        Fehlschlag(FolgeFehler);
+      FensterSatz.Links := 33;
+      if not FensterSpeichern(FensterSatz, FolgeFehler) then
+        Fehlschlag('Speichern nach dem Löschen: ' + FolgeFehler);
+      if not FensterLesen('suche', 'angebot', FensterSatz2) or
+         (FensterSatz2.Links <> 33) then
+        Fehlschlag('Ein fehlender Satz wird nicht neu angelegt.');
       if FensterLesen('suche', 'bestellung', FensterSatz2) then
         Fehlschlag('Die Bestellung darf die Fenstereinstellung des Angebots nicht teilen.');
       if not FensterMitVorgabe('suche', 'rechnung', 4, 5, 200, 150, FensterSatz,
